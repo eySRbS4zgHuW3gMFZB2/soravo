@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Outlet, useLocation } from "react-router";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
@@ -10,9 +10,14 @@ export function Layout() {
   }, [location.pathname]);
   return (
     <>
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <SiteHeader />
       <main id="main">
-        <Outlet />
+        <Suspense fallback={<div className="route-fallback" aria-hidden="true" />}>
+          <Outlet />
+        </Suspense>
       </main>
       <SiteFooter />
     </>

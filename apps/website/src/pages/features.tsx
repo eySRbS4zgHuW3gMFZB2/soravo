@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardDescription, CardHeader } from "../components/ui/card";
 
 const capabilities = [
   {
@@ -55,9 +55,9 @@ export function Features() {
         {capabilities.map((capability) => (
           <Card key={capability.title}>
             <CardHeader>
-              <CardTitle role="heading" aria-level={2}>
+              <h3 className="text-base leading-snug font-medium">
                 {capability.title}
-              </CardTitle>
+              </h3>
               <CardDescription>{capability.description}</CardDescription>
             </CardHeader>
           </Card>
@@ -68,13 +68,13 @@ export function Features() {
         {personas.map((persona) => (
           <div className="persona" key={persona.role}>
             <strong>{persona.role}</strong>
-            <h2>{persona.title}</h2>
+            <h3>{persona.title}</h3>
             <p>{persona.copy}</p>
           </div>
         ))}
       </div>
       <div className="page-actions">
-        <Button render={<Link to="/download" />}>Get Soravo</Button>
+        <Button render={<Link to="/download" />} nativeButton={false}>Get Soravo</Button>
         <Link className="text-link" to="/faq">
           Read the FAQ
         </Link>

@@ -9,6 +9,14 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": path.resolve(rootDir, "./src") } },
-  server: { headers: { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" } },
+  server: {
+    headers: {
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "X-Frame-Options": "DENY",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+      "Cross-Origin-Opener-Policy": "same-origin",
+    },
+  },
   test: { environment: "jsdom", setupFiles: "./src/test-setup.ts" }
 });

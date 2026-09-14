@@ -1,20 +1,20 @@
 import { Link } from "react-router";
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "../components/ui/card";
 
 const platforms = [
   {
     name: "macOS",
     systems: "Recent macOS releases, Apple silicon and Intel where supported.",
     artifact: "Signed DMG",
-    note: "Not yet available — publishing waits for the release pipeline.",
+    note: "Not yet available \u2014 publishing waits for the release pipeline.",
   },
   {
     name: "Windows",
     systems: "Windows 10 and 11 (x64).",
     artifact: "Signed installer",
-    note: "Not yet available — publishing waits for the release pipeline.",
+    note: "Not yet available \u2014 publishing waits for the release pipeline.",
   },
 ] as const;
 
@@ -29,14 +29,14 @@ export function Download() {
         {platforms.map((platform) => (
           <Card key={platform.name}>
             <CardHeader>
-              <CardTitle role="heading" aria-level={2}>
+              <h2 className="text-base leading-snug font-medium">
                 {platform.name}
-              </CardTitle>
+              </h2>
               <CardDescription>{platform.systems}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="plan-terms">
-                <strong>{platform.artifact}</strong> — {platform.note}
+                <strong>{platform.artifact}</strong>{" "}— {platform.note}
               </p>
             </CardContent>
             <CardFooter className="mt-auto">
@@ -51,7 +51,7 @@ export function Download() {
       </p>
       <p className="verification-note">Linux is deferred and is not part of the V1 release.</p>
       <div className="page-actions">
-        <Button render={<Link to="/support" />}>Get notified when downloads open</Button>
+        <Button render={<Link to="/support" />} nativeButton={false}>Get notified when downloads open</Button>
         <Link className="text-link" to="/faq">
           Read the FAQ
         </Link>

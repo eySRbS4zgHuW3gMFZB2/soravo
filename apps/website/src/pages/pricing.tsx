@@ -1,14 +1,14 @@
 import { Link } from "react-router";
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card";
 import { trackEvent } from "../lib/analytics";
 
 const plans = [
   {
     kicker: "EVALUATED TARGET",
     title: "Monthly",
-    price: "≈ $12",
+    price: "\u2248 $12",
     interval: "per month",
     terms: "Billed monthly. Cancel anytime. Includes the full desktop app on macOS and Windows.",
     features: [
@@ -20,7 +20,7 @@ const plans = [
   {
     kicker: "EVALUATED TARGET",
     title: "One-time",
-    price: "≈ $50",
+    price: "\u2248 $50",
     interval: "once",
     terms: "Pay once and keep the desktop app on your device.",
     features: [
@@ -43,9 +43,9 @@ export function Pricing() {
           <Card key={plan.title}>
             <CardHeader>
               <span className="plan-kicker">{plan.kicker}</span>
-              <CardTitle role="heading" aria-level={2}>
+              <h2 className="text-base leading-snug font-medium">
                 {plan.title}
-              </CardTitle>
+              </h2>
             </CardHeader>
             <CardContent>
               <p className="plan-price">
@@ -70,7 +70,7 @@ export function Pricing() {
         terms will be published when the payment flow is live — nothing is billed today.
       </p>
       <div className="page-actions">
-        <Button render={<Link to="/support" />} onClick={() => trackEvent("signup cta", { source: "pricing" })}>
+        <Button render={<Link to="/support" />} nativeButton={false} onClick={() => trackEvent("signup cta", { source: "pricing" })}>
           Join the launch list
         </Button>
         <Link className="text-link" to="/refund">

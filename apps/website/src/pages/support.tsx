@@ -1,6 +1,6 @@
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "../components/ui/card";
 import { trackEvent } from "../lib/analytics";
 
 const included = [
@@ -20,20 +20,20 @@ export function Support() {
       <div className="card-grid">
         <Card>
           <CardHeader>
-            <CardTitle role="heading" aria-level={2}>
+            <h2 className="text-base leading-snug font-medium">
               Email support
-            </CardTitle>
+            </h2>
             <CardDescription>Reach the team directly at support@soravo.app.</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button render={<a href="mailto:support@soravo.app" />}>Email the team</Button>
+            <Button render={<a href="mailto:support@soravo.app" />} nativeButton={false}>Email the team</Button>
           </CardFooter>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle role="heading" aria-level={2}>
+            <h2 className="text-base leading-snug font-medium">
               What to include
-            </CardTitle>
+            </h2>
             <CardDescription>These details help us reproduce and fix issues faster.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -46,22 +46,22 @@ export function Support() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle role="heading" aria-level={2}>
+            <h2 className="text-base leading-snug font-medium">
               Launch list
-            </CardTitle>
+            </h2>
             <CardDescription>Get notified when downloads and accounts open.</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button render={<a href="mailto:support@soravo.app" />} onClick={() => trackEvent("signup cta", { source: "support" })}>
+            <Button render={<a href="mailto:support@soravo.app" />} nativeButton={false} onClick={() => trackEvent("signup cta", { source: "support" })}>
               Join the list
             </Button>
           </CardFooter>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle role="heading" aria-level={2}>
+            <h2 className="text-base leading-snug font-medium">
               Documentation
-            </CardTitle>
+            </h2>
             <CardDescription>Setup, privacy, and troubleshooting guides arrive with the desktop release.</CardDescription>
           </CardHeader>
           <CardFooter>

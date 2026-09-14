@@ -15,7 +15,7 @@ const faqs = [
   {
     question: "How does Soravo choose its speech engine?",
     answer:
-      "By benchmark. Candidate engines are compared on latency, quality, memory, packaging, license, and platform support before one is selected — not by convenience.",
+      "By benchmark. Candidate engines are compared on latency, quality, memory, packaging, license, and platform support before one is selected \u2014 not by convenience.",
   },
   {
     question: "Can I use my own shortcut?",
@@ -66,7 +66,7 @@ export function Faq() {
         ))}
       </div>
       <div className="page-actions">
-        <Button render={<Link to="/support" />}>Still have questions?</Button>
+        <Button render={<Link to="/support" />} nativeButton={false}>Still have questions?</Button>
         <Link className="text-link" to="/privacy">
           Read the privacy commitment
         </Link>

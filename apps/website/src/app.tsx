@@ -1,18 +1,46 @@
+import { lazy } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { Layout } from "./components/layout/layout";
-import { Landing } from "./pages/landing";
-import { Features } from "./pages/features";
-import { Pricing } from "./pages/pricing";
-import { Download } from "./pages/download";
-import { Faq } from "./pages/faq";
-import { Support } from "./pages/support";
-import { Privacy } from "./pages/privacy";
-import { Terms } from "./pages/terms";
-import { Refund } from "./pages/refund";
-import { Login } from "./pages/login";
-import { Account } from "./pages/account";
-import { Admin } from "./pages/admin";
-import { NotFound } from "./pages/not-found";
+
+const Landing = lazy(() =>
+  import("./pages/landing").then((m) => ({ default: m.Landing })),
+);
+const Features = lazy(() =>
+  import("./pages/features").then((m) => ({ default: m.Features })),
+);
+const Pricing = lazy(() =>
+  import("./pages/pricing").then((m) => ({ default: m.Pricing })),
+);
+const Download = lazy(() =>
+  import("./pages/download").then((m) => ({ default: m.Download })),
+);
+const Faq = lazy(() =>
+  import("./pages/faq").then((m) => ({ default: m.Faq })),
+);
+const Support = lazy(() =>
+  import("./pages/support").then((m) => ({ default: m.Support })),
+);
+const Privacy = lazy(() =>
+  import("./pages/privacy").then((m) => ({ default: m.Privacy })),
+);
+const Terms = lazy(() =>
+  import("./pages/terms").then((m) => ({ default: m.Terms })),
+);
+const Refund = lazy(() =>
+  import("./pages/refund").then((m) => ({ default: m.Refund })),
+);
+const Login = lazy(() =>
+  import("./pages/login").then((m) => ({ default: m.Login })),
+);
+const Account = lazy(() =>
+  import("./pages/account").then((m) => ({ default: m.Account })),
+);
+const Admin = lazy(() =>
+  import("./pages/admin").then((m) => ({ default: m.Admin })),
+);
+const NotFound = lazy(() =>
+  import("./pages/not-found").then((m) => ({ default: m.NotFound })),
+);
 
 export function AppRoutes() {
   return (
