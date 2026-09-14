@@ -1,0 +1,14 @@
+{
+  "name": "soravo",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.17.0",
+  "scripts": {
+    "build": "pnpm --filter @soravo/website build && pnpm --filter @soravo/desktop build",
+    "dev:website": "pnpm --filter @soravo/website dev",
+    "dev:desktop": "pnpm --filter @soravo/desktop tauri dev",
+    "lint": "pnpm --filter @soravo/website lint && pnpm --filter @soravo/desktop lint",
+    "test": "pnpm --filter @soravo/website test && pnpm --filter @soravo/desktop test",
+    "typecheck": "pnpm --filter @soravo/website typecheck && pnpm --filter @soravo/desktop typecheck"
+  }
+}

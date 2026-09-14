@@ -1,0 +1,21 @@
+# Dependencies and generated output
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+target/
+.vite/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local application data and operating-system files
+.DS_Store
+Thumbs.db
+*.log
+models/
+progress/*.local.md

@@ -1,0 +1,61 @@
+{
+  "spec_version": "2.0",
+  "working_product_name": "Soravo",
+  "primary_platforms": [
+    "macOS",
+    "Windows"
+  ],
+  "frontend": [
+    "React",
+    "TypeScript",
+    "Tailwind CSS",
+    "shadcn/ui"
+  ],
+  "desktop": "Tauri v2 + Rust",
+  "stt_primary_candidate": "Parakeet",
+  "stt_fallback_candidate": "Whisper",
+  "backend": "Supabase",
+  "payments": "Razorpay",
+  "website_hosting": "Cloudflare",
+  "website_analytics": "Umami",
+  "binary_distribution": "GitHub Releases",
+  "model_distribution": "Source abstraction; initially compatible with Hugging Face/official model hosts",
+  "testing": [
+    "Vitest",
+    "Playwright",
+    "TestSprite MCP"
+  ],
+  "agent_tools": [
+    "skills.sh",
+    "GitHub MCP",
+    "Supabase MCP",
+    "Cloudflare MCP",
+    "TestSprite MCP"
+  ],
+  "security": [
+    "OWASP ASVS-aligned guidance",
+    "RLS",
+    "parameterized SQL",
+    "CSP",
+    "least privilege",
+    "secret scanning",
+    "static analysis"
+  ],
+  "documents": [
+    "README.md",
+    "01_PRD.md",
+    "02_TDD.md",
+    "03_AI_INSTRUCTIONS.md",
+    "04_IMPLEMENTATION_PLAN.md",
+    "05_TASK_BREAKDOWN.md",
+    "06_DOD_QA.md",
+    "07_AI_SKILLS.md",
+    "08_MCP_AND_AGENT_TOOLING.md",
+    "09_SECURITY_BASELINE.md",
+    "10_ADR_INDEX.md",
+    "11_INTERRUPTION_HANDOFF.md",
+    "12_BENCHMARK_PROTOCOL.md",
+    "13_RELEASE_RUNBOOK.md",
+    "14_ENVIRONMENT_AND_SECRETS.md"
+  ]
+}

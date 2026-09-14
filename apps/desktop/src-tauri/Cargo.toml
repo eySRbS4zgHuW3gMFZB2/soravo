@@ -1,0 +1,22 @@
+[package]
+name = "soravo-desktop"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "soravo_desktop_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "soravo-desktop"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[lints]
+workspace = true
