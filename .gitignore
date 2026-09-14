@@ -5,6 +5,7 @@ dist/
 coverage/
 target/
 .vite/
+apps/desktop/src-tauri/gen/
 
 # Local configuration and secrets
 .env
