@@ -1,6 +1,7 @@
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { trackEvent } from "../lib/analytics";
 
 const included = [
   "Your operating system and version",
@@ -51,7 +52,9 @@ export function Support() {
             <CardDescription>Get notified when downloads and accounts open.</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button render={<a href="mailto:support@soravo.app" />}>Join the list</Button>
+            <Button render={<a href="mailto:support@soravo.app" />} onClick={() => trackEvent("signup cta", { source: "support" })}>
+              Join the list
+            </Button>
           </CardFooter>
         </Card>
         <Card>

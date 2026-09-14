@@ -172,3 +172,42 @@ Exact next task: **Phase 1 — Website foundation**, starting with **WEB-001 sit
   `pnpm audit --prod`, `cargo fmt --check`, `cargo check --workspace`, `cargo test --workspace`,
   `cargo clippy --workspace --all-targets --all-features -- -D warnings` ALL PASS.
 - Next task: WEB-006 Umami integration (see `progress/NEXT.md`).
+
+## V. Post-takeover session 6 — WEB-006 Umami integration (committed with this change set)
+
+- New `apps/website/src/lib/analytics.ts`: env-gated Umami tracker for website behavior only.
+  Reads `VITE_UMAMI_HOST_URL` + `VITE_UMAMI_WEBSITE_ID` lazily (public/client-safe per
+  `14_ENVIRONMENT_AND_SECRETS.md`); both must be set to enable. `loadAnalytics()` injects the
+  tracker (`<host>/script.js`) once with `data-website-id`, `data-host-url`,
+  `data-exclude-search`, `data-exclude-hash`; host is validated to http(s) first (rejects
+  `javascript:` and other schemes). Inert by default — no script, no events, no fake analytics.
+  `trackEvent(name, data?)` only forwards when enabled; events carry static names/data only.
+- Wiring: `main.tsx` calls `loadAnalytics()` at startup; pricing "Join the launch list" and
+  support "Join the list" CTAs report `signup cta` with static `source` values
+  (pricing/support) — the site's launch-list/signup CTAs. Page views and SPA navigation are
+  auto-tracked by the tracker itself. No `identify()` (no session IDs), no dictation/audio/
+  keystrokes/clipboard content anywhere in payloads. `data-exclude-search/hash` keep URLs free
+  of query/hash content (defense-in-depth for any future private URL data).
+- Privacy check: the privacy-page "Website analytics boundary" commit remains accurate
+  ("when present, are limited to page views and product-page interactions provided through
+  Umami... never receive dictated content, clipboard contents, or keystrokes"). No copy change
+  needed. Verified step 3 of NEXT.md: `document.referrer`/navigation payloads are standard
+  website-behavior properties (hostname, language, referrer, screen, title, url) with search/
+  hash excluded; no private content.
+- Types/env: `vite-env.d.ts` augments ImportMetaEnv with the two public vars;
+  `apps/website/.env.example` documents them (unset = inert).
+- Tests: +5 `analytics.test.ts` (inert when unset; no events when disabled; single script
+  injection with correct src/attrs when configured; non-http(s) host rejected; event forwarded
+  with static payload when enabled) and +1 website CTA wiring test (pricing launch-list click
+  reports `signup cta {source:"pricing"}`). Website suite now 13; total website 18 tests.
+- No new dependencies; no secrets in bundle; no .env files tracked (example only).
+- ASVS alignment (recorded in plan notes, no inline comments): V1.2 host validation before
+  script injection; V3.6 external-resource integrity — SRI not applied to Umami's operator-
+  hosted versioned `script.js`, mitigated by env-gating + http(s)-only operator config; revisit
+  with CSP when deployed; V13.3 only client-safe values enter the bundle; V14.2 analytics data
+  bounded to website behavior with URL query/hash excluded.
+- Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 18, desktop 1),
+  `pnpm build`, `pnpm audit --prod`, `cargo fmt --check`, `cargo check --workspace`,
+  `cargo test --workspace`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+  ALL PASS; secret-pattern scan of diff clean.
+- Next task: WEB-007 accessibility/performance (see `progress/NEXT.md`).

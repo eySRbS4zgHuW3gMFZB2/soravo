@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { trackEvent } from "../lib/analytics";
 
 const plans = [
   {
@@ -69,7 +70,9 @@ export function Pricing() {
         terms will be published when the payment flow is live — nothing is billed today.
       </p>
       <div className="page-actions">
-        <Button render={<Link to="/support" />}>Join the launch list</Button>
+        <Button render={<Link to="/support" />} onClick={() => trackEvent("signup cta", { source: "pricing" })}>
+          Join the launch list
+        </Button>
         <Link className="text-link" to="/refund">
           Refund &amp; cancellation policy
         </Link>

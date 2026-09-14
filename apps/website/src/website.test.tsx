@@ -1,9 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { AppRoutes } from "./app";
 
 afterEach(cleanup);
+afterEach(() => {
+  vi.unstubAllEnvs();
+  window.umami = undefined;
+});
 
 function renderAt(path: string) {
   return render(
@@ -86,5 +90,15 @@ describe("website shell", () => {
       "mailto:support@soravo.app"
     );
     expect(screen.getByText(/never need to send audio or dictated transcripts/i)).toBeTruthy();
+  });
+
+  it("reports the pricing launch-list CTA as a website-behavior signup event", () => {
+    vi.stubEnv("VITE_UMAMI_HOST_URL", "https://analytics.example.com");
+    vi.stubEnv("VITE_UMAMI_WEBSITE_ID", "abc-123");
+    const track = vi.fn();
+    window.umami = { track };
+    renderAt("/pricing");
+    fireEvent.click(screen.getByRole("link", { name: /join the launch list/i }));
+    expect(track).toHaveBeenCalledWith("signup cta", { source: "pricing" });
   });
 });
