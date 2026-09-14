@@ -128,3 +128,20 @@ Exact next task: **Phase 1 — Website foundation**, starting with **WEB-001 sit
 - Tests: landing scope assertion + features capability-card assertion added (5 website tests total); updated landing privacy-promise matcher to "privacy commitment".
 - Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 5, desktop 1), `pnpm build`, `pnpm audit --prod` ALL PASS.
 - Next task: WEB-004 pricing/download/FAQ (see `progress/NEXT.md`).
+
+## T. Post-takeover session 4 — WEB-004 pricing/download/FAQ (committed with this change set)
+
+- Pricing page rebuilt: shadcn Card grid of two plans (Monthly ≈$12, One-time ≈$50), each kicker-labeled
+  "EVALUATED TARGET" plus a disclaimer that targets are not an offer and nothing is billed today (PRD §8
+  compliance). CTAs: launch list + refund policy link. MDN-style color fixes so prices render in ink ink, not sage.
+- Download page: staged matrix as Cards (macOS / Windows) with system requirements, artifact type, "No build
+  yet" disabled Buttons, signed+SHA-256 checksum verification note, and explicit "Linux is deferred" line.
+- FAQ expanded 5→10 items (engine selection, automatic typing/injection, network boundary, expected cost,
+  download verification) with a support CTA; uses native details/summary styled via `.page details`.
+- CSS: added `.plan-kicker`, `.plan-price`, `.plan-terms`, `.plan-list`, `.plan-disclaimer`, `.verification-note`;
+  removed dead `.plan-card`/`.card-footer-button` attempt.
+- Tests: 3 new assertions (evaluated-target labels + nothing-billed disclaimer, staged download cards +
+  checksum note, FAQ cost/verification Q&A). Website suite now 8 tests.
+- Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 8, desktop 1), `pnpm build`,
+  `pnpm audit --prod` ALL PASS.
+- Next task: WEB-005 legal/support pages (see `progress/NEXT.md`).

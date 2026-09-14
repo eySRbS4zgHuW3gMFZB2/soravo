@@ -39,4 +39,22 @@ describe("website shell", () => {
     expect(screen.getAllByRole("heading", { level: 2 }).length).toBeGreaterThanOrEqual(6);
     expect(screen.getByText(/configurable global hotkey/i)).toBeTruthy();
   });
+
+  it("labels pricing targets as evaluated, not offers", () => {
+    renderAt("/pricing");
+    expect(screen.getAllByText(/evaluated target/i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/nothing is billed today/i)).toBeTruthy();
+  });
+
+  it("shows staged download cards with checksum verification note", () => {
+    renderAt("/download");
+    expect(screen.getAllByText(/no build yet/i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/SHA-256 checksums/i)).toBeTruthy();
+  });
+
+  it("renders the expanded FAQ with cost and verification answers", () => {
+    renderAt("/faq");
+    expect(screen.getByText(/how much will soravo cost/i)).toBeTruthy();
+    expect(screen.getByText(/how will downloads be verified/i)).toBeTruthy();
+  });
 });
