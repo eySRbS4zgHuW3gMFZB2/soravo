@@ -178,3 +178,49 @@ All MCP servers: project-scoped, least-privilege, read-only unless a task requir
 - Web/registry access (npm registry, GitHub REST via `gh`, DNS verified in environment audit).
 - Built-in `customize-opencode` skill for opencode configuration questions.
 - All content-page engineering that needs no MCP (WEB-001..WEB-004 are done without any MCP server).
+
+## M. Post-setup state (2026-09-14) — current OpenCode environment
+
+Supersedes §0/§A–§D's "nothing installed/configured" baseline. This section describes the environment **after** PART 1 (skills) and PART 2 (MCP config) of the setup work, which modified only the host opencode global config and the host skills directory — nothing in the repo, no external services, no credentials.
+
+### M.1 Skills — installed and loadable
+
+- **32 of 33 required skills INSTALLED** into `/home/maya/.agents/skills/<name>/SKILL.md` via the `skills` CLI (v1.5.26). Installed set and sources: find-skills (vercel-labs/skills), shadcn (shadcn-ui/ui), react + tauri-development (mindrally/skills), vercel-react-best-practices + vercel-composition-patterns + web-design-guidelines (vercel-labs/agent-skills), **frontend-design (vercel-labs/open-agents — SOURCE CHANGE: absent from vercel-labs/agent-skills; installed from the exact-skill-name vercel-labs lineage repo)**, frontend-accessibility (aj-geddes/useful-ai-prompts), tauri (hairyf/skills), tauri-setup (full-stack-skills/tauri-skills), rust-engineer (jeffallan/claude-skills), rust-review + gh-cli + semgrep + supply-chain-risk-auditor + secure-workflow-guide + codeql (trailofbits/skills), security-guidance + securability-engineering + agent-security-audit + mcp-server-review (owasp/secure-agent-playbook), supabase + supabase-postgres-best-practices (supabase/agent-skills), cloudflare + wrangler + workers-best-practices + web-perf (cloudflare/skills), cloudflare-deploy + playwright (openai/skills), github (dimillian/skills), vitest (supabase/supabase, `--full-depth`).
+- Verified per install: `~/.agents/skills/<name>/SKILL.md` exists, exactly one SKILL.md per dir, frontmatter `name` matches the dir name (`playwright`'s quoted name parses fine).
+- Declared also via `skills.paths: ["~/.agents/skills"]` in the global config; OpenCode's external auto-load covers the same directory (`skills/**/SKILL.md`), same-path scans dedupe (Set semantics).
+- **`insecure-defaults`: SOURCE UNAVAILABLE.** `trailofbits/skills` provides it only as a Claude Code plugin (`plugins/insecure-defaults/.claude-plugin/plugin.json`) — no SKILL.md; `skills` CLI returns "No matching skills found". Not installable as a standalone skill; recorded as the single not-installed entry (33rd).
+- Loadability confirmed structurally (OpenCode global-dir scan + `skills.paths` glob, verified against the installed engine bundle: `node-fo66o224.js` `{skill,skills}/**/SKILL.md`, `**/SKILL.md`, `EXTERNAL_SKILL_PATTERN` scan). **Functional load verification requires an opencode restart**, then invoking each skill via the skill tool.
+
+### M.2 MCP — configured, none yet connected
+
+All four servers added to the global config (`~/.config/opencode/opencode.jsonc`), each `enabled: true`, **no secrets in the file**:
+
+| MCP | Config | Auth | Read-only posture | Status |
+| --- | --- | --- | --- | --- |
+| GitHub | remote `https://api.githubcopilot.com/mcp/readonly` | OAuth (pending) | `/readonly` endpoint → no mutation tools | CONFIGURED; connect after restart + OAuth |
+| Supabase | remote `https://mcp.supabase.com/mcp?read_only=true` | OAuth; no project_ref (none exists) | server-enforced `read_only=true` | CONFIGURED; **HUMAN ACTION REQUIRED** (project + sign-in) |
+| Cloudflare | remote `https://mcp.cloudflare.com/mcp` | OAuth (pending) | account-scoped consent | CONFIGURED; **HUMAN ACTION REQUIRED** (sign-in) |
+| TestSprite | local `npx -y @testsprite/testsprite-mcp@latest`, env `API_KEY: {env:TESTSPRITE_API_KEY}` | API key via host secret env (unset now) | key-scoped to account | CONFIGURED; **HUMAN ACTION REQUIRED** (account + key export), then re-audit |
+
+- `{env:TESTSPRITE_API_KEY}` unset → interpolates to `""` (verified: `replace(/\{env:([^}]+)\}/g, (…, v) => env?.[v] ?? process.env[v] ?? "")` in the installed bundle), so the local server starts unauthenticated without a startup failure.
+- `experimental.mcp_timeout: 60000` set globally to accommodate first-run `npx` download / slow handshakes.
+- Schema compliance against `opencode.ai/config.json` confirmed (McpRemoteConfig: type/url/enabled/headers/OAuth; McpLocalConfig: type/command/environment/enabled; `enabled` boolean per installed build, not `disabled`).
+- **Returning sessions: the tools this session exposes predate the config**; connected-state check happens after restart — look for `mcp__github_*`, `mcp__supabase_*`, `mcp__cloudflare_*`, `mcp__testsprite_*`.
+
+### M.3 Security re-verification (post-setup)
+
+- Global config contains **zero plaintext secrets** — the only credential reference is `{env:TESTSPRITE_API_KEY}`; GitHub/Supabase/Cloudflare use OAuth consent (no tokens stored).
+- Repo re-scanned after the config write: working tree clean (no tracked/untracked/staged changes), **no `.env*`**, no secret-prefix matches (`ghp_`, `github_pat_`, `sbp_`, `sk_test_`, JWTs, private-key headers, bearer tokens) in any file; `.gitignore` covers `.env*`, `*.pem`, `*.key`, `progress/*.local.md`.
+- `gh` token remains in the OS keyring (scopes gist, read:org, repo, workflow); read access to `eySRbS4zgHuW3gMFZB2/soravo` re-verified.
+
+### M.4 Human actions required (unchanged gating, now clearly scoped)
+
+1. **Restart opencode** (config + skills are read once at startup) — required before any skill or MCP is usable.
+2. **GitHub MCP**: complete the one-time OAuth consent after restart (read-only server already).
+3. **Supabase MCP**: provide a scoped dev/staging project (Phase 2 start), then OAuth login; optionally pin `project_ref`.
+4. **Cloudflare MCP**: OAuth login with the deploy-scoped account when deployment work begins.
+5. **TestSprite MCP**: create the dedicated free-plan account, generate an API key (Settings → API Keys), export `TESTSPRITE_API_KEY` in the host secret environment (never in-repo; never in config), then re-audit.
+
+### M.5 Overdue tooling installs (optional, tracked separately)
+
+`semgrep` and `codeql` CLIs are still absent on the host; the matching skills are installed but cannot execute until the CLIs exist.

@@ -1,14 +1,16 @@
 # MCP audit record
 
-Date: 2026-09-14 (rewritten for the current OpenCode environment; see `SKILLS_MCP_AUDIT.md` for the full read-only audit).
+Date: 2026-09-14 (state after PART 2 of the environment setup; see `SKILLS_MCP_AUDIT.md` for the read-only baseline audit and §M post-setup state).
 
-No MCP server is configured or connected. The OpenCode config (`~/.config/opencode/opencode.jsonc`) contains no `mcp` key; there is no project `opencode.json` / `.opencode/`. No `mcp__*` tool is exposed to the build agent. Official server sources verified read-only: `github/github-mcp-server`, `supabase-community/supabase-mcp`, `cloudflare/mcp-server-cloudflare`; TestSprite is a cloud service (org `TestSprite`).
+All four MCP servers are now **configured** in the global opencode config `~/.config/opencode/opencode.jsonc` (host-global, intentional for Soravo-development host; no project `opencode.json` / `.opencode/` override). The current session predates the config change, so **no server is connected yet**: opencode loads config at startup only, GitHub/Supabase/Cloudflare OAuth consents are pending, and TestSprite has no API key. Restart opencode → complete OAuth sign-ins → re-audit (see §M).
 
 | Server | Source | Environment | Authentication | Scope / permission | Result |
 | --- | --- | --- | --- | --- | --- |
-| GitHub MCP | Not configured | n/a | Not present; `gh` CLI token in OS keyring (scopes gist, read:org, repo, workflow), read verified | n/a | Not connected as MCP; GitHub usable read-only/write via `gh` + `git` today |
-| Supabase MCP | Not configured | n/a | No access token; no project | n/a | NOT CONFIGURED / HUMAN ACTION REQUIRED (Phase 2) |
-| Cloudflare MCP | Not configured | n/a | No account/token | n/a | NOT CONFIGURED / HUMAN ACTION REQUIRED (deployment phase) |
-| TestSprite MCP | Not configured | n/a | No account/API key | n/a | NOT CONFIGURED / HUMAN ACTION REQUIRED (dedicated test account, key via host secret store) |
+| GitHub MCP | `github/github-mcp-server` (remote `https://api.githubcopilot.com/mcp/readonly`) | remote, `enabled: true` | OAuth (RFC 9728, auto-detected) — **pending human sign-in after restart** | **Read-only endpoint**: no mutation tools registered | **CONFIGURED** — not yet CONNECTED; repo read verified today via `gh` (token in OS keyring: gist, read:org, repo, workflow) |
+| Supabase MCP | `supabase/mcp` (remote `https://mcp.supabase.com/mcp?read_only=true`) | remote, `enabled: true` | OAuth — pending; **no project_ref pinned** (no project exists yet per `supabase/README.md`) | Server-enforced `read_only=true` | **CONFIGURED** — **HUMAN ACTION REQUIRED** (project + OAuth) before functional |
+| Cloudflare MCP | `cloudflare/mcp` (remote `https://mcp.cloudflare.com/mcp`) | remote, `enabled: true` | OAuth 2.1 — pending | Scoped to the Cloudflare account that completes consent | **CONFIGURED** — **HUMAN ACTION REQUIRED** (account sign-in) |
+| TestSprite MCP | `@testsprite/testsprite-mcp@latest` (local `npx -y` stdio) | local, `enabled: true` | API key via `{env:TESTSPRITE_API_KEY}` (interpolation yields `""` while unset → server runs unauthenticated) | Account/API-key scope | **CONFIGURED** — **HUMAN ACTION REQUIRED** (free-plan account + API key exported into the host secret environment), then re-audit |
 
-Future MCP policy: any MCP must be recorded here, project-scoped, least-privilege, read-only unless a task requires mutation, credentials supplied by the human via the host secret store and referenced with `{env:VAR}` (no plaintext in config), and excluded from product runtime. After any config change, restart opencode. Historical note: the earlier record described a Codex-app environment (`computer-use`, `node_repl`); that environment is not the build agent for this project.
+Implementation detail: `{env:VAR}` interpolation replaces an unset variable with an empty string (verified in the installed engine bundle, `input.text.replace(/\{env:([^}]+)\}/g, ...) || ""`). The TestSprite server therefore starts (no startup failure) but is unauthenticated until the key exists.
+
+MCP policy in force: configured **without secrets** in any file (credentials only via `{env:}` / OS keyring / OAuth consent), read-only by default (GitHub `/readonly` endpoint, Supabase `read_only=true`), excluded from product runtime, recorded here, and any change requires an opencode restart.
