@@ -4,6 +4,47 @@ This file intentionally names concrete skills so the coding agent does not have 
 
 Skills.sh changes continuously. These are the skills found/recommended during the September 2026 specification review. Before use, the agent must inspect the current skill contents and verify fast-changing APIs against official documentation.
 
+Installing a skill is NOT the same as loading it for a task. The Skill Selection Gate (`03_AI_INSTRUCTIONS.md` §5) and the Skill Selection Matrix in this file govern WHEN a skill is actually loaded. The registry below is the inventory, not an instruction to load everything.
+
+## Skill Selection Gate (mandatory)
+
+For EVERY implementation task, the agent MUST identify and load the relevant installed skills BEFORE planning implementation or modifying source code. The gate is:
+
+1. Read the task definition.
+2. Classify the task by domain — one or more of: frontend/UI; React/TypeScript; accessibility/design; Tauri; Rust; audio; STT/ML; Supabase/database/auth; Cloudflare/deployment; GitHub/Git; testing; security; payments/licensing; documentation/release.
+3. Select ALL installed skills that are materially relevant to the task, using the Skill Selection Matrix below.
+4. Load those skills BEFORE editing source, designing database schema, changing security-sensitive configuration, or creating implementation plans that depend on a skill.
+5. Record which skills were selected and loaded in the task progress/handoff record (`progress/STATUS.md`, `progress/NEXT.md`).
+6. If a relevant installed skill exists but is NOT loaded, explain why before proceeding.
+7. Security skills are mandatory for any task involving: authentication; authorization; database/RLS; secrets; network/API endpoints; payments; file/process execution; IPC; model downloads; deployment; user data.
+8. Testing skills are mandatory whenever tests are created or modified, or a task has a testing acceptance criterion.
+9. Do NOT load unrelated skills merely because they exist.
+10. Never claim a skill was used unless its content was actually loaded/read during that task.
+
+Skills and MCP are separate: skills provide engineering guidance; MCP provides tools/actions/data. MCP availability is never evidence that a skill was loaded, and a loaded skill is never evidence that an MCP tool was called.
+
+## Skill Selection Matrix
+
+Authoritative domain → installed-skill mapping (registry state 2026-09-14; see `progress/SKILLS.md` and `progress/SKILLS_MCP_AUDIT.md`).
+
+| Domain | Skills to load | Notes |
+| --- | --- | --- |
+| Frontend/UI | `shadcn`, `react`, `vercel-react-best-practices`, `vercel-composition-patterns`, `frontend-design`, `web-design-guidelines` | `shadcn` for component install/conventions; design/web-quality guidance for anything user-facing. |
+| React/TypeScript | `react`, `vercel-react-best-practices`, `vercel-composition-patterns` | `react` is the base implementation guide; the other two apply when composing or optimizing components. |
+| Accessibility/design | `frontend-accessibility`, `web-design-guidelines`, `frontend-design` | WCAG implementation, keyboard/screen-reader support, UI review. |
+| Tauri | `tauri`, `tauri-development`, `tauri-setup` | `tauri-setup` only when touching toolchain/prerequisites; `tauri` covers IPC/capabilities/permissions. |
+| Rust | `rust-engineer` (implementation), `rust-review` (security/quality review) | Load `rust-review` whenever reviewing or hardening existing Rust code. |
+| Audio | — (none installed) | No dedicated audio skill installed. Record this absence in the gate record; do NOT invent a mapping. |
+| STT/ML | — (none installed) | No dedicated STT/ML skill installed. Record this absence in the gate record; do NOT invent a mapping. |
+| Supabase/database/auth | `supabase`, `supabase-postgres-best-practices`; plus `security-guidance` (auth/RLS/secrets are mandatory security contexts) | Schema, migrations, RLS, Edge Functions. |
+| Cloudflare/deployment | `cloudflare`, `wrangler`, `workers-best-practices`, `web-perf`, `cloudflare-deploy` | `cloudflare-deploy` only when an actual deployment workflow runs; `wrangler` requires the `wrangler` CLI. |
+| GitHub/Git | `github`, `gh-cli` | `gh-cli` is the default secure-CLI workflow for authenticated GitHub operations. |
+| Testing | `vitest` (unit/integration), `playwright` (browser/E2E) | Mandatory when tests are created/modified or a testing acceptance criterion exists (gate rule 8). |
+| Security | `security-guidance`, `securability-engineering`, `agent-security-audit`, `mcp-server-review`, `semgrep`, `supply-chain-risk-auditor`, `secure-workflow-guide`, `codeql` | Load per gate rule 7. `semgrep`/`codeql` need their CLIs (absent on host). `secure-workflow-guide` targets smart-contract workflows — load only if actually applicable. |
+| Payments/licensing | `security-guidance`, `securability-engineering`, `supply-chain-risk-auditor` | No dedicated payment/licensing skill installed; security + dependency guidance covers payment code paths. |
+| Documentation/release | `github`, `gh-cli` | No dedicated documentation/release skill installed; GitHub release automation is the relevant guidance. |
+| Discovery | `find-skills` | Load only when a genuinely uncovered domain appears; use for discovery, never as a blanket reason to load/install skills. |
+
 ## Mandatory foundation skill
 
 ### 1. `find-skills`
@@ -190,13 +231,55 @@ Purpose: dependency/supply-chain review.
 Source: `trailofbits/skills`
 Purpose: secure development workflow.
 
-### 33. `insecure-defaults`
+### 33. `insecure-defaults` — NOT INSTALLED
 Source: `trailofbits/skills`
 Purpose: detect unsafe default configurations.
+Status: NOT AVAILABLE as a standalone skill — `trailofbits/skills` ships it only as a Claude Code plugin (`plugins/insecure-defaults/.claude-plugin/plugin.json`, no `SKILL.md`); the `skills` CLI reports "No matching skills found" even with `--full-depth` (see `progress/SKILLS.md`). Do not treat it as installed or loadable; use `security-guidance`/`codeql`/`semgrep` instead.
 
 ### 34. `codeql`
 Source: `trailofbits/skills`
 Purpose: deeper static analysis where appropriate.
+
+## Installed skill inventory
+
+Registry state 2026-09-14: **32 external skills installed** under `~/.agents/skills/` (verified per `progress/SKILLS.md`). "Trigger" is the domain/context where the skill is loaded per the matrix; "Run with" lists the external tooling required to actually execute the skill, if any. No skill may be loaded outside its trigger context unless the gate record explains why.
+
+| Skill | Trigger domain(s) | Run with |
+| --- | --- | --- |
+| `find-skills` | Discovery | none |
+| `shadcn` | Frontend/UI | `shadcn` npm package (project dependency) |
+| `react` | React/TypeScript | none |
+| `vercel-react-best-practices` | React/TypeScript | none |
+| `vercel-composition-patterns` | React/TypeScript | none |
+| `frontend-design` | Frontend/UI, Accessibility/design | none |
+| `web-design-guidelines` | Frontend/UI, Accessibility/design | none |
+| `frontend-accessibility` | Accessibility/design | none |
+| `tauri` | Tauri | none |
+| `tauri-development` | Tauri | none |
+| `tauri-setup` | Tauri (toolchain/prerequisites) | none |
+| `rust-engineer` | Rust | none |
+| `rust-review` | Rust (review/hardening) | none |
+| `supabase` | Supabase/database/auth | `supabase` CLI (preferred) or Supabase MCP |
+| `supabase-postgres-best-practices` | Supabase/Postgres | none |
+| `cloudflare` | Cloudflare/deployment | none |
+| `wrangler` | Cloudflare/deployment | `wrangler` CLI |
+| `workers-best-practices` | Cloudflare/deployment | none |
+| `web-perf` | Cloudflare/deployment, web performance | none |
+| `cloudflare-deploy` | Cloudflare deployment workflow | `wrangler` + Cloudflare auth |
+| `github` | GitHub/Git | `gh` CLI |
+| `gh-cli` | GitHub/Git | `gh` CLI |
+| `playwright` | Testing | `playwright` package/CLI |
+| `vitest` | Testing | `vitest` (project dependency) |
+| `security-guidance` | Security (ASVS-aligned guidance) | none |
+| `securability-engineering` | Security (secure-by-default generation; auth/payment/input/API components) | none |
+| `agent-security-audit` | Security (agent configs, CLAUDE.md, MCP configs) | none |
+| `mcp-server-review` | Security (MCP servers/configurations) | none |
+| `semgrep` | Security (static analysis) | `semgrep` CLI (NOT installed on host) |
+| `supply-chain-risk-auditor` | Security (dependency/supply chain) | none |
+| `secure-workflow-guide` | Security (smart-contract workflow) | Slither/Foundry — not applicable to Soravo; load only if actually relevant |
+| `codeql` | Security (deep static analysis) | `codeql` CLI (NOT installed on host) |
+
+Not installed: `insecure-defaults` (see registry note above). TestSprite is an MCP testing service, not a skill (see `08_MCP_AND_AGENT_TOOLING.md`).
 
 ## Skill trust policy
 
@@ -263,7 +346,6 @@ Security/release:
 - codeql
 - supply-chain-risk-auditor
 - secure-workflow-guide
-- insecure-defaults
 - playwright
 - TestSprite MCP
 

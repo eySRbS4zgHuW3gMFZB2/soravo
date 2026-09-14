@@ -31,6 +31,7 @@ progress/
 Current phase:
 Current task:
 Branch:
+Skills selected/loaded (per the Skill Selection Gate):
 Last commit:
 Last successful test:
 Current implementation state:
@@ -47,6 +48,7 @@ Next exact action:
 ```text
 Resume task:
 Read first:
+Skills to load (per the Skill Selection Gate):
 Inspect:
 Exact next implementation step:
 Tests to run:
@@ -94,12 +96,13 @@ Avoid:
 
 A new agent must:
 1. read all engineering docs;
-2. read STATUS;
-3. read NEXT;
+2. read STATUS (note skills selected/loaded);
+3. read NEXT (note skills to load);
 4. inspect git status/log;
 5. inspect current branch/PR;
-6. run relevant tests;
-7. continue from the exact checkpoint.
+6. run the Skill Selection Gate and load the skills required for the resumed task (`07_AI_SKILLS.md`);
+7. run relevant tests;
+8. continue from the exact checkpoint.
 
 Do not restart the feature from scratch unless the checkpoint is corrupted.
 
