@@ -10,13 +10,16 @@ export function Landing() {
           <br />
           <em>Keep it yours.</em>
         </h1>
-        <p className="lede">Fast, private speech-to-text for the work that cannot leave your computer.</p>
+        <p className="lede">
+          Fast, accurate speech-to-text that runs on your computer, keeps audio and transcripts private, and
+          feels instantaneous.
+        </p>
         <div className="actions">
           <Link className="button" to="/download">
             Download for desktop <span aria-hidden="true">→</span>
           </Link>
-          <Link className="text-link" to="/privacy">
-            How privacy works
+          <Link className="text-link" to="/features">
+            See what it does
           </Link>
         </div>
         <div className="signal-card" aria-label="Soravo transcription demonstration">
@@ -35,18 +38,29 @@ export function Landing() {
         <article>
           <span className="number">01</span>
           <h2>Private by default</h2>
-          <p>Audio and transcription stay on your device. Soravo never uses your dictation for analytics.</p>
+          <p>Recognition runs on your device. No audio upload, no transcript sync, no training your work on cloud models.</p>
         </article>
         <article>
           <span className="number">02</span>
-          <h2>Built for flow</h2>
-          <p>A warmed audio pipeline and configurable shortcut help your first word arrive with the rest of the thought.</p>
+          <h2>Feels instantaneous</h2>
+          <p>A continuously warmed audio pipeline and a configurable shortcut cut the gap between thought and first word.</p>
         </article>
         <article>
           <span className="number">03</span>
-          <h2>Works where you work</h2>
-          <p>Stable, final text is inserted into your active application—never a flickering partial transcript.</p>
+          <h2>Delivers finished words</h2>
+          <p>Only stable, final text is injected into the active application — never a flickering partial transcript.</p>
         </article>
+      </section>
+      <section className="privacy" aria-labelledby="focus-title">
+        <p className="eyebrow">FOCUSED, BY DESIGN</p>
+        <h2 id="focus-title">One job, done properly.</h2>
+        <p>Soravo is professional desktop dictation — nothing broader.</p>
+        <ul className="scope-list">
+          <li>Not a meeting intelligence platform.</li>
+          <li>Not a cloud transcription SaaS.</li>
+          <li>Not a chat assistant or RAG companion.</li>
+          <li>Not a team collaboration suite.</li>
+        </ul>
       </section>
       <section id="privacy" className="privacy">
         <p className="eyebrow">A SMALLER DATA FOOTPRINT</p>
@@ -60,7 +74,7 @@ export function Landing() {
         <div>
           <p className="eyebrow">SIMPLE PRICING</p>
           <h2>A professional tool without a data trade.</h2>
-          <p>Pricing will be published when the payment flow is live. No price or availability claim is made before then.</p>
+          <p>We are evaluating a low monthly subscription and a one-time lifetime option. Prices will be published when the payment flow is live — nothing is billed before then.</p>
         </div>
         <div className="price-card">
           <p>Early access</p>
@@ -76,8 +90,8 @@ export function Landing() {
           <p>No. V1 is designed for local speech recognition. Network communication is limited to explicit functions such as accounts, entitlements, updates, and model downloads.</p>
         </details>
         <details>
-          <summary>Which platforms will be supported?</summary>
-          <p>V1 targets macOS and Windows. Linux support has not been announced.</p>
+          <summary>How does Soravo choose its speech engine?</summary>
+          <p>By benchmark. Candidate engines are compared on latency, quality, memory, packaging, license, and platform support before one is selected — not by convenience.</p>
         </details>
         <details>
           <summary>Can I use my own shortcut?</summary>

@@ -118,3 +118,13 @@ Exact next task: **Phase 1 — Website foundation**, starting with **WEB-001 sit
 - Vitest: jsdom config in `apps/website/vite.config.ts`; `test-setup.ts` stubs `scrollTo`; `website.test.tsx` renders through `MemoryRouter` + `AppRoutes` (3 tests: landing promise, privacy page, 404).
 - Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 3, desktop 1), `pnpm build`, `pnpm audit --prod` ALL PASS.
 - Next task: WEB-003 content/design refinement (see `progress/NEXT.md`).
+
+## S. Post-takeover session 3 — WEB-003 landing/features (committed with this change set)
+
+- Landing copy rewritten around PRD positioning: hero lede uses the core promise (fast/accurate/local/private/instantaneous); features reframed to "Private by default / Feels instantaneous / Delivers finished words"; new "Focused, by design" scope section (not-list per PRD §1); FAQ swaps platforms Q for benchmark-driven engine Q; pricing copy notes ~$12/mo + ~$50 lifetime only as evaluated targets, no live prices advertised.
+- Features page expanded: capabilities block renders 6 PRD-grounded capabilities in shadcn Cards (hotkey recorder, warm capture/pre-roll, local recognition, tentative-vs-final injection, clipboard fallback/restore, verified atomic model installs); personas section (lawyers/executives/consultants/writers); Button CTA to /download with text-link to /faq.
+- Accessibility: CardTitle given role heading aria-level 2 on features; page h1/h2 hierarchy intact; NavLink aria-current inherited from react-router.
+- CSS additions: `.scope-list`, `.persona-grid`, `.persona`, `.page-actions`; responsive collapse for persona grid. Bespoke landing identity CSS preserved.
+- Tests: landing scope assertion + features capability-card assertion added (5 website tests total); updated landing privacy-promise matcher to "privacy commitment".
+- Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 5, desktop 1), `pnpm build`, `pnpm audit --prod` ALL PASS.
+- Next task: WEB-004 pricing/download/FAQ (see `progress/NEXT.md`).

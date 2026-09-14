@@ -1,31 +1,46 @@
+import { Link } from "react-router";
 import { PageIntro } from "../components/page-intro";
+import { Button } from "../components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
-const features = [
+const capabilities = [
   {
-    title: "Private by default",
-    description: "Audio and transcription stay on your device. Soravo never uses your dictation for analytics.",
+    title: "Configurable global hotkey",
+    description:
+      "Hold-to-talk and toggle-to-talk with a transactional shortcut recorder — if a new binding fails to register, the previous one stays active.",
   },
   {
-    title: "Built for flow",
-    description: "A warmed audio pipeline and a configurable shortcut help your first word arrive with the rest of the thought.",
+    title: "Low-latency capture",
+    description:
+      "An always-warmed audio pipeline with pre-roll means the first phoneme is never lost because the microphone started late.",
   },
   {
-    title: "Works where you work",
-    description: "Stable, final text is inserted into your active application — never a flickering partial transcript.",
+    title: "Local recognition",
+    description:
+      "Speech-to-text runs on your device. The engine and model are chosen by benchmark — latency, quality, memory, license, packaging, and platform support.",
   },
   {
-    title: "Configurable shortcuts",
-    description: "Hold-to-talk and toggle-to-talk, with a transactional shortcut recorder that keeps the previous binding if a change fails.",
+    title: "Stable, final text only",
+    description:
+      "Tentative text is shown in the pill but never typed. Committed text is injected once — no duplicates, no unstable retyping.",
   },
   {
-    title: "Local history",
-    description: "Dictation history lives on the device. There is no cloud transcript synchronization in V1.",
+    title: "Safe text insertion",
+    description:
+      "Native insertion first, clipboard fallback when needed, and your clipboard contents are restored afterwards.",
   },
   {
-    title: "Benchmarked model choices",
-    description: "Engine and model selection is benchmark-driven, so you are not locked into a single vendor path.",
+    title: "Verified model installs",
+    description:
+      "Models are downloaded, size- and checksum-verified, installed atomically, and the previous working model is preserved if anything fails.",
   },
+] as const;
+
+const personas = [
+  { role: "LAWYERS", title: "Briefs, notes, and correspondence", copy: "Professional prose that leaves drafts clean and confidential." },
+  { role: "EXECUTIVES & FOUNDERS", title: "Fast, private correspondence", copy: "Compose quickly without sending board minutes or strategy to a cloud model." },
+  { role: "CONSULTANTS", title: "Client-ready drafting", copy: "Capture thinking on the move and deliver polished, finished text." },
+  { role: "WRITERS", title: "Keep the voice on the page", copy: "Dictate first drafts in your own words, keep every transcript on the device." },
 ] as const;
 
 export function Features() {
@@ -35,15 +50,34 @@ export function Features() {
       title="Built for professionals."
       lede="Soravo is focused: local processing, privacy, low latency, and stable text where you type it."
     >
+      <h2>What Soravo does</h2>
       <div className="card-grid">
-        {features.map((feature) => (
-          <Card key={feature.title}>
+        {capabilities.map((capability) => (
+          <Card key={capability.title}>
             <CardHeader>
-              <CardTitle>{feature.title}</CardTitle>
-              <CardDescription>{feature.description}</CardDescription>
+              <CardTitle role="heading" aria-level={2}>
+                {capability.title}
+              </CardTitle>
+              <CardDescription>{capability.description}</CardDescription>
             </CardHeader>
           </Card>
         ))}
+      </div>
+      <h2>Made for demanding desks</h2>
+      <div className="persona-grid">
+        {personas.map((persona) => (
+          <div className="persona" key={persona.role}>
+            <strong>{persona.role}</strong>
+            <h2>{persona.title}</h2>
+            <p>{persona.copy}</p>
+          </div>
+        ))}
+      </div>
+      <div className="page-actions">
+        <Button render={<Link to="/download" />}>Get Soravo</Button>
+        <Link className="text-link" to="/faq">
+          Read the FAQ
+        </Link>
       </div>
     </PageIntro>
   );

@@ -16,7 +16,7 @@ function renderAt(path: string) {
 describe("website shell", () => {
   it("renders the landing page privacy promise", () => {
     renderAt("/");
-    expect(screen.getByText(/stay on your device/i)).toBeTruthy();
+    expect(screen.getByText(/privacy commitment/i)).toBeTruthy();
   });
 
   it("renders dedicated core content pages", () => {
@@ -27,5 +27,16 @@ describe("website shell", () => {
   it("shows the not-found page for unknown routes", () => {
     renderAt("/does-not-exist");
     expect(screen.getByText(/this page does not exist/i)).toBeTruthy();
+  });
+
+  it("states the focused product scope on the landing", () => {
+    renderAt("/");
+    expect(screen.getByText(/not a meeting intelligence platform/i)).toBeTruthy();
+  });
+
+  it("renders features capabilities as cards", () => {
+    renderAt("/features");
+    expect(screen.getAllByRole("heading", { level: 2 }).length).toBeGreaterThanOrEqual(6);
+    expect(screen.getByText(/configurable global hotkey/i)).toBeTruthy();
   });
 });
