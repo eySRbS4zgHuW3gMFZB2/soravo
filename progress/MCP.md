@@ -1,12 +1,14 @@
 # MCP audit record
 
-Date: 2026-09-14. No production-connected MCP server has been introduced. The current Codex MCP configuration has only built-in `computer-use` and `node_repl`; neither is Soravo runtime tooling.
+Date: 2026-09-14 (rewritten for the current OpenCode environment; see `SKILLS_MCP_AUDIT.md` for the full read-only audit).
+
+No MCP server is configured or connected. The OpenCode config (`~/.config/opencode/opencode.jsonc`) contains no `mcp` key; there is no project `opencode.json` / `.opencode/`. No `mcp__*` tool is exposed to the build agent. Official server sources verified read-only: `github/github-mcp-server`, `supabase-community/supabase-mcp`, `cloudflare/mcp-server-cloudflare`; TestSprite is a cloud service (org `TestSprite`).
 
 | Server | Source | Environment | Authentication | Scope / permission | Result |
 | --- | --- | --- | --- | --- | --- |
-| GitHub connector | Codex app capability | Not connected to Soravo | GitHub CLI active token is invalid | No repository identity, remote, or project scope | Not safe for mutation; human must authenticate and provide/confirm repository |
-| Supabase docs connector | Codex app capability | Documentation only | No Supabase project authentication | No database/function/project mutation connection | Deferred to Phase 2 |
-| Cloudflare managed MCP | Not configured | N/A | N/A | N/A | Unavailable |
-| TestSprite MCP | Not configured | N/A | N/A | N/A | Unavailable; requires dedicated test account/project configuration |
+| GitHub MCP | Not configured | n/a | Not present; `gh` CLI token in OS keyring (scopes gist, read:org, repo, workflow), read verified | n/a | Not connected as MCP; GitHub usable read-only/write via `gh` + `git` today |
+| Supabase MCP | Not configured | n/a | No access token; no project | n/a | NOT CONFIGURED / HUMAN ACTION REQUIRED (Phase 2) |
+| Cloudflare MCP | Not configured | n/a | No account/token | n/a | NOT CONFIGURED / HUMAN ACTION REQUIRED (deployment phase) |
+| TestSprite MCP | Not configured | n/a | No account/API key | n/a | NOT CONFIGURED / HUMAN ACTION REQUIRED (dedicated test account, key via host secret store) |
 
-The official Codex MCP configuration guidance is https://learn.chatgpt.com/es-419/docs/extend/mcp. Any future MCP must be project-scoped, least-privilege, recorded here, and excluded from product runtime.
+Future MCP policy: any MCP must be recorded here, project-scoped, least-privilege, read-only unless a task requires mutation, credentials supplied by the human via the host secret store and referenced with `{env:VAR}` (no plaintext in config), and excluded from product runtime. After any config change, restart opencode. Historical note: the earlier record described a Codex-app environment (`computer-use`, `node_repl`); that environment is not the build agent for this project.
