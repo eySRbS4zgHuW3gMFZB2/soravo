@@ -108,3 +108,13 @@ Exact next task: **Phase 1 — Website foundation**, starting with **WEB-001 sit
 - `apps/website/src/components/ui/button.tsx` — official shadcn (base-nova) component.
 - `apps/website/package.json` + `pnpm-lock.yaml` — add `@base-ui/react`.
 - `progress/OPENCODE_TAKEOVER.md` (this report), `progress/STATUS.md`, `progress/NEXT.md` updated.
+## R. Post-takeover session 2 — WEB-001/WEB-002 (committed with this change set)
+
+- Committed and pushed: `dbb03c5` "chore: remediate foundation gate and open Phase 1" (sections Q above, CI/icon/gitignore/button/progress).
+- Installed website deps: `react-router`, `@testing-library/react`, `@testing-library/jest-dom` (base-ui already in dbb03c5).
+- Added shadcn `card` primitive (`apps/website/src/components/ui/card.tsx`, base-nova).
+- Prepended shadcn base-nova theme tokens to `apps/website/src/styles.css`: `@import "shadcn/tailwind.css"`, `@custom-variant dark`, `@theme inline` + `:root` light tokens and `.dark` dark tokens for the full Soravo palette (oklch), `@layer base`; all hand-written site CSS preserved below verbatim.
+- Replaced single-anchor `website.tsx` with routed site: `app.tsx` (BrowserRouter + exported `AppRoutes` for tests), `components/layout/{layout,site-header,site-footer}.tsx` (scroll-restore, sticky-less header with mobile menu, legal/account footer), `components/page-intro.tsx`, and 13 pages: landing (ported), features, pricing, download, faq, support, privacy, terms, refund, login, account, admin, not-found. `main.tsx` now renders `<App/>`.
+- Vitest: jsdom config in `apps/website/vite.config.ts`; `test-setup.ts` stubs `scrollTo`; `website.test.tsx` renders through `MemoryRouter` + `AppRoutes` (3 tests: landing promise, privacy page, 404).
+- Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 3, desktop 1), `pnpm build`, `pnpm audit --prod` ALL PASS.
+- Next task: WEB-003 content/design refinement (see `progress/NEXT.md`).
