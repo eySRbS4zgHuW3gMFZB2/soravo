@@ -145,3 +145,30 @@ Exact next task: **Phase 1 — Website foundation**, starting with **WEB-001 sit
 - Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 8, desktop 1), `pnpm build`,
   `pnpm audit --prod` ALL PASS.
 - Next task: WEB-005 legal/support pages (see `progress/NEXT.md`).
+
+## U. Post-takeover session 5 — WEB-005 legal/support pages (committed with this change set)
+
+- Privacy page deepened: precise on-device boundary (microphone audio, dictated transcripts, keystrokes,
+  clipboard contents used for text insertion, local dictation history never leave the computer); no hidden
+  telemetry; an explicit account/server function list (accounts/authentication, payments/entitlements, model
+  downloads, software updates, support — storage covers account, entitlement, device, session metadata only,
+  never audio/transcripts/history); the Umami website-analytics boundary (website-behavior only, separate from
+  product and account data); local-history default. Support CTA added.
+- Terms page: "prepared" treatment rewritten to "published when the payment flow is live — nothing below is a
+  binding offer, and nothing is billed today," with the as-is evaluation line and pricing-as-target (not offer)
+  consistency; support CTA added.
+- Refund page: policy aligned to "published together with the payment flow — nothing is billed today, and
+  nothing below is an offer," planned points kept (refund window, self-service cancellation, license behavior
+  after cancellation/expiry), explicit "no refund or cancellation process exists yet," support CTA added.
+- Support page: working launcher — email CTA (support@soravo.app), documented "aim to reply within two business
+  days" commitment, What-to-include card (OS/version, build, steps), launch-list card, documentation card
+  (coming soon), and a privacy note that audio/transcripts never need to be sent. Card titles now carry
+  role="heading" aria-level={2} like features/pricing/download.
+- No new dependencies, no analytics added, no invented obligations; all copy consistent with pricing
+  disclaimers ("evaluated target", "not an offer", "nothing is billed today").
+- Tests: 3 new website tests (privacy boundary/Umami/session-metadata phrasing; terms + refund prepared
+  framing; support response commitment + mailto link). Website suite now 12 tests.
+- Gates after this session: `pnpm lint`, `pnpm typecheck`, `pnpm test` (website 12, desktop 1), `pnpm build`,
+  `pnpm audit --prod`, `cargo fmt --check`, `cargo check --workspace`, `cargo test --workspace`,
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings` ALL PASS.
+- Next task: WEB-006 Umami integration (see `progress/NEXT.md`).

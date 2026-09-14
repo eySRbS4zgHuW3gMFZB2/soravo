@@ -1,21 +1,22 @@
+import { Link } from "react-router";
 import { PageIntro } from "../components/page-intro";
 
 const commitments = [
   {
     title: "Stays on your device",
-    body: "Microphone audio, dictated text, clipboard contents used for text insertion, and local dictation history do not leave your computer.",
+    body: "Microphone audio, dictated transcripts, keystrokes, clipboard contents used for text insertion, and local dictation history never leave your computer.",
   },
   {
     title: "No hidden telemetry",
-    body: "The desktop app does not record keystrokes and does not send transcript or audio analytics.",
+    body: "The desktop app does not record keystrokes, does not log raw audio or transcripts, and never silently collects clipboard data. There is no hidden tracking.",
   },
   {
-    title: "Limited network use",
-    body: "Network communication is limited to explicit functions: accounts, entitlements, model downloads, software updates, support, and the website.",
+    title: "Explicit account and server functions",
+    body: "The only functions that reach a server are accounts and authentication, payments and entitlements, model downloads, software updates, and support. Account-related storage covers account, entitlement, device, and session metadata — never audio, transcripts, or dictation history.",
   },
   {
     title: "Website analytics boundary",
-    body: "Website analytics cover page views and product-page interactions only — never dictated content, clipboard, or keystrokes.",
+    body: "Website analytics, when present, are limited to page views and product-page interactions provided through Umami, and they stay separate from product and account data. They never receive dictated content, clipboard contents, or keystrokes.",
   },
   {
     title: "Local history default",
@@ -39,6 +40,11 @@ export function Privacy() {
               <p>{item.body}</p>
             </div>
           ))}
+        </div>
+        <div className="page-actions">
+          <Link className="text-link" to="/support">
+            Questions about privacy? Contact support
+          </Link>
         </div>
       </section>
     </>
