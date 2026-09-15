@@ -27,6 +27,14 @@
 -- SECURITY INVOKER trigger pinned to pg_catalog protects role on both INSERT
 -- (non-postgres sessions cannot supply a non-default role) and UPDATE (role is
 -- immutable), with no EXECUTE grant for any app role and no SECURITY DEFINER.
+-- CLOUD-007: product metrics queries — three SECURITY DEFINER functions
+-- (admin_metrics_totals / admin_metrics_growth / admin_metrics_active_users),
+-- each gated on profiles.role='admin' inside the body, EXECUTE granted to
+-- authenticated ONLY and revoked from public/anon/service_role, search_path
+-- pinned to pg_catalog. This is the ADR-016-sanctioned exception to the
+-- no-SECURITY-DEFINER rule: check 16 is now a whitelist of exactly these
+-- three functions, checks 54-57 pin the surface (signatures, ACLs, security
+-- attributes, supporting index).
 --
 -- NOTE: `execute_sql` may return multi-statement output; expect the PASS
 -- notice text and no RAISE.
@@ -226,13 +234,25 @@ begin
     raise exception 'FAIL 15: profiles timestamps trigger missing or disabled';
   end if;
 
-  -- 16. No SECURITY DEFINER functions exist in public (invariant).
+  -- 16. SECURITY DEFINER in public is the CLOUD-007 whitelist ONLY (the
+  --     ADR-016-sanctioned exception to the CLOUD-001/010 invariant): exactly
+  --     the three admin metrics functions, nothing else. Any future privileged
+  --     function must be deliberately admitted here with its own ADR.
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.prosecdef
+    and p.proname not in ('admin_metrics_totals', 'admin_metrics_growth', 'admin_metrics_active_users');
+  if _count > 0 then
+    raise exception 'FAIL 16: % unapproved SECURITY DEFINER function(s) in public', _count;
+  end if;
+
   select count(*) into _count
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef;
-  if _count > 0 then
-    raise exception 'FAIL 16: % SECURITY DEFINER function(s) in public', _count;
+  if _count <> 3 then
+    raise exception 'FAIL 16: expected exactly 3 SECURITY DEFINER functions in public, found %', _count;
   end if;
 
   -- ------------------------------------------------------------------ --
@@ -922,5 +942,87 @@ begin
     raise exception 'FAIL 53: profiles_guard_role_immutable must pin search_path';
   end if;
 
-  raise notice 'PASS: all CLOUD-001..CLOUD-006 database assertions held';
+  -- ------------------------------------------------------------------ --
+  -- CLOUD-007: product metrics queries (admin dashboard data layer).     --
+  -- ------------------------------------------------------------------ --
+
+  -- 54. The three metrics functions exist with their exact signatures.
+  if to_regprocedure('public.admin_metrics_totals()') is null then
+    raise exception 'FAIL 54: admin_metrics_totals() missing';
+  end if;
+  if to_regprocedure('public.admin_metrics_growth(text, timestamp with time zone, timestamp with time zone)') is null then
+    raise exception 'FAIL 54: admin_metrics_growth(text, timestamptz, timestamptz) missing';
+  end if;
+  if to_regprocedure('public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)') is null then
+    raise exception 'FAIL 54: admin_metrics_active_users(timestamptz, timestamptz) missing';
+  end if;
+
+  -- 55. EXECUTE ACL: granted to authenticated ONLY — anon/service_role hold no
+  --     EXECUTE and no PUBLIC entry remains (grantee oid 0 = PUBLIC).
+  for _acl_row in
+    select unnest(array[
+      'public.admin_metrics_totals()',
+      'public.admin_metrics_growth(text, timestamp with time zone, timestamp with time zone)',
+      'public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)'
+    ]) as sig
+  loop
+    if not has_function_privilege('authenticated', _acl_row.sig::regprocedure, 'EXECUTE') then
+      raise exception 'FAIL 55: authenticated lacks EXECUTE on %', _acl_row.sig;
+    end if;
+    if has_function_privilege('anon', _acl_row.sig::regprocedure, 'EXECUTE') then
+      raise exception 'FAIL 55: anon holds EXECUTE on %', _acl_row.sig;
+    end if;
+    if has_function_privilege('service_role', _acl_row.sig::regprocedure, 'EXECUTE') then
+      raise exception 'FAIL 55: service_role holds EXECUTE on %', _acl_row.sig;
+    end if;
+
+    select count(*) into _count
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+    where n.nspname = 'public'
+      and p.oid = _acl_row.sig::regprocedure
+      and a.grantee = 0;
+    if _count > 0 then
+      raise exception 'FAIL 55: PUBLIC EXECUTE remains on %', _acl_row.sig;
+    end if;
+  end loop;
+
+  -- 56. Each metrics function is SECURITY DEFINER (ADR-016 whitelist) and pins
+  --     search_path to pg_catalog (security advisor 0011).
+  for _acl_row in
+    select unnest(array[
+      'public.admin_metrics_totals()',
+      'public.admin_metrics_growth(text, timestamp with time zone, timestamp with time zone)',
+      'public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)'
+    ]) as sig
+  loop
+    select count(*) into _count
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.oid = _acl_row.sig::regprocedure and p.prosecdef;
+    if _count <> 1 then
+      raise exception 'FAIL 56: % must be SECURITY DEFINER', _acl_row.sig;
+    end if;
+
+    select count(*) into _count
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.oid = _acl_row.sig::regprocedure
+      and coalesce(p.proconfig::text, '') ~ 'search_path';
+    if _count <> 1 then
+      raise exception 'FAIL 56: % must pin search_path', _acl_row.sig;
+    end if;
+  end loop;
+
+  -- 57. sessions_last_seen_at_idx serves the active-users range scan.
+  select count(*) into _count
+  from pg_indexes
+  where schemaname = 'public' and tablename = 'sessions'
+    and indexname = 'sessions_last_seen_at_idx';
+  if _count <> 1 then
+    raise exception 'FAIL 57: sessions_last_seen_at_idx missing';
+  end if;
+
+  raise notice 'PASS: all CLOUD-001..CLOUD-007 database assertions held';
 end $$;
