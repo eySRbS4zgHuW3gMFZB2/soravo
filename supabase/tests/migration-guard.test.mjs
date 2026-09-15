@@ -117,4 +117,17 @@ describe('Supabase migration discipline', () => {
       }
     }
   });
+
+  it('has no broad RLS policies (USING true / WITH CHECK true)', () => {
+    const broad = /\b(using|with\s+check)\s*\(\s*true\s*(\)|::)/;
+    for (const { file, sql } of migs) {
+      expect(normalize(sql), file).not.toMatch(broad);
+    }
+  });
+
+  it('never authorizes from user metadata', () => {
+    for (const { file, sql } of migs) {
+      expect(normalize(sql), file).not.toMatch(/\b(raw_)?user_metadata\b/);
+    }
+  });
 });

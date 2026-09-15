@@ -36,6 +36,15 @@ Consequences, binding on all future migrations:
 - Website integration: PKCE flow, persisted `localStorage` session, `/login` and `/account` pages, generic (enumeration-safe) auth error messages. Client modules are `apps/website/src/lib/{supabase,auth-service,auth-context}.*`.
 - Behavioral verification lives in `supabase/tests/rls_assertions.sql` (role-impersonation: cross-user isolation + anon default-deny); structural invariants in `db_assertions.sql` (16 checks) and the migration-guard suite (7/7).
 
+## Authorization hardening (CLOUD-003)
+
+`20260915140000_harden_rls_authorization.sql` completes the default-deny boundary at the privilege layer. See ADR-010 addendum; highlights:
+
+- `anon` loses `USAGE`/`CREATE` on schema `public`, and the anonymous role is removed entirely via `revoke usage on schema public from public`. `authenticated`/`service_role`/`postgres` are unaffected (explicit `=U` grants, verified behaviorally). Anonymous access is now denied at the schema boundary, not just by RLS.
+- The built-in schema-less Postgres function default `EXECUTE ... FROM PUBLIC` is revoked for future `postgres`-created functions (schema-scoped revokes cannot override it, issue supabase#49338).
+- Direct `EXECUTE` on `public.profiles_set_timestamps()` is revoked from every app role; triggers still fire (verified with real fixtures).
+- `supabase/tests/db_assertions.sql` extended to 20 checks (anon/PUBLIC schema lockout, schema-less function default, trigger-function EXECUTE deny); `rls_assertions.sql` upgraded to real fixture rows (users A/B/C, cross-user isolation, ownership transfer blocked, owner self-insert/update, trigger fired under reduced EXECUTE, anon + service_role denial, self-contained rollback); migration-guard suite now 9 tests (no broad `USING (true)`/`WITH CHECK (true)` policies, no authorization via `user_metadata`).
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.

@@ -20,3 +20,13 @@ Testing impact: A database assertion suite (`supabase/tests/db_assertions.sql`) 
 Rollback: The baseline migration is additive and reversible; restoring Supabase's original default grants is a documented reverse procedure, executed only when an actual rollback is required.
 
 Consequences: Per-table schema and RLS policy design is deferred to CLOUD-003+; nothing here creates application tables, policies, functions, triggers, or data. Audio, transcripts, keystrokes, clipboard, and history must never be stored in Supabase; those remain local-only or off-cloud per product constraints.
+
+## Addendum (CLOUD-003, 2026-09-15) — anonymous role removed from `public` at the privilege layer
+
+CLOUD-003 (`20260915140000_harden_rls_authorization.sql`) completes the default-deny boundary beyond object grants. The stock provisioning left the anonymous and PUBLIC roles with schema-level USAGE on `public` (`anon=U` and `=U`), so future objects created under platform-owned `supabase_admin` defaults (which cannot be revoked on hosted Supabase) would still have been reachable by anonymous and future PUBLIC-inheriting roles. The migration:
+
+- revokes `USAGE` and `CREATE` on `public` from `anon`, and `USAGE` on `public` from `PUBLIC`. `authenticated`, `service_role`, and `postgres` are unaffected through their explicit `=U` grants (verified behaviorally: schema ACL becomes `{pg_database_owner=UC, postgres=U, authenticated=U, service_role=U}`);
+- revokes the Postgres built-in schema-less function default `EXECUTE ... FROM PUBLIC` for functions created by `postgres` (issue supabase#49338 — the schema-scoped form cannot override the built-in default);
+- revokes direct `EXECUTE` on `public.profiles_set_timestamps()` from every app role; triggers invoke their function without an EXECUTE grant (RLS and trigger behavior verified unchanged).
+
+No policy, table, grant, or `SECURITY DEFINER` change is introduced. Anonymous access to application data is now denied at the schema privilege boundary in addition to the existing object-grant and RLS layers.

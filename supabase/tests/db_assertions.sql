@@ -7,6 +7,10 @@
 -- anon/authenticated/service_role; roles never bypass RLS).
 -- CLOUD-002: `profiles` table exists with RLS enabled, self-owned policies,
 -- timestamps trigger, and least-privilege grants to `authenticated` only.
+-- CLOUD-003: anonymous role removed from `public` at the privilege layer
+-- (anon/PUBLIC USAGE revoked), schema-less postgres function defaults revoke
+-- the built-in EXECUTE-to-PUBLIC, and the timestamps trigger function has no
+-- EXECUTE grant for any app role.
 --
 -- NOTE: `execute_sql` may return multi-statement output; expect the PASS
 -- notice text and no RAISE.
@@ -215,5 +219,53 @@ begin
     raise exception 'FAIL 16: % SECURITY DEFINER function(s) in public', _count;
   end if;
 
-  raise notice 'PASS: all CLOUD-002 database assertions held';
+  -- ------------------------------------------------------------------ --
+  -- CLOUD-003: privilege-layer authorization hardening                  --
+  -- ------------------------------------------------------------------ --
+
+  -- 17. anon has no USAGE on the public schema (revoked explicitly and the
+  --     PUBLIC grant that used to cover it is gone).
+  if has_schema_privilege('anon', 'public', 'usage') then
+    raise exception 'FAIL 17: anon still holds USAGE on schema public';
+  end if;
+
+  -- 18. No PUBLIC schema USAGE remains (nspacl carries no `=U` entry): the
+  --     anonymous role is denied at the schema boundary, not just by RLS.
+  select count(*) into _count
+  from pg_namespace
+  where nspname = 'public' and nspacl::text ~ '(^|[,{])=U/';
+  if _count > 0 then
+    raise exception 'FAIL 18: PUBLIC retains USAGE on schema public';
+  end if;
+
+  -- 19. The schema-less postgres function default carries no PUBLIC EXECUTE:
+  --     future postgres-created functions do not inherit the built-in
+  --     EXECUTE-to-PUBLIC (issue supabase#49338).
+  select count(*) into _count
+  from pg_default_acl d
+  join pg_roles r on r.oid = d.defaclrole
+  where r.rolname = 'postgres'
+    and d.defaclnamespace = 0
+    and d.defaclobjtype = 'f'
+    and d.defaclacl is not null
+    and d.defaclacl::text ~ '(^|,)=X/';
+  if _count > 0 then
+    raise exception 'FAIL 19: postgres function default still grants PUBLIC EXECUTE';
+  end if;
+
+  -- 20. profiles_set_timestamps() has no EXECUTE for anon/authenticated/
+  --     service_role/PUBLIC (privileges revoked in CLOUD-003; trigger
+  --     invocation does not require EXECUTE). grantee oid 0 = PUBLIC.
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+  where n.nspname = 'public'
+    and p.proname = 'profiles_set_timestamps'
+    and (a.grantee = 0 or a.grantee in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole));
+  if _count > 0 then
+    raise exception 'FAIL 20: % privilege grant(s) remain on profiles_set_timestamps', _count;
+  end if;
+
+  raise notice 'PASS: all CLOUD-001..CLOUD-003 database assertions held';
 end $$;
