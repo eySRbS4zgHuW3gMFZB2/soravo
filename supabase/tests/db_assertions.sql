@@ -16,6 +16,12 @@
 -- safe projection (identity and provider/payment columns granted to nobody),
 -- invariant CHECK constraints, one (user_id, product) current row, and the
 -- timestamps trigger with no EXECUTE for any app role.
+-- CLOUD-005: `devices` and `sessions` tables exist with RLS enabled, self-owned
+-- SELECT/INSERT/UPDATE policies bound to auth.uid() (sessions additionally
+-- require a non-revoked device via EXISTS; revoked rows are terminal), friendly
+-- public-id UNIQUE constraints and CHECK invariants, and SECURITY INVOKER
+-- triggers (timestamps / identity-immutability / one-way revocation) with no
+-- EXECUTE for any app role.
 --
 -- NOTE: `execute_sql` may return multi-statement output; expect the PASS
 -- notice text and no RAISE.
@@ -466,5 +472,380 @@ begin
     raise exception 'FAIL 30: entitlements.expires_at must be a nullable timestamptz';
   end if;
 
-  raise notice 'PASS: all CLOUD-001..CLOUD-004 database assertions held';
+  -- ------------------------------------------------------------------ --
+  -- CLOUD-005: devices / sessions security model                         --
+  -- ------------------------------------------------------------------ --
+
+  -- 31. devices exists and is a plain table.
+  if to_regclass('public.devices') is null then
+    raise exception 'FAIL 31: public.devices missing';
+  end if;
+  select count(*) into _count
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'devices' and c.relkind = 'r';
+  if _count <> 1 then
+    raise exception 'FAIL 31: public.devices is not a plain table';
+  end if;
+
+  -- 32. devices has RLS enabled.
+  select count(*) into _count
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'devices' and not c.relrowsecurity;
+  if _count > 0 then
+    raise exception 'FAIL 32: public.devices has RLS disabled';
+  end if;
+
+  -- 33. devices.user_id references auth.users(id) ON DELETE CASCADE.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.devices'::regclass
+    and contype = 'f'
+    and confrelid = 'auth.users'::regclass
+    and confdeltype = 'c';
+  if _count <> 1 then
+    raise exception 'FAIL 33: devices lacks FK to auth.users(id) ON DELETE CASCADE';
+  end if;
+
+  -- 34. devices has CHECK constraints on platform, public_id length,
+  --     app_version length, and revoked_at >= first_seen_at.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.devices'::regclass and contype = 'c';
+  if _count < 4 then
+    raise exception 'FAIL 34: expected at least 4 CHECK constraints on devices, found %', _count;
+  end if;
+
+  for _acl_row in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.devices'::regclass and contype = 'c'
+  loop
+    if _acl_row.conname not in (
+      'devices_platform_check',
+      'devices_public_id_length',
+      'devices_app_version_length',
+      'devices_revoked_at_not_before_first_seen'
+    ) then
+      raise exception 'FAIL 34: unexpected CHECK constraint % on devices', _acl_row.conname;
+    end if;
+  end loop;
+
+  -- 35. devices.device_public_id UNIQUE constraint exists.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.devices'::regclass
+    and contype = 'u';
+  if _count < 1 then
+    raise exception 'FAIL 35: devices missing UNIQUE constraint on device_public_id';
+  end if;
+
+  -- 36. Only authenticated has table-level SELECT/INSERT/UPDATE on devices;
+  --     no anon, no service_role, no ALL, no DELETE.
+  select count(*) into _count
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = 'devices'
+    and grantee in ('anon', 'service_role');
+  if _count > 0 then
+    raise exception 'FAIL 36: anon/service_role granted privileges on devices';
+  end if;
+
+  select count(*) into _count
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = 'devices'
+    and grantee = 'authenticated'
+    and privilege_type not in ('SELECT', 'INSERT', 'UPDATE');
+  if _count > 0 then
+    raise exception 'FAIL 36: authenticated granted unexpected privilege on devices';
+  end if;
+
+  select count(*) into _count
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = 'devices'
+    and grantee = 'authenticated';
+  if _count <> 3 then
+    raise exception 'FAIL 36: expected exactly SELECT/INSERT/UPDATE grants for authenticated on devices, found %', _count;
+  end if;
+
+  -- 37. devices RLS policies: self-owned SELECT/INSERT/UPDATE for authenticated,
+  --     each bound to auth.uid(); no DELETE policy.
+  select count(*) into _policies
+  from pg_policies
+  where schemaname = 'public' and tablename = 'devices' and cmd = 'DELETE';
+  if _policies > 0 then
+    raise exception 'FAIL 37: devices exposes a DELETE policy';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'devices'
+    and cmd = 'SELECT' and 'authenticated' = any(roles)
+    and qual like '%auth.uid()%';
+  if _count <> 1 then
+    raise exception 'FAIL 37: devices missing self-owned SELECT policy for authenticated';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'devices'
+    and cmd = 'INSERT' and 'authenticated' = any(roles)
+    and with_check like '%auth.uid()%';
+  if _count <> 1 then
+    raise exception 'FAIL 37: devices missing self-owned INSERT policy for authenticated';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'devices'
+    and cmd = 'UPDATE' and 'authenticated' = any(roles)
+    and qual like '%auth.uid()%' and with_check like '%auth.uid()%';
+  if _count <> 1 then
+    raise exception 'FAIL 37: devices missing self-owned UPDATE policy for authenticated';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'devices';
+  if _count <> 3 then
+    raise exception 'FAIL 37: expected exactly 3 RLS policies on devices, found %', _count;
+  end if;
+
+  -- 38. Devices triggers (set_timestamps, guard_identity, guard_revocation)
+  --     are attached, enabled, and their trigger functions are SECURITY INVOKER
+  --     with no EXECUTE grant for any app role / PUBLIC.
+  for _acl_row in
+    select unnest(array['devices_set_timestamps', 'devices_guard_identity', 'devices_guard_revocation']) as tgname
+  loop
+    select count(*) into _count
+    from pg_trigger
+    where tgrelid = 'public.devices'::regclass
+      and not tgisinternal
+      and tgenabled = 'O'
+      and tgname = _acl_row.tgname;
+    if _count <> 1 then
+      raise exception 'FAIL 38: devices trigger % missing or disabled', _acl_row.tgname;
+    end if;
+  end loop;
+
+  for _acl_row in
+    select unnest(array['devices_set_timestamps', 'devices_guard_identity', 'devices_guard_revocation']) as proname
+  loop
+    select count(*) into _count
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = _acl_row.proname and p.prosecdef;
+    if _count > 0 then
+      raise exception 'FAIL 38: devices trigger function % is SECURITY DEFINER', _acl_row.proname;
+    end if;
+
+    select count(*) into _count
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+    where n.nspname = 'public'
+      and p.proname = _acl_row.proname
+      and (a.grantee = 0 or a.grantee in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole));
+    if _count > 0 then
+      raise exception 'FAIL 38: % privilege grant(s) remain on devices trigger function %', _count, _acl_row.proname;
+    end if;
+  end loop;
+
+  -- 39. sessions exists and is a plain table.
+  if to_regclass('public.sessions') is null then
+    raise exception 'FAIL 39: public.sessions missing';
+  end if;
+  select count(*) into _count
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'sessions' and c.relkind = 'r';
+  if _count <> 1 then
+    raise exception 'FAIL 39: public.sessions is not a plain table';
+  end if;
+
+  -- 40. sessions has RLS enabled.
+  select count(*) into _count
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'sessions' and not c.relrowsecurity;
+  if _count > 0 then
+    raise exception 'FAIL 40: public.sessions has RLS disabled';
+  end if;
+
+  -- 41. sessions.user_id references auth.users(id) ON DELETE CASCADE.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.sessions'::regclass
+    and contype = 'f'
+    and confrelid = 'auth.users'::regclass
+    and confdeltype = 'c';
+  if _count <> 1 then
+    raise exception 'FAIL 41: sessions lacks FK to auth.users(id) ON DELETE CASCADE';
+  end if;
+
+  -- 42. sessions.device_id references public.devices(id) ON DELETE CASCADE.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.sessions'::regclass
+    and contype = 'f'
+    and confrelid = 'public.devices'::regclass
+    and confdeltype = 'c';
+  if _count <> 1 then
+    raise exception 'FAIL 42: sessions lacks FK to public.devices(id) ON DELETE CASCADE';
+  end if;
+
+  -- 43. sessions has CHECK constraints on session_public_id length and
+  --     revoked_at >= created_at.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.sessions'::regclass and contype = 'c';
+  if _count < 2 then
+    raise exception 'FAIL 43: expected at least 2 CHECK constraints on sessions, found %', _count;
+  end if;
+
+  for _acl_row in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.sessions'::regclass and contype = 'c'
+  loop
+    if _acl_row.conname not in (
+      'sessions_public_id_length',
+      'sessions_revoked_at_not_before_created'
+    ) then
+      raise exception 'FAIL 43: unexpected CHECK constraint % on sessions', _acl_row.conname;
+    end if;
+  end loop;
+
+  -- 44. sessions.session_public_id UNIQUE constraint exists.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.sessions'::regclass
+    and contype = 'u';
+  if _count < 1 then
+    raise exception 'FAIL 44: sessions missing UNIQUE constraint on session_public_id';
+  end if;
+
+  -- 45. Only authenticated has table-level SELECT/INSERT/UPDATE on sessions;
+  --     no anon, no service_role, no ALL, no DELETE.
+  select count(*) into _count
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = 'sessions'
+    and grantee in ('anon', 'service_role');
+  if _count > 0 then
+    raise exception 'FAIL 45: anon/service_role granted privileges on sessions';
+  end if;
+
+  select count(*) into _count
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = 'sessions'
+    and grantee = 'authenticated'
+    and privilege_type not in ('SELECT', 'INSERT', 'UPDATE');
+  if _count > 0 then
+    raise exception 'FAIL 45: authenticated granted unexpected privilege on sessions';
+  end if;
+
+  select count(*) into _count
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = 'sessions'
+    and grantee = 'authenticated';
+  if _count <> 3 then
+    raise exception 'FAIL 45: expected exactly SELECT/INSERT/UPDATE grants for authenticated on sessions, found %', _count;
+  end if;
+
+  -- 46. sessions RLS policies: self-owned SELECT/INSERT/UPDATE for
+  --     authenticated, each bound to auth.uid(); no DELETE policy.
+  --     INSERT/UPDATE additionally require a non-revoked device via EXISTS.
+  select count(*) into _policies
+  from pg_policies
+  where schemaname = 'public' and tablename = 'sessions' and cmd = 'DELETE';
+  if _policies > 0 then
+    raise exception 'FAIL 46: sessions exposes a DELETE policy';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'sessions'
+    and cmd = 'SELECT' and 'authenticated' = any(roles)
+    and qual like '%auth.uid()%';
+  if _count <> 1 then
+    raise exception 'FAIL 46: sessions missing self-owned SELECT policy for authenticated';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'sessions'
+    and cmd = 'INSERT' and 'authenticated' = any(roles)
+    and with_check like '%auth.uid()%'
+    and with_check ~* 'devices.*revoked_at is null';
+  if _count <> 1 then
+    raise exception 'FAIL 46: sessions INSERT policy must require non-revoked device via EXISTS';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'sessions'
+    and cmd = 'UPDATE' and 'authenticated' = any(roles)
+    and qual ~* 'revoked_at is null'
+    and with_check like '%auth.uid()%'
+    and with_check ~* 'devices.*revoked_at is null';
+  if _count <> 1 then
+    raise exception 'FAIL 46: sessions UPDATE policy must use revoked_at is null in USING and require non-revoked device in WITH CHECK';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'sessions';
+  if _count <> 3 then
+    raise exception 'FAIL 46: expected exactly 3 RLS policies on sessions, found %', _count;
+  end if;
+
+  -- 47. Sessions triggers (set_timestamps, guard_identity, guard_revocation)
+  --     are attached, enabled, and their trigger functions are SECURITY INVOKER
+  --     with no EXECUTE grant for any app role / PUBLIC.
+  for _acl_row in
+    select unnest(array['sessions_set_timestamps', 'sessions_guard_identity', 'sessions_guard_revocation']) as tgname
+  loop
+    select count(*) into _count
+    from pg_trigger
+    where tgrelid = 'public.sessions'::regclass
+      and not tgisinternal
+      and tgenabled = 'O'
+      and tgname = _acl_row.tgname;
+    if _count <> 1 then
+      raise exception 'FAIL 47: sessions trigger % missing or disabled', _acl_row.tgname;
+    end if;
+  end loop;
+
+  for _acl_row in
+    select unnest(array['sessions_set_timestamps', 'sessions_guard_identity', 'sessions_guard_revocation']) as proname
+  loop
+    select count(*) into _count
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = _acl_row.proname and p.prosecdef;
+    if _count > 0 then
+      raise exception 'FAIL 47: sessions trigger function % is SECURITY DEFINER', _acl_row.proname;
+    end if;
+
+    select count(*) into _count
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+    where n.nspname = 'public'
+      and p.proname = _acl_row.proname
+      and (a.grantee = 0 or a.grantee in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole));
+    if _count > 0 then
+      raise exception 'FAIL 47: % privilege grant(s) remain on sessions trigger function %', _count, _acl_row.proname;
+    end if;
+  end loop;
+
+  -- 48. devices UPDATE policy requires revoked_at is null in USING (a revoked
+  --     device cannot mutate its row; the one-time revocation still passes
+  --     because USING evaluates the pre-update row).
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'devices'
+    and cmd = 'UPDATE' and 'authenticated' = any(roles)
+    and qual like '%auth.uid()%' and qual ~* 'revoked_at is null';
+  if _count <> 1 then
+    raise exception 'FAIL 48: devices UPDATE USING must include revoked_at is null';
+  end if;
+
+  raise notice 'PASS: all CLOUD-001..CLOUD-005 database assertions held';
 end $$;

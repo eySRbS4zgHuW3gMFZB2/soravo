@@ -50,6 +50,19 @@ values
   ('00000000-0000-0000-0000-00000000000a', 'soravo', 'monthly', 'active', 'razorpay', 'cus_alice_clo4', 'pay_alice_clo4', now() - interval '2 days', now() + interval '28 days'),
   ('00000000-0000-0000-0000-00000000000b', 'soravo', 'lifetime', 'active', 'razorpay', 'cus_bob_clo4',   'pay_bob_clo4',   now(),                    null);
 
+-- CLOUD-005 fixtures: Alice and Bob each own one device; Alice's session is
+-- bound to her (initially active) device. Their public ids are opaque,
+-- non-secret client identifiers. Device/session UUIDs are FIXED so the tests
+-- can reference another user's row directly (proofs below go through RLS and
+-- the privilege layer, not through guessable identifiers).
+insert into public.devices (id, user_id, device_public_id, platform, app_version)
+values
+  ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', 'dev-alice-0001', 'macos',   '1.0.0'),
+  ('10000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000b', 'dev-bob-0001',   'windows', '1.0.0');
+
+insert into public.sessions (id, user_id, device_id, session_public_id)
+values ('20000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 'sess-alice-0001');
+
 -- ------------------------------------------------------------------ --
 -- A (authenticated): self-access works, cross-user is isolated.        --
 -- ------------------------------------------------------------------ --
@@ -503,6 +516,337 @@ begin
     raise exception 'FAIL E15: trigger did not overwrite timestamps on UPDATE';
   end if;
 end $$;
+
+-- ------------------------------------------------------------------ --
+-- D/S (CLOUD-005): devices + sessions authorization proof.            --
+-- Devices and sessions are client-registered, self-owned metadata rows.       --
+-- A user can register/read/revoke their OWN devices/sessions, never another   --
+-- user's; a session can never be bound to another user's device; a revoked    --
+-- device cannot spawn sessions; identity and timestamps are server-owned;     --
+-- revocation is one-way and terminal; anon/service_role have no client path.  --
+-- Sequence: devices (active) -> sessions (active) -> session revocation ->    --
+-- device revocation -> session-on-revoked-device (denied) -> anon denial.     --
+-- ------------------------------------------------------------------ --
+set role authenticated;
+
+-- D1. Alice sees exactly her own device; D2. cross-user SELECT is empty both
+--     directions such that a user can never enumerate another user's devices.
+do $$
+declare _n int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  select count(*) into _n from public.devices;
+  if _n <> 1 then raise exception 'FAIL D1: Alice expected 1 device, got %', _n; end if;
+  select count(*) into _n from public.devices where device_public_id = 'dev-bob-0001';
+  if _n <> 0 then raise exception 'FAIL D2: Alice read Bob''s device'; end if;
+end $$;
+
+do $$
+declare _n int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b"}', false);
+  select count(*) into _n from public.devices;
+  if _n <> 1 then raise exception 'FAIL D2: Bob expected 1 device, got %', _n; end if;
+  select count(*) into _n from public.devices where device_public_id = 'dev-alice-0001';
+  if _n <> 0 then raise exception 'FAIL D2: Bob read Alice''s device'; end if;
+end $$;
+
+-- D3. A user cannot register a device owned by another user: INSERT claiming
+--     Bob's user_id while acting as Alice is rejected by RLS WITH CHECK.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  begin
+    insert into public.devices (user_id, device_public_id, platform, app_version)
+    values ('00000000-0000-0000-0000-00000000000b', 'dev-alice-evil', 'linux', '1.0.0');
+    raise exception 'FAIL D3: cross-user device INSERT unexpectedly allowed';
+  exception when sqlstate '42501' then null;
+  end;
+end $$;
+
+-- D4. Cross-user device UPDATE matches zero rows (RLS USING), so Bob can never
+--     transfer Alice's device or mutate it.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b"}', false);
+  update public.devices set revoked_at = now() where device_public_id = 'dev-alice-0001';
+  if found then raise exception 'FAIL D4: Bob updated Alice''s device'; end if;
+  update public.devices set user_id = '00000000-0000-0000-0000-00000000000b'
+  where device_public_id = 'dev-alice-0001';
+  if found then raise exception 'FAIL D4: Bob transferred Alice''s device'; end if;
+end $$;
+
+-- D5. Legit self-update: Alice can bump her OWN (active) device; the changes
+--     persist.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.devices set app_version = '1.0.1' where device_public_id = 'dev-alice-0001';
+  if not found then raise exception 'FAIL D5: Alice could not update own device'; end if;
+  if (select app_version from public.devices where device_public_id = 'dev-alice-0001') <> '1.0.1' then
+    raise exception 'FAIL D5: own device update did not persist';
+  end if;
+end $$;
+
+-- D9. Identity immutability at the trigger layer: even a RLS-bypassing path
+--     (superuser, e.g. a future licensing server) cannot re-key a device
+--     (device_public_id / user_id / first_seen_at are immutable).
+set role postgres;
+do $$
+begin
+  begin
+    update public.devices set device_public_id = 'dev-alice-relabeled' where device_public_id = 'dev-alice-0001';
+  exception when others then null;
+  end;
+  if exists (select 1 from public.devices where device_public_id = 'dev-alice-relabeled') then
+    raise exception 'FAIL D9: identity guard allowed device_public_id change';
+  end if;
+  begin
+    update public.devices set user_id = '00000000-0000-0000-0000-00000000000b' where device_public_id = 'dev-alice-0001';
+  exception when others then null;
+  end;
+  if exists (select 1 from public.devices where device_public_id = 'dev-alice-0001'
+             and user_id = '00000000-0000-0000-0000-00000000000b') then
+    raise exception 'FAIL D9: identity guard allowed user_id change';
+  end if;
+  begin
+    update public.devices set first_seen_at = now() - interval '50 years' where device_public_id = 'dev-alice-0001';
+  exception when others then null;
+  end;
+  if exists (select 1 from public.devices where device_public_id = 'dev-alice-0001'
+             and first_seen_at < now() - interval '40 years') then
+    raise exception 'FAIL D9: identity guard allowed first_seen_at change';
+  end if;
+end $$;
+
+-- ------------------------------------------------------------------ --
+-- S (CLOUD-005): sessions authorization proof.                        --
+-- ------------------------------------------------------------------ --
+set role authenticated;
+
+-- S1. Alice sees exactly her own session; S2. cross-user session SELECT empty.
+do $$
+declare _n int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  select count(*) into _n from public.sessions;
+  if _n <> 1 then raise exception 'FAIL S1: Alice expected 1 session, got %', _n; end if;
+  select count(*) into _n from public.sessions where session_public_id = 'sess-bob-0001';
+  if _n <> 0 then raise exception 'FAIL S2: Alice read Bob''s session'; end if;
+end $$;
+
+do $$
+declare _n int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b"}', false);
+  select count(*) into _n from public.sessions;
+  if _n <> 0 then raise exception 'FAIL S2: Bob expected 0 sessions, got %', _n; end if;
+  select count(*) into _n from public.sessions where session_public_id = 'sess-alice-0001';
+  if _n <> 0 then raise exception 'FAIL S2: Bob read Alice''s session'; end if;
+end $$;
+
+-- S3. A session can never claim a DIFFERENT owner: inserting with Bob acting
+--     but user_id = Alice is rejected by RLS WITH CHECK.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b"}', false);
+  begin
+    insert into public.sessions (user_id, device_id, session_public_id)
+    values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000b', 'sess-bob-evil');
+    raise exception 'FAIL S3: cross-owner session INSERT unexpectedly allowed';
+  exception when sqlstate '42501' then null;
+  end;
+end $$;
+
+-- S4. A session can never reference ANOTHER user's device: Alice inserting on
+--     Bob's device (fixed UUID) fails because the EXISTS subquery resolves
+--     through devices RLS, which hides Bob's device from Alice.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  begin
+    insert into public.sessions (user_id, device_id, session_public_id)
+    values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000b', 'sess-alice-evil');
+    raise exception 'FAIL S4: Alice bound a session to Bob''s device';
+  exception when sqlstate '42501' then null;
+  end;
+end $$;
+
+-- S5. Cross-user session UPDATE matches zero rows: Bob can neither revoke nor
+--     transfer Alice's session.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b"}', false);
+  update public.sessions set revoked_at = now() where session_public_id = 'sess-alice-0001';
+  if found then raise exception 'FAIL S5: Bob revoked Alice''s session'; end if;
+  update public.sessions set user_id = '00000000-0000-0000-0000-00000000000b'
+  where session_public_id = 'sess-alice-0001';
+  if found then raise exception 'FAIL S5: Bob transferred Alice''s session'; end if;
+end $$;
+
+-- S5b. Legit self-update of an ACTIVE session works (it is bound to Alice's
+--      still-active device).
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.sessions set last_seen_at = now() where session_public_id = 'sess-alice-0001';
+  if not found then raise exception 'FAIL S5b: Alice could not update own session'; end if;
+end $$;
+
+-- S6. A user can revoke their OWN session (server-side security state)...
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.sessions set revoked_at = now() where session_public_id = 'sess-alice-0001';
+  if not found then raise exception 'FAIL S6: Alice could not revoke own session'; end if;
+end $$;
+
+-- S6c. ...but clearing it is denied at the TRIGGER layer even for a
+--      RLS-bypassing path (one-way revocation).
+set role postgres;
+do $$
+begin
+  begin
+    update public.sessions set revoked_at = null where session_public_id = 'sess-alice-0001';
+  exception when others then null;
+  end;
+  if (select revoked_at is null from public.sessions where session_public_id = 'sess-alice-0001') then
+    raise exception 'FAIL S6c: session revocation-clearing UPDATE succeeded';
+  end if;
+end $$;
+
+-- S6b. and (for the user path) it matches ZERO rows: once revoked, the session
+--      row is invisible to UPDATE (RLS USING revoked_at is null).
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.sessions set revoked_at = null where session_public_id = 'sess-alice-0001';
+  if found then raise exception 'FAIL S6b: user-path un-revoke matched a row'; end if;
+end $$;
+
+-- S7. A revoked session is terminal: further UPDATE matches zero rows.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.sessions set last_seen_at = now() where session_public_id = 'sess-alice-0001';
+  if found then raise exception 'FAIL S7: revoked own session can still be updated'; end if;
+end $$;
+
+-- S7b. Multiple concurrent sessions per device are LEGIT: Alice signs in again
+--      on the same (still-active) device, producing a second, ACTIVE session
+--      row through the normal user INSERT path. This row stays active so the
+--      revoked-device write-lockout can be proven without conflating it with
+--      the already-revoked sess-alice-0001.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  insert into public.sessions (user_id, device_id, session_public_id)
+  values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 'sess-alice-0002');
+end $$;
+
+-- ------------------------------------------------------------------ --
+-- Device revocation (kept after the session-active proofs).            --
+-- ------------------------------------------------------------------ --
+-- D6. A user can revoke their OWN device...
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.devices set revoked_at = now() where device_public_id = 'dev-alice-0001';
+  if not found then raise exception 'FAIL D6: Alice could not revoke own device'; end if;
+end $$;
+
+-- D6c. ...but clearing it is denied at the TRIGGER layer (one-way revocation).
+set role postgres;
+do $$
+begin
+  begin
+    update public.devices set revoked_at = null where device_public_id = 'dev-alice-0001';
+  exception when others then null;
+  end;
+  if (select revoked_at is null from public.devices where device_public_id = 'dev-alice-0001') then
+    raise exception 'FAIL D6c: device revocation-clearing UPDATE succeeded';
+  end if;
+end $$;
+
+-- D6b. and (for the user path) it matches ZERO rows.
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.devices set revoked_at = null where device_public_id = 'dev-alice-0001';
+  if found then raise exception 'FAIL D6b: user-path un-revoke matched a row'; end if;
+end $$;
+
+-- D7. A revoked device is terminal: further UPDATE (e.g. app_version bump)
+--     matches zero rows, while the row REMAINS readable so the dashboard can
+--     still list it as revoked.
+do $$
+declare _cn int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.devices set app_version = '9.9.9' where device_public_id = 'dev-alice-0001';
+  if found then raise exception 'FAIL D7: revoked own device can still be updated'; end if;
+  select count(*) into _cn from public.devices where device_public_id = 'dev-alice-0001';
+  if _cn <> 1 then raise exception 'FAIL D7: revoked own device no longer readable'; end if;
+end $$;
+
+-- S8. A session can never be spawned from a REVOKED device: Alice's device is
+--     now revoked, so inserting a session bound to it is rejected by RLS.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  begin
+    insert into public.sessions (user_id, device_id, session_public_id)
+    values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 'sess-alice-new');
+    raise exception 'FAIL S8: session INSERT on revoked own device allowed';
+  exception when sqlstate '42501' then null;
+  end;
+end $$;
+
+-- S10. An ACTIVE session bound to a REVOKED device is terminal for writes:
+--      even the owner's harmless "revoke this session" UPDATE is rejected
+--      because sessions_update_own WITH CHECK requires the device to remain
+--      non-revoked (device revocation is terminal, so every session on the
+--      device is dead-but-readable and can never be written again).
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  begin
+    update public.sessions set revoked_at = now() where session_public_id = 'sess-alice-0002';
+    raise exception 'FAIL S10: session UPDATE on revoked device allowed';
+  exception when sqlstate '42501' then null;
+  end;
+end $$;
+
+-- D8/S9: anon has NO read/write access to devices or sessions (privilege
+-- denial at the schema boundary — any privilege denial is acceptable).
+set role anon;
+do $$
+begin
+  begin
+    execute 'select count(*) from public.devices';
+    raise exception 'FAIL D8: anon read devices';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    execute 'insert into public.devices (user_id, device_public_id, platform, app_version) values (''00000000-0000-0000-0000-00000000000a'', ''dev-anon'', ''macos'', ''1.0.0'')';
+    raise exception 'FAIL D8: anon insert into devices allowed';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    execute 'select count(*) from public.sessions';
+    raise exception 'FAIL S9: anon read sessions';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    execute 'insert into public.sessions (user_id, device_id, session_public_id) values (''00000000-0000-0000-0000-00000000000a'', ''10000000-0000-0000-0000-00000000000a'', ''sess-anon'')';
+    raise exception 'FAIL S9: anon insert into sessions allowed';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+set role postgres;
 
 -- ------------------------------------------------------------------ --
 -- Cleanup: the whole suite is rolled back regardless of path.           --

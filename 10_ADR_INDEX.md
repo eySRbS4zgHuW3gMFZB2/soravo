@@ -15,15 +15,16 @@ Required ADRs:
 - ADR-009 — model distribution/source
 - ADR-010 — Supabase schema and RLS
 - ADR-011 — authentication/session model
-- ADR-012 — Razorpay payment/entitlement architecture
-- ADR-013 — Cloudflare hosting/deployment
-- ADR-014 — Umami analytics boundaries
-- ADR-015 — admin dashboard metrics
-- ADR-016 — MCP toolchain and permissions
-- ADR-017 — TestSprite testing policy
-- ADR-018 — update/release mechanism
-- ADR-019 — performance benchmark results
-- ADR-020 — Linux support decision if revisited
+- ADR-012 — Supabase entitlements authorization
+- ADR-013 — Supabase devices/sessions authorization
+- ADR-014 — Cloudflare hosting/deployment
+- ADR-015 — Umami analytics boundaries
+- ADR-016 — admin dashboard metrics
+- ADR-017 — MCP toolchain and permissions
+- ADR-018 — TestSprite testing policy
+- ADR-019 — update/release mechanism
+- ADR-020 — performance benchmark results
+- ADR-021 — Linux support decision if revisited
 
 Each ADR:
 ```text
