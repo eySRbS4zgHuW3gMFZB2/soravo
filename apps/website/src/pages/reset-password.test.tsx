@@ -57,4 +57,18 @@ describe("reset-password page", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/couldn't update your password/i);
     expect(screen.queryByText(/JWT expired/i)).toBeNull();
   });
+
+  it("directs a stale reset link back for a fresh one", async () => {
+    renderReset(
+      createMockSupabaseClient({
+        session: mockSession(),
+        updateUserError: { message: "Reauthentication needed", code: "reauthentication_needed" },
+      }),
+    );
+    await screen.findByText(/choose a new password/i);
+    fireEvent.change(await screen.findByLabelText(/new password/i), { target: { value: "new-password-123" } });
+    fireEvent.click(screen.getByRole("button", { name: /update password/i }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/reset link may have expired/i);
+    expect(screen.queryByText(/Reauthentication needed/i)).toBeNull();
+  });
 });

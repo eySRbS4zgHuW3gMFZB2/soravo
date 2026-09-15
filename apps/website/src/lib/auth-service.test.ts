@@ -5,6 +5,7 @@ import {
   ensureProfile,
   getProfile,
   requestPasswordReset,
+  requestReauthentication,
   signInWithEmail,
   signOut,
   signUpWithEmail,
@@ -85,12 +86,69 @@ describe("auth service password update", () => {
     const mock = createMockSupabaseClient({ updateUserError: { message: "JWT expired" } });
     const result = await updatePassword(asClient(mock), { password: "x".repeat(12) });
     expect(result.error).toMatch(/couldn't update your password/i);
+    expect(result.reauthRequired).toBeFalsy();
   });
 
   it("succeeds without error", async () => {
     const mock = createMockSupabaseClient();
     const result = await updatePassword(asClient(mock), { password: "x".repeat(12) });
     expect(result.error).toBeNull();
+    expect(result.reauthRequired).toBeFalsy();
+  });
+
+  it("reports reauthRequired when the server demands reauthentication", async () => {
+    const mock = createMockSupabaseClient({
+      updateUserError: { message: "Reauthentication needed", code: "reauthentication_needed" },
+    });
+    const result = await updatePassword(asClient(mock), { password: "x".repeat(12) });
+    expect(result.error).toBeNull();
+    expect(result.reauthRequired).toBe(true);
+  });
+
+  it("maps same_password to the generic message", async () => {
+    const mock = createMockSupabaseClient({
+      updateUserError: { message: "New password should be different from the old password", code: "same_password" },
+    });
+    const result = await updatePassword(asClient(mock), { password: "x".repeat(12) });
+    expect(result.error).toMatch(/couldn't update your password/i);
+    expect(result.reauthRequired).toBeFalsy();
+  });
+
+  it("passes the recovery nonce through to updateUser", async () => {
+    const mock = createMockSupabaseClient();
+    await updatePassword(asClient(mock), { password: "x".repeat(12), nonce: "123456" });
+    expect(mock.auth.updateUser).toHaveBeenCalledWith({ password: "x".repeat(12), nonce: "123456" });
+  });
+
+  it("omits the nonce key when none is provided", async () => {
+    const mock = createMockSupabaseClient();
+    await updatePassword(asClient(mock), { password: "x".repeat(12) });
+    expect(mock.auth.updateUser).toHaveBeenCalledWith({ password: "x".repeat(12) });
+  });
+
+  it("maps a failed nonce confirmation to the generic message", async () => {
+    const mock = createMockSupabaseClient({
+      updateUserError: { message: "Token has expired or is invalid", code: "reauthentication_not_valid" },
+    });
+    const result = await updatePassword(asClient(mock), { password: "x".repeat(12), nonce: "000000" });
+    expect(result.error).toMatch(/couldn't update your password/i);
+    expect(result.error).not.toMatch(/expired/i);
+  });
+});
+
+describe("auth service reauthentication", () => {
+  it("requests a reauthentication OTP", async () => {
+    const mock = createMockSupabaseClient();
+    const result = await requestReauthentication(asClient(mock));
+    expect(result.error).toBeNull();
+    expect(mock.auth.reauthenticate).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps reauthentication failures to a generic message", async () => {
+    const mock = createMockSupabaseClient({ reauthenticateError: { message: "No session found" } });
+    const result = await requestReauthentication(asClient(mock));
+    expect(result.error).toMatch(/couldn't send a verification code/i);
+    expect(result.error).not.toMatch(/session/i);
   });
 });
 
@@ -105,6 +163,24 @@ describe("auth service sign-out", () => {
     const mock = createMockSupabaseClient();
     const result = await signOut(asClient(mock));
     expect(result.error).toBeNull();
+  });
+
+  it("defaults to local scope when no scope is provided", async () => {
+    const mock = createMockSupabaseClient();
+    await signOut(asClient(mock));
+    expect(mock.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("passes the requested scope to the underlying client", async () => {
+    const mock = createMockSupabaseClient();
+    await signOut(asClient(mock), { scope: "others" });
+    expect(mock.auth.signOut).toHaveBeenCalledWith({ scope: "others" });
+  });
+
+  it("passes global scope to the underlying client", async () => {
+    const mock = createMockSupabaseClient();
+    await signOut(asClient(mock), { scope: "global" });
+    expect(mock.auth.signOut).toHaveBeenCalledWith({ scope: "global" });
   });
 });
 

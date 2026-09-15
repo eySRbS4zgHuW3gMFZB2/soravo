@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { AuthProvider, useAuth } from "./auth-context";
 import { createMockSupabaseClient } from "../test-utils/supabase-mock";
 import type { AppSupabaseClient } from "./supabase";
@@ -20,6 +20,22 @@ function renderProbe(client?: AppSupabaseClient | null) {
       <Probe />
     </AuthProvider>,
   );
+}
+
+function mockSession() {
+  return {
+    user: {
+      id: "user-1",
+      aud: "authenticated",
+      role: "authenticated",
+      email: "alice@soravo.app",
+      email_confirmed_at: new Date().toISOString(),
+      app_metadata: {},
+      user_metadata: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  };
 }
 
 afterEach(cleanup);
@@ -67,5 +83,63 @@ describe("auth context", () => {
     });
     renderProbe(mock as unknown as AppSupabaseClient);
     expect(await screen.findByText(/session:alice@soravo.app · profile:Alice/)).toBeTruthy();
+  });
+
+  it("forwards a non-default sign-out scope to the service", async () => {
+    const mock = createMockSupabaseClient({ session: mockSession() });
+    let scopeSeen: string | undefined;
+    function Actor() {
+      const { signOut } = useAuth();
+      return (
+        <button
+          onClick={async () => {
+            await signOut({ scope: "others" });
+            scopeSeen = (mock.auth.signOut.mock.calls[0]?.[0] as { scope?: string })?.scope;
+          }}
+        >
+          act
+        </button>
+      );
+    }
+    render(
+      <AuthProvider client={mock as unknown as AppSupabaseClient}>
+        <Actor />
+      </AuthProvider>,
+    );
+    await act(async () => {
+      screen.getByRole("button", { name: /act/i }).click();
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+    expect(scopeSeen).toBe("others");
+  });
+
+  it("surfaces reauthRequired from updatePassword", async () => {
+    const mock = createMockSupabaseClient({
+      session: mockSession(),
+      updateUserError: { message: "Reauthentication needed", code: "reauthentication_needed" },
+    });
+    let outcome: { error: string | null; reauthRequired?: boolean } | null = null;
+    function Actor() {
+      const { updatePassword } = useAuth();
+      return (
+        <button
+          onClick={async () => {
+            outcome = await updatePassword({ password: "x".repeat(12) });
+          }}
+        >
+          act
+        </button>
+      );
+    }
+    render(
+      <AuthProvider client={mock as unknown as AppSupabaseClient}>
+        <Actor />
+      </AuthProvider>,
+    );
+    await act(async () => {
+      screen.getByRole("button", { name: /act/i }).click();
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+    expect(outcome).toEqual({ error: null, reauthRequired: true });
   });
 });
