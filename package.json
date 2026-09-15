@@ -8,7 +8,11 @@
     "dev:website": "pnpm --filter @soravo/website dev",
     "dev:desktop": "pnpm --filter @soravo/desktop tauri dev",
     "lint": "pnpm --filter @soravo/website lint && pnpm --filter @soravo/desktop lint",
-    "test": "pnpm --filter @soravo/website test && pnpm --filter @soravo/desktop test",
+    "test": "pnpm --filter @soravo/website test && pnpm --filter @soravo/desktop test && pnpm test:supabase",
+    "test:supabase": "vitest run --config supabase/tests/vitest.config.mjs",
     "typecheck": "pnpm --filter @soravo/website typecheck && pnpm --filter @soravo/desktop typecheck"
+  },
+  "devDependencies": {
+    "vitest": "latest"
   }
 }

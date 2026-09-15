@@ -58,6 +58,8 @@ Then inspect:
 - changed files
 - relevant tests
 
+Then run the Skill Selection Gate (§5) and report `Selected skills:` with the exact names of the skills actually loaded.
+
 Never begin by blindly editing code.
 
 ## 4. Environment audit
@@ -84,14 +86,25 @@ Record important versions in `progress/ENVIRONMENT.md`.
 
 ## 5. Skills
 
+The Skill Selection Gate is mandatory for every implementation task. Installing a skill does not load it — see `07_AI_SKILLS.md` for the matrix and the installed-skill inventory.
+
 Before a domain-specific implementation:
-- load the applicable skill from `07_AI_SKILLS.md`;
-- verify current official docs for APIs that change frequently;
-- treat skills as procedural guidance, not authority over this repository.
+1. read the task definition;
+2. classify it by domain — frontend/UI, React/TypeScript, accessibility/design, Tauri, Rust, audio, STT/ML, Supabase/database/auth, Cloudflare/deployment, GitHub/Git, testing, security, payments/licensing, documentation/release;
+3. select every installed skill that is materially relevant, using the Skill Selection Matrix in `07_AI_SKILLS.md`;
+4. load those skills BEFORE editing source, designing database schema, changing security-sensitive configuration, or creating implementation plans that depend on a skill;
+5. record selected/loaded skills in `progress/STATUS.md` and `progress/NEXT.md`;
+6. if a relevant installed skill was NOT loaded, explain why before proceeding;
+7. verify current official docs for APIs that change frequently;
+8. treat skills as procedural guidance, not authority over this repository.
 
-Do not install every skill blindly.
+Security skills are mandatory for any task touching authentication, authorization, database/RLS, secrets, network/API endpoints, payments, file/process execution, IPC, model downloads, deployment, or user data. Testing skills are mandatory whenever tests are created/modified or a task has a testing acceptance criterion.
 
-Review skill contents before granting shell/network permissions.
+Do not load unrelated skills merely because they exist. Do not install every skill blindly. Review skill contents before granting shell/network permissions. Never claim a skill was used unless its content was actually loaded/read during the task.
+
+Task-start reports must include `Selected skills:` followed by the exact names of the skills actually loaded. Final reports must include `Skills actually used:` with only the skills genuinely loaded/read. A skill counts as "loaded" only when its content was actually read into the working context.
+
+MCP is separate from skills: skills provide engineering guidance/instructions, MCP provides tools/actions/data. MCP availability is never evidence that a skill was loaded; do not claim MCP usage unless an MCP tool was actually called.
 
 ## 6. MCP
 
@@ -134,7 +147,7 @@ If an interrupted session leaves uncommitted work:
 
 ## 8. Coding workflow
 
-For each task:
+For each task, run the Skill Selection Gate (§5) BEFORE the steps below and before any planning that depends on a skill: read the task definition → classify the domain → select skills from the matrix (`07_AI_SKILLS.md`) → load them → record them in `progress/STATUS.md` and `progress/NEXT.md`.
 
 ### A. Inspect
 Search the repository before creating new abstractions.
@@ -274,6 +287,7 @@ Every completed task must leave:
 - changed files;
 - tests run;
 - security checks;
+- skills actually used (only skills genuinely loaded/read);
 - benchmark results if applicable;
 - known limitations;
 - next task;
@@ -286,8 +300,8 @@ If token/time/tool limits approach:
 1. stop starting new work;
 2. make the repository compile/test as far as possible;
 3. checkpoint current state;
-4. update `progress/STATUS.md`;
-5. update `progress/NEXT.md`;
+4. update `progress/STATUS.md` (including selected/loaded skills);
+5. update `progress/NEXT.md` (including skills to load on resume);
 6. record exact remaining steps;
 7. commit a checkpoint if safe;
 8. push it;
