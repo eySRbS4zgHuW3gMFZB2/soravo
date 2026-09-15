@@ -107,6 +107,14 @@ Verification: `db_assertions.sql` grows to 57 checks — check 16 is now a SECUR
 
 Verification: website gates (`pnpm lint`, `pnpm typecheck`, `pnpm test` — 84 website tests incl. scoped signOut, reauth flow, other-sessions signOut, code-entry tests, `pnpm build`, `pnpm audit --prod`) all pass; `pnpm test:supabase` 12/12 migration-guard tests pass; no DB assertions re-run needed (no schema change).
 
+## Payment service skeleton (CLOUD-009)
+
+`CLOUD-009` delivers the server-side payment skeleton (`@soravo/license-api`) per `05_TASK_BREAKDOWN.md` and ADR-024. Highlights:
+
+- **No new SQL.** CLOUD-009 adds zero migrations, grants, policies, or functions; no payment tables exist yet (deferred to CLOUD-010/011). The `db_assertions.sql` check-16 SECURITY DEFINER whitelist stays at exactly the three ADR-016 metrics functions.
+- **No live Razorpay/entitlement writes.** The server resolves prices from a validated in-repo catalog; the provider interface abstracts the dev-only test fake now and the real Razorpay Orders API adapter in CLOUD-010 (webhooks and idempotency arrive in CLOUD-011).
+- Verification of the database boundary: `pnpm test:supabase` 12/12 migration-guard tests pass; no DB assertions / RLS assertion re-runs required for this task (no schema change). Security advisors currently show 3 pre-existing ADR-016-sanctioned WARN lints (the three metrics SECURITY DEFINER functions callable by `authenticated`); no CLOUD-009 additions or regressions.
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.
