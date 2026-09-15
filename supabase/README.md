@@ -69,6 +69,33 @@ Verification: `db_assertions.sql` checks 21–30 (column grants, CHECKs, RLS, tr
 
 Verification: `db_assertions.sql` checks 31–48 (RLS, FKs, CHECK/UNIQUE constraints, exact grants, policy expressions, trigger attachment/EXECUTE deny); `rls_assertions.sql` scenarios D1–D9 + S1–S10 (self-scope, cross-user isolation, terminal revocation at RLS/trigger/postgres levels, revoked-device session bind AND revoked-device session-write denial, anon denial); `migration-guard.test.mjs` 12/12. All pass post-migration on dev project `zbzhlhoxblguepplqppw`; security advisors clean (0 lints); performance advisor reports one expected INFO for the fresh `sessions_device_id_idx`.
 
+## Admin role / authorization (CLOUD-006)
+
+`20260915170000_establish_admin_role_authorization.sql` + delta `20260915171000_admin_role_insert_guard.sql` add the server-authoritative admin flag. See ADR-022 for the full decision; highlights:
+
+- `public.profiles.role` is `text NOT NULL DEFAULT 'user'` with CHECK `role in ('user','admin')`. It is the ONLY source of admin authority; frontend hiding is not authorization (TDD §14).
+- `profiles_guard_role_immutable` trigger (SECURITY INVOKER, `search_path = pg_catalog`, EXECUTE revoked from every app role) fires `BEFORE INSERT OR UPDATE`: non-postgres sessions can never write a `role` other than the `'user'` default on INSERT, and can never change `role` on UPDATE. `postgres` (superuser) is the ONLY role-authoring path — promotion/demotion is human-authorized, privileged SQL.
+- No new table, no new grants, no new RLS policies. Claims injected via `request.jwt.claims` (even `user_metadata.role`/`role: admin`) grant no authority — authorization state lives in the stored column, not the JWT.
+- Nor is any behavior regressed: users still read their own `role` for UX and update non-role columns freely; cross-user isolation, anon denial, and self-ownership semantics are unchanged.
+
+Verification: `db_assertions.sql` checks 49–53 (role column, CHECK, guard trigger attached/enabled, SECURITY INVOKER + no app-role EXECUTE, `search_path` pinned); `rls_assertions.sql` scenarios R1–R12 (default role, self-promote/demote rejection, INSERT-with-admin rejection, out-of-enum rejection, cross-user role-update isolation, non-role self-update preserved, postgres promote/demote, anon denial, own-role read, JWT-metadata non-authority, cross-user isolation intact); `migration-guard.test.mjs` 12/12 (no grants/policies added). All pass post-migration on dev project `zbzhlhoxblguepplqppw`; security advisors clean (0 lints); performance advisor unchanged (1 pre-existing INFO).
+
+## Product metrics queries (CLOUD-007)
+
+`20260915180000_establish_product_metrics.sql` adds the admin-dashboard read surface for product metrics (TDD §15). See ADR-016 for the full decision; highlights:
+
+- EXACTLY three SECURITY DEFINER functions in `public`, callable only by `authenticated` via PostgREST RPC. SECURITY DEFINER is the ADR-016-sanctioned exception (ADR-010's escape hatch): RLS cannot aggregate across users, which is the entire purpose of a metrics layer. Privilege containment is by construction:
+  - every function gates FIRST on `auth.uid()` (non-null) AND `public.profiles.role = 'admin'` — a null uid or non-admin profile raises `CLOUD-007: admin access required`; claims injected via `request.jwt.claims` (incl. `user_metadata.role`, `role:admin`) grant nothing (stored-column authority, ADR-022);
+  - EXECUTE revoked from `public`, `anon`, `service_role`; granted to `authenticated` only (`anon` also lacks schema `USAGE`, CLOUD-003);
+  - `search_path = pg_catalog` on every function, all references schema-qualified, no dynamic SQL (bucket unit translated by fixed-literal CASE);
+  - read-only bodies: `count`/`count(distinct)` aggregates only — no raw user rows, identifiers, provider refs, or PII ever returned; Umami is never a metrics source.
+- `admin_metrics_totals()` → `jsonb`: registered users (from `auth.users`, the authoritative ledger — profiles lazily self-created and trigger-stamped would under-count), paid users (ADR-012 validity predicate read at query time), monthly subscription state (active/cancelled/expired/total), lifetime state (active/revoked/total), device total/revoked/by-platform, `generated_at`.
+- `admin_metrics_growth(p_bucket, p_from, p_to)` → `table (bucket, new_users)`: UTC calendar-aligned new-user series from `auth.users.created_at` in `day|week|month`; half-open buckets `[lower, lower+step)`; the leading bucket is floored to a bucket boundary (may precede `p_from`); bucket count hard-capped at 10000.
+- `admin_metrics_active_users(p_from, p_to)` → `bigint`: distinct users with a non-revoked session in the half-open window `[p_from, p_to)`. New index `sessions_last_seen_at_idx` serves the range scan.
+- No new tables, sequences, table grants, or policies: the CLOUD-001 default-deny, RLS-paired-grant, and no-self-service-elevation invariants are unchanged.
+
+Verification: `db_assertions.sql` grows to 57 checks — check 16 is now a SECURITY DEFINER whitelist (exactly the three metrics functions), checks 54–57 pin signatures, ACLs (authenticated EXECUTE yes; anon/service_role/PUBLIC no), `SECURITY DEFINER` + pinned `search_path`, and the index; `rls_assertions.sql` scenarios M1–M10 (anon denied, non-admin denied in-body, admin allowed with exact totals across the accumulated suite state, JWT-tamper denied, day/week/month bucket exactness, 10000-bucket cap, invalid-bucket rejection, active-users half-open boundaries, service_role denied, postgres-without-claims denied); `migration-guard.test.mjs` unchanged at 12/12 (no table grants added).
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.
