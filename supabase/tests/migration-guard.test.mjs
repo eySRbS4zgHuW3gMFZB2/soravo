@@ -36,6 +36,27 @@ function privilegeTokens(privs) {
   return privs.replace(/\([^)]*\)/g, ' ').split(/[\s,]+/).filter(Boolean);
 }
 
+// Returns `create policy` statements in normalized SQL that target `rel`
+// (matched as either `schema.rel` or the bare relation name).
+function createPolicyStatements(norm, rel) {
+  const escape = (name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const terms = [rel, rel.split('.').pop()].filter(Boolean).map(escape);
+  const onClause = new RegExp(`\\bon\\s+(?:table\\s+)?(${terms.join('|')})\\b`);
+  return norm
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s.startsWith('create policy') && onClause.test(s));
+}
+
+// Normalizes a policy statement's `for <cmd>` clause into the list of
+// commands it authorizes (`for all` covers every command).
+function policyCommands(stmt) {
+  const m = stmt.match(/\bfor\s+(all|select|insert|update|delete)\b/);
+  if (!m) return [];
+  if (m[1] === 'all') return ['select', 'insert', 'update', 'delete'];
+  return [m[1]];
+}
+
 // Detects RLS being enabled on the granted relation within normalized SQL.
 // Recognizes both the Supabase dashboard phrasing and the canonical
 // `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` statement.
@@ -128,6 +149,40 @@ describe('Supabase migration discipline', () => {
   it('never authorizes from user metadata', () => {
     for (const { file, sql } of migs) {
       expect(normalize(sql), file).not.toMatch(/\b(raw_)?user_metadata\b/);
+    }
+  });
+
+  it('never grants ALL privileges to any role', () => {
+    for (const { file, sql } of migs) {
+      const norm = normalize(sql);
+      for (const grant of extractGrants(norm)) {
+        const toks = privilegeTokens(grant.privs);
+        expect(toks, `${file}: GRANT ${grant.privs} ON ${grant.rel} TO ${grant.role}`).not.toContain('all');
+      }
+    }
+  });
+
+  it('pairs write grants to anon/authenticated with an auth.uid()-scoped RLS policy in the same migration', () => {
+    for (const { file, sql } of migs) {
+      const norm = normalize(sql);
+      for (const grant of extractGrants(norm)) {
+        if (grant.role !== 'anon' && grant.role !== 'authenticated') continue;
+        const writes = privilegeTokens(grant.privs).filter(
+          (t) => t === 'all' || ['insert', 'update', 'delete'].includes(t)
+        );
+        for (const w of writes) {
+          const needed = w === 'all' ? ['insert', 'update', 'delete'] : [w];
+          const covered = createPolicyStatements(norm, grant.rel).some((stmt) => {
+            if (!stmt.includes('auth.uid()')) return false;
+            const cmds = policyCommands(stmt);
+            return needed.some((n) => cmds.includes(n));
+          });
+          expect(
+            covered,
+            `${file}: grant ${w} on ${grant.rel} to ${grant.role} lacks an auth.uid()-scoped RLS policy for that command in the same migration`
+          ).toBe(true);
+        }
+      }
     }
   });
 });

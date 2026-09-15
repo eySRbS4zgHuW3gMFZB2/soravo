@@ -11,6 +11,11 @@
 -- (anon/PUBLIC USAGE revoked), schema-less postgres function defaults revoke
 -- the built-in EXECUTE-to-PUBLIC, and the timestamps trigger function has no
 -- EXECUTE grant for any app role.
+-- CLOUD-004: `entitlements` table exists with RLS enabled, a single self-owned
+-- SELECT policy bound to auth.uid(), column-level SELECT grants limited to the
+-- safe projection (identity and provider/payment columns granted to nobody),
+-- invariant CHECK constraints, one (user_id, product) current row, and the
+-- timestamps trigger with no EXECUTE for any app role.
 --
 -- NOTE: `execute_sql` may return multi-statement output; expect the PASS
 -- notice text and no RAISE.
@@ -267,5 +272,199 @@ begin
     raise exception 'FAIL 20: % privilege grant(s) remain on profiles_set_timestamps', _count;
   end if;
 
-  raise notice 'PASS: all CLOUD-001..CLOUD-003 database assertions held';
+  -- ------------------------------------------------------------------ --
+  -- CLOUD-004: entitlements authorization foundation                     --
+  -- ------------------------------------------------------------------ --
+
+  -- 21. entitlements exists and is a plain table.
+  if to_regclass('public.entitlements') is null then
+    raise exception 'FAIL 21: public.entitlements missing';
+  end if;
+
+  -- 22. entitlements has RLS enabled (implied by FAIL 2, asserted loudly).
+  select count(*) into _count
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'entitlements' and not c.relrowsecurity;
+  if _count > 0 then
+    raise exception 'FAIL 22: public.entitlements has RLS disabled';
+  end if;
+
+  -- 23. entitlements.user_id references auth.users(id) ON DELETE CASCADE.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.entitlements'::regclass
+    and contype = 'f'
+    and confrelid = 'auth.users'::regclass
+    and confdeltype = 'c';
+  if _count <> 1 then
+    raise exception 'FAIL 23: entitlements lacks FK to auth.users(id) ON DELETE CASCADE';
+  end if;
+
+  -- 24. Exactly one unique constraint on entitlements, on (user_id, product):
+  --     one current entitlement per user per product.
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.entitlements'::regclass and contype = 'u';
+  if _count <> 1 then
+    raise exception 'FAIL 24: expected exactly 1 unique constraint on entitlements, found %', _count;
+  end if;
+
+  select count(*) into _count
+  from pg_constraint c
+  join unnest(c.conkey) k on true
+  join pg_attribute col on col.attrelid = c.conrelid and col.attnum = k
+  where c.conrelid = 'public.entitlements'::regclass and c.contype = 'u'
+    and (col.attname = 'user_id' or col.attname = 'product');
+  if _count <> 2 then
+    raise exception 'FAIL 24: unique constraint is not on exactly (user_id, product)';
+  end if;
+
+  -- 25. All invariant CHECK constraints exist (plan type, status, provider,
+  --     plan/expiry consistency, status/plan consistency, expiry >= start).
+  for _acl_row in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.entitlements'::regclass and contype = 'c'
+  loop
+    if _acl_row.conname not in (
+      'entitlements_plan_type',
+      'entitlements_status_check',
+      'entitlements_provider_check',
+      'entitlements_plan_expiry_consistency',
+      'entitlements_status_plan_consistency',
+      'entitlements_expiry_not_before_start'
+    ) then
+      raise exception 'FAIL 25: unexpected CHECK constraint % on entitlements', _acl_row.conname;
+    end if;
+  end loop;
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.entitlements'::regclass and contype = 'c';
+  if _count < 6 then
+    raise exception 'FAIL 25: expected at least 6 CHECK constraints on entitlements, found %', _count;
+  end if;
+
+  -- 26. Privileges on entitlements are COLUMN-LEVEL only: the table's own ACL
+  --     (relacl) is empty while column (attacl) privileges exist, and ONLY
+  --     authenticated holds them, each exactly SELECT on the safe projection.
+  --     (information_schema.role_table_grants cannot be used for the
+  --     table-vs-column distinction: it also reports column grants, via
+  --     has_table_privilege().)
+  select count(*) into _count
+  from pg_class c
+  where c.oid = 'public.entitlements'::regclass and c.relacl is not null;
+  if _count > 0 then
+    raise exception 'FAIL 26: entitlements has table-level ACL entries (must be column-level only)';
+  end if;
+
+  select count(*) into _count
+  from information_schema.column_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee <> current_user
+    and grantee not in ('authenticated');
+  if _count > 0 then
+    raise exception 'FAIL 26: non-owner, non-authenticated grantee holds a column privilege on entitlements';
+  end if;
+
+  select count(*) into _count
+  from information_schema.column_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee = 'authenticated' and privilege_type <> 'SELECT';
+  if _count > 0 then
+    raise exception 'FAIL 26: authenticated holds a non-SELECT column privilege on entitlements';
+  end if;
+
+  select count(*) into _count
+  from information_schema.column_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee = 'authenticated';
+  if _count <> 6 then
+    raise exception 'FAIL 26: expected exactly 6 column grants for authenticated, found %', _count;
+  end if;
+
+  -- 27. The granted projection is exactly the closed safe set; identity and
+  --     provider/payment columns are granted to no one (owner excluded).
+  select count(*) into _count
+  from information_schema.column_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee <> current_user
+    and column_name not in ('product', 'plan', 'status', 'starts_at', 'expires_at', 'updated_at');
+  if _count > 0 then
+    raise exception 'FAIL 27: privilege granted on an unexpected entitlements column';
+  end if;
+
+  -- 28. Exactly one policy on entitlements: a self-owned SELECT for
+  --     authenticated bound to auth.uid(); no INSERT/UPDATE/DELETE policies.
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'entitlements';
+  if _count <> 1 then
+    raise exception 'FAIL 28: expected exactly 1 policy on entitlements, found %', _count;
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'entitlements'
+    and cmd = 'SELECT' and 'authenticated' = any(roles)
+    and qual like '%auth.uid()%';
+  if _count <> 1 then
+    raise exception 'FAIL 28: entitlements missing self-owned SELECT policy for authenticated';
+  end if;
+
+  -- 29. Timestamps trigger attached + enabled; trigger function is SECURITY
+  --     INVOKER with no EXECUTE for any app role / PUBLIC.
+  select count(*) into _count
+  from pg_trigger
+  where tgrelid = 'public.entitlements'::regclass
+    and not tgisinternal
+    and tgenabled = 'O'
+    and tgname = 'entitlements_set_timestamps';
+  if _count <> 1 then
+    raise exception 'FAIL 29: entitlements timestamps trigger missing or disabled';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'entitlements_set_timestamps' and p.prosecdef;
+  if _count > 0 then
+    raise exception 'FAIL 29: entitlements trigger function is SECURITY DEFINER';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+  where n.nspname = 'public'
+    and p.proname = 'entitlements_set_timestamps'
+    and (a.grantee = 0 or a.grantee in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole));
+  if _count > 0 then
+    raise exception 'FAIL 29: % privilege grant(s) remain on entitlements_set_timestamps', _count;
+  end if;
+
+  -- 30. Core column type/nullability contract.
+  select count(*) into _count
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'entitlements'
+    and (
+      (column_name = 'id'         and data_type = 'uuid' and is_nullable = 'NO') or
+      (column_name = 'user_id'    and data_type = 'uuid' and is_nullable = 'NO') or
+      (column_name = 'product'    and data_type = 'text' and is_nullable = 'NO') or
+      (column_name = 'plan'       and data_type = 'text' and is_nullable = 'NO') or
+      (column_name = 'status'     and data_type = 'text' and is_nullable = 'NO') or
+      (column_name = 'provider'   and data_type = 'text' and is_nullable = 'NO') or
+      (column_name = 'starts_at'  and data_type = 'timestamp with time zone' and is_nullable = 'NO')
+    );
+  if _count <> 7 then
+    raise exception 'FAIL 30: entitlements core column type/nullability contract violated';
+  end if;
+  select count(*) into _count
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'entitlements'
+    and column_name = 'expires_at' and data_type = 'timestamp with time zone' and is_nullable = 'YES';
+  if _count <> 1 then
+    raise exception 'FAIL 30: entitlements.expires_at must be a nullable timestamptz';
+  end if;
+
+  raise notice 'PASS: all CLOUD-001..CLOUD-004 database assertions held';
 end $$;

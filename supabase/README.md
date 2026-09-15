@@ -45,6 +45,18 @@ Consequences, binding on all future migrations:
 - Direct `EXECUTE` on `public.profiles_set_timestamps()` is revoked from every app role; triggers still fire (verified with real fixtures).
 - `supabase/tests/db_assertions.sql` extended to 20 checks (anon/PUBLIC schema lockout, schema-less function default, trigger-function EXECUTE deny); `rls_assertions.sql` upgraded to real fixture rows (users A/B/C, cross-user isolation, ownership transfer blocked, owner self-insert/update, trigger fired under reduced EXECUTE, anon + service_role denial, self-contained rollback); migration-guard suite now 9 tests (no broad `USING (true)`/`WITH CHECK (true)` policies, no authorization via `user_metadata`).
 
+## Entitlements authorization (CLOUD-004)
+
+`20260915150000_establish_entitlements.sql` introduces the entitlement state table. See ADR-012 for the full decision; highlights:
+
+- `public.entitlements`: one row per user per product (UNIQUE constraint), 12 columns. Key identity/provider columns (`id`, `user_id`, `provider`, `provider_customer_ref`, `provider_payment_ref`) are un-granted — a client cannot see them. The safe projection (`product`, `plan`, `status`, `starts_at`, `expires_at`, `updated_at`) is granted as column-level SELECT only. No INSERT/UPDATE/DELETE grant — authenticated users cannot mutate entitlements by default; service_role performs writes (CLOUD-009).
+- 6 CHECK constraints enforce invariant states: plan ↔ expiry (lifetime ⇒ NULL, monthly ⇒ NOT NULL), status ↔ plan (only reachable states), expiry ≥ starts_at, provider = 'razorpay', status ∈ {active, cancelled, expired, revoked}.
+- RLS enabled in the same migration; one policy `entitlements_select_own` (SELECT, USING `user_id = (select auth.uid())`). No write policies — absence of policy = no INSERT/UPDATE/DELETE for any app role.
+- Timestamps trigger `entitlements_set_timestamps` (SECURITY INVOKER, search_path = pg_catalog) owns created_at/updated_at only; EXECUTE revoked from all app roles.
+- `pg_graphql` not installed: column-level grant advisor lints (0026/0027) will not fire for authenticated on this table (intentional).
+
+Verification: `db_assertions.sql` checks 21–30 (column grants, CHECKs, RLS, trigger); `rls_assertions.sql` scenarios E1–E15 (self-read, isolation, column denial, write denial, CHECK enforcement, legitimate server transitions, trigger ownership); `migration-guard.test.mjs` tests 10–11 (no broad grants, write-grant policy-pairing guard). All pass post-migration; security and performance advisors both clean (0 lints).
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.
