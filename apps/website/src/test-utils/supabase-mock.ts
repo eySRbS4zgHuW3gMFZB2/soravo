@@ -55,6 +55,7 @@ export type MockSupabaseClient = {
     resetPasswordForEmail: ReturnType<typeof vi.fn>;
     updateUser: ReturnType<typeof vi.fn>;
     signOut: ReturnType<typeof vi.fn>;
+    reauthenticate: ReturnType<typeof vi.fn>;
   };
   from: ReturnType<typeof vi.fn>;
   __emit: (event: string, session: MockSessionData) => void;
@@ -67,9 +68,10 @@ export function createMockSupabaseClient(options: {
   signInError?: { message: string } | null;
   signUpError?: { message: string } | null;
   resetEmailError?: { message: string } | null;
-  updateUserError?: { message: string } | null;
+  updateUserError?: { message: string; code?: string } | null;
   signOutError?: { message: string } | null;
   signOutEmits?: boolean;
+  reauthenticateError?: { message: string } | null;
   profileError?: { message: string } | null;
   existingProfile?: Profile | null;
 } = {}): MockSupabaseClient {
@@ -116,11 +118,13 @@ export function createMockSupabaseClient(options: {
     signUp: vi.fn().mockResolvedValue(options.signUpError ? { error: options.signUpError } : { data: { user: null }, error: null }),
     resetPasswordForEmail: vi.fn().mockResolvedValue(options.resetEmailError ? { error: options.resetEmailError } : { error: null }),
     updateUser: vi.fn().mockResolvedValue(options.updateUserError ? { error: options.updateUserError } : { data: { user: defaultUser }, error: null }),
-    signOut: vi.fn().mockImplementation(async () => {
+    signOut: vi.fn().mockImplementation(async (opts?: { scope?: string }) => {
       if (options.signOutError) return { error: options.signOutError };
-      if (options.signOutEmits) emit("SIGNED_OUT", null);
+      const scope = opts?.scope ?? "local";
+      if (scope !== "others" && options.signOutEmits) emit("SIGNED_OUT", null);
       return { error: null };
     }),
+    reauthenticate: vi.fn().mockResolvedValue(options.reauthenticateError ? { error: options.reauthenticateError } : { error: null }),
   };
 
   const from = vi.fn().mockImplementation((table: string) => {

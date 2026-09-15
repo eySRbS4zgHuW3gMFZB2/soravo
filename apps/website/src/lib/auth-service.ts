@@ -10,6 +10,12 @@ export type Profile = {
 
 export const DISPLAY_NAME_MAX = 80;
 
+export type SignOutScope = "global" | "local" | "others";
+
+export type UpdatePasswordResult =
+  | { error: string | null; reauthRequired?: false }
+  | { error: null; reauthRequired: true };
+
 const GENERIC_SIGNIN_MESSAGE =
   "We couldn't sign you in. Check your email and password, then try again.";
 const GENERIC_SIGNUP_MESSAGE =
@@ -19,6 +25,8 @@ const GENERIC_RESET_MESSAGE =
 const GENERIC_PASSWORD_MESSAGE =
   "We couldn't update your password. Try again, or request a new reset link.";
 const GENERIC_SYNC_MESSAGE = "We couldn't sync your account. Please try again.";
+const GENERIC_REAUTH_SEND_MESSAGE =
+  "We couldn't send a verification code. Try again.";
 
 function genericError(message: string): string {
   return message;
@@ -70,17 +78,34 @@ export async function requestPasswordReset(
 
 export async function updatePassword(
   client: AppSupabaseClient,
-  input: { password: string },
+  input: { password: string; nonce?: string },
+): Promise<UpdatePasswordResult> {
+  const payload: { password: string; nonce?: string } = { password: input.password };
+  if (input.nonce) payload.nonce = input.nonce;
+  const { error } = await client.auth.updateUser(payload);
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "reauthentication_needed") {
+      return { error: null, reauthRequired: true };
+    }
+    return { error: genericError(GENERIC_PASSWORD_MESSAGE) };
+  }
+  return { error: null, reauthRequired: false };
+}
+
+export async function requestReauthentication(
+  client: AppSupabaseClient,
 ): Promise<{ error: string | null }> {
-  const { error } = await client.auth.updateUser({ password: input.password });
-  if (error) return { error: genericError(GENERIC_PASSWORD_MESSAGE) };
+  const { error } = await client.auth.reauthenticate();
+  if (error) return { error: genericError(GENERIC_REAUTH_SEND_MESSAGE) };
   return { error: null };
 }
 
 export async function signOut(
   client: AppSupabaseClient,
+  options?: { scope?: SignOutScope },
 ): Promise<{ error: string | null }> {
-  const { error } = await client.auth.signOut();
+  const { error } = await client.auth.signOut({ scope: options?.scope ?? "local" });
   if (error) return { error: genericError(GENERIC_SYNC_MESSAGE) };
   return { error: null };
 }

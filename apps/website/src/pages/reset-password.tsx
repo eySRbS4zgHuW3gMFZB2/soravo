@@ -20,6 +20,8 @@ export function ResetPassword() {
       const result = await updatePassword({ password });
       if (result.error) {
         setError(result.error);
+      } else if (result.reauthRequired) {
+        setError("This reset link may have expired. Please request a new one from the sign-in page.");
       } else {
         setPassword("");
         setMessage("Your password has been updated. You can now sign in.");

@@ -5,12 +5,15 @@ import {
   ensureProfile,
   getProfile,
   requestPasswordReset,
+  requestReauthentication as serviceRequestReauthentication,
   signInWithEmail,
   signOut as serviceSignOut,
   signUpWithEmail,
   updateDisplayName as serviceUpdateDisplayName,
   updatePassword as serviceUpdatePassword,
   type Profile,
+  type SignOutScope,
+  type UpdatePasswordResult,
 } from "./auth-service";
 
 const UNAVAILABLE_MESSAGE = "Account sign-in is not configured on this deployment.";
@@ -25,8 +28,9 @@ type AuthContextValue = {
   signIn: (input: { email: string; password: string }) => AuthResult;
   signUp: (input: { email: string; password: string }) => AuthResult;
   resetPassword: (input: { email: string }) => AuthResult;
-  updatePassword: (input: { password: string }) => AuthResult;
-  signOut: () => Promise<void>;
+  updatePassword: (input: { password: string; nonce?: string }) => Promise<UpdatePasswordResult>;
+  signOut: (options?: { scope?: SignOutScope }) => Promise<void>;
+  requestReauthentication: () => AuthResult;
   updateDisplayName: (displayName: string) => AuthResult;
   refreshProfile: () => Promise<void>;
 };
@@ -115,16 +119,24 @@ export function AuthProvider({
 
   const updatePassword = useCallback<AuthContextValue["updatePassword"]>(
     async (input) => {
-      if (!client) return { error: UNAVAILABLE_MESSAGE };
+      if (!client) return { error: UNAVAILABLE_MESSAGE, reauthRequired: false as const };
       return serviceUpdatePassword(client, input);
     },
     [client],
   );
 
-  const signOut = useCallback<AuthContextValue["signOut"]>(async () => {
+  const signOut = useCallback<AuthContextValue["signOut"]>(async (options) => {
     if (!client) return;
-    await serviceSignOut(client);
+    await serviceSignOut(client, options);
   }, [client]);
+
+  const requestReauthentication = useCallback<AuthContextValue["requestReauthentication"]>(
+    async () => {
+      if (!client) return { error: UNAVAILABLE_MESSAGE };
+      return serviceRequestReauthentication(client);
+    },
+    [client],
+  );
 
   const updateDisplayName = useCallback<AuthContextValue["updateDisplayName"]>(
     async (displayName) => {
@@ -147,10 +159,11 @@ export function AuthProvider({
       resetPassword,
       updatePassword,
       signOut,
+      requestReauthentication,
       updateDisplayName,
       refreshProfile,
     }),
-    [client, user, loading, profile, signIn, signUp, resetPassword, updatePassword, signOut, updateDisplayName, refreshProfile],
+    [client, user, loading, profile, signIn, signUp, resetPassword, updatePassword, signOut, requestReauthentication, updateDisplayName, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

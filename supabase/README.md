@@ -96,6 +96,17 @@ Verification: `db_assertions.sql` checks 49–53 (role column, CHECK, guard trig
 
 Verification: `db_assertions.sql` grows to 57 checks — check 16 is now a SECURITY DEFINER whitelist (exactly the three metrics functions), checks 54–57 pin signatures, ACLs (authenticated EXECUTE yes; anon/service_role/PUBLIC no), `SECURITY DEFINER` + pinned `search_path`, and the index; `rls_assertions.sql` scenarios M1–M10 (anon denied, non-admin denied in-body, admin allowed with exact totals across the accumulated suite state, JWT-tamper denied, day/week/month bucket exactness, 10000-bucket cap, invalid-bucket rejection, active-users half-open boundaries, service_role denied, postgres-without-claims denied); `migration-guard.test.mjs` unchanged at 12/12 (no table grants added).
 
+## Session/password flows (CLOUD-008)
+
+`CLOUD-008` completes the website's active-session and password-management primitives (PRD §4.9/§6). See ADR-023 for the full decision; highlights:
+
+- **No new SQL, no new migration, no new SECURITY DEFINER.** The existing CLOUD-005 `public.sessions`/`public.devices` ledger and its one-way `revoked_at` latch remain the app-layer session registry; actual credential revocation is handled by GoTrue server-side via scoped `signOut` (`/logout?scope=local|others|global`), which deletes the matching `auth.sessions` rows.
+- The account page's "Sign out" now uses `scope: "local"` (current session only — the previous default-less call silently terminated every session); a new "Sign out other sessions" control uses `scope: "others"` (no `SIGNED_OUT` event fires, so the UI reports success without unmounting).
+- Password change is reauthentication-aware: `updatePassword` detects `reauthentication_needed` and presents a code-entry flow; the OTP is sent via `requestReauthentication` (GoTrue) and finalized as a `nonce` on `updateUser`.
+- `db_assertions.sql` check-16 SECURITY DEFINER whitelist remains at exactly the three ADR-016 metrics functions. All repo gates + 12/12 migration-guard tests pass; no assertion suite changes required for this task.
+
+Verification: website gates (`pnpm lint`, `pnpm typecheck`, `pnpm test` — 84 website tests incl. scoped signOut, reauth flow, other-sessions signOut, code-entry tests, `pnpm build`, `pnpm audit --prod`) all pass; `pnpm test:supabase` 12/12 migration-guard tests pass; no DB assertions re-run needed (no schema change).
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.

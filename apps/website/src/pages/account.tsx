@@ -6,7 +6,7 @@ import { useAuth } from "../lib/auth-context";
 import { DISPLAY_NAME_MAX } from "../lib/auth-service";
 
 export function Account() {
-  const { user, loading, profile, updateDisplayName, updatePassword, signOut } = useAuth();
+  const { user, loading, profile, updateDisplayName, updatePassword, signOut, requestReauthentication } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [displayNameMessage, setDisplayNameMessage] = useState<string | null>(null);
@@ -15,6 +15,10 @@ export function Account() {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [submittingName, setSubmittingName] = useState(false);
   const [submittingPassword, setSubmittingPassword] = useState(false);
+  const [reauthNonce, setReauthNonce] = useState("");
+  const [needsReauth, setNeedsReauth] = useState(false);
+  const [sendingReauth, setSendingReauth] = useState(false);
+  const [otherSessionsMessage, setOtherSessionsMessage] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -63,11 +67,25 @@ export function Account() {
     event.preventDefault();
     setPasswordError(null);
     setPasswordMessage(null);
+    setNeedsReauth(false);
+    setReauthNonce("");
     setSubmittingPassword(true);
     try {
       const result = await updatePassword({ password });
       if (result.error) {
         setPasswordError(result.error);
+      } else if (result.reauthRequired) {
+        setNeedsReauth(true);
+        setSendingReauth(true);
+        try {
+          const send = await requestReauthentication();
+          if (send.error) {
+            setPasswordError(send.error);
+            setNeedsReauth(false);
+          }
+        } finally {
+          setSendingReauth(false);
+        }
       } else {
         setPassword("");
         setPasswordMessage("Password updated. Use it next time you sign in.");
@@ -77,8 +95,38 @@ export function Account() {
     }
   }
 
+  async function handleConfirmReauth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPasswordError(null);
+    setPasswordMessage(null);
+    setSubmittingPassword(true);
+    try {
+      const result = await updatePassword({ password, nonce: reauthNonce });
+      if (result.error) {
+        setPasswordError(result.error);
+      } else if (result.reauthRequired) {
+        setPasswordError("We need a fresh code. Try again.");
+        setNeedsReauth(false);
+        setReauthNonce("");
+      } else {
+        setPassword("");
+        setReauthNonce("");
+        setNeedsReauth(false);
+        setPasswordMessage("Password updated. Use it next time you sign in.");
+      }
+    } finally {
+      setSubmittingPassword(false);
+    }
+  }
+
   async function handleSignOut() {
-    await signOut();
+    await signOut({ scope: "local" });
+  }
+
+  async function handleSignOutOtherSessions() {
+    setOtherSessionsMessage(null);
+    await signOut({ scope: "others" });
+    setOtherSessionsMessage("Signed out of all other sessions.");
   }
 
   const currentName = profile?.display_name ?? "";
@@ -126,25 +174,62 @@ export function Account() {
       </form>
 
       <h2 className="form-heading">Password</h2>
-      <form className="auth-form" onSubmit={handleUpdatePassword}>
-        <p className="field">
-          <label htmlFor="new-password">New password (8+ characters)</label>
-          <input
-            id="new-password"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-        </p>
-        {passwordError ? <p className="form-error" role="alert">{passwordError}</p> : null}
-        {passwordMessage ? <p className="form-success" role="status">{passwordMessage}</p> : null}
+      {!needsReauth ? (
+        <form className="auth-form" onSubmit={handleUpdatePassword}>
+          <p className="field">
+            <label htmlFor="new-password">New password (8+ characters)</label>
+            <input
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </p>
+          {passwordError ? <p className="form-error" role="alert">{passwordError}</p> : null}
+          {passwordMessage ? <p className="form-success" role="status">{passwordMessage}</p> : null}
+          <div className="page-actions">
+            <Button type="submit" disabled={submittingPassword}>
+              {submittingPassword ? "Updating…" : "Change password"}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <form className="auth-form" onSubmit={handleConfirmReauth}>
+          <p className="field-description">
+            {sendingReauth
+              ? "Sending verification code…"
+              : "We sent a verification code to your email. Enter it below to confirm your new password."}
+          </p>
+          <p className="field">
+            <label htmlFor="reauth-nonce">Verification code</label>
+            <input
+              id="reauth-nonce"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={reauthNonce}
+              onChange={(event) => setReauthNonce(event.target.value)}
+              required
+            />
+          </p>
+          {passwordError ? <p className="form-error" role="alert">{passwordError}</p> : null}
+          {passwordMessage ? <p className="form-success" role="status">{passwordMessage}</p> : null}
+          <div className="page-actions">
+            <Button type="submit" disabled={submittingPassword || sendingReauth}>
+              {submittingPassword ? "Verifying…" : "Verify and update password"}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <h2 className="form-heading">Sessions</h2>
+      {otherSessionsMessage ? <p className="form-success" role="status">{otherSessionsMessage}</p> : null}
+      <form className="auth-form" onSubmit={(event) => { event.preventDefault(); handleSignOutOtherSessions(); }}>
         <div className="page-actions">
-          <Button type="submit" disabled={submittingPassword}>
-            {submittingPassword ? "Updating…" : "Change password"}
-          </Button>
+          <Button type="submit" variant="outline">Sign out other sessions</Button>
         </div>
       </form>
 

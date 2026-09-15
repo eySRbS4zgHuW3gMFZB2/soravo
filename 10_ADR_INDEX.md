@@ -26,6 +26,7 @@ Required ADRs:
 - ADR-020 — performance benchmark results
 - ADR-021 — Linux support decision if revisited
 - ADR-022 — Supabase admin role / authorization
+- ADR-023 — scoped sign-out and password reauthentication flows
 
 Each ADR:
 ```text
