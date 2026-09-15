@@ -1,7 +1,7 @@
 # Skills audit record
 
 Date: 2026-09-14 (state after PART 1 of the environment setup; see `SKILLS_MCP_AUDIT.md` for the read-only baseline audit in §A–§L and the post-setup verification in §M).
-CLOUD-002 (2026-09-15): skills list unchanged (no install/uninstall). Loaded during the task per the Skill Selection Gate: `supabase`, `supabase-postgres-best-practices`, `security-guidance`, `securability-engineering`, `vitest`, `mcp-server-review`, `gh-cli`, `github`. Not applied: `semgrep`/`codeql` (CLI unavailable on host — recorded limitation; structural migration invariants + DB/RLS assertion suites + MCP advisors substituted).
+CLOUD-003 (2026-09-15): skills list unchanged (no install/uninstall). Skill Selection Gate re-run; loaded during the task: `supabase`, `supabase-postgres-best-practices`, `security-guidance`, `securability-engineering`, `vitest`, `mcp-server-review`, `gh-cli`, `github`. Not applied (unchanged): `semgrep`/`codeql` (CLI unavailable on host — recorded limitation; structural migration invariants + DB/RLS assertion suites + MCP advisors substituted).
 
 Environment: OpenCode desktop app. All skills were installed with the `skills` npm CLI (v1.5.26) into the shared auto-loaded directory `~/.agents/skills/<name>/SKILL.md` and are additionally declared via `skills.paths` in `~/.config/opencode/opencode.jsonc`. OpenCode reads config and scans skill paths **once at startup**, so the skills become loadable after an opencode restart.
 
