@@ -672,6 +672,105 @@ footer {
   font-size: 0.95rem;
 }
 
+/* ---- Auth / account forms ---- */
+.form-heading {
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  margin: 30px 0 10px;
+}
+
+.auth-form {
+  max-width: 420px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+
+.field label {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.field input {
+  padding: 10px 12px;
+  border: 1px solid var(--border, #d3cec4);
+  border-radius: 8px;
+  background: var(--card, #faf8f3);
+  color: inherit;
+  font: inherit;
+}
+
+.field input:focus-visible {
+  outline: 3px solid var(--ring, #183d2e);
+  outline-offset: 2px;
+}
+
+.form-note {
+  font-size: 0.92rem;
+  color: #53625a;
+}
+
+.form-error,
+.form-success {
+  font-size: 0.95rem;
+  margin: 4px 0 0;
+}
+
+.form-error {
+  color: var(--destructive, #b42318);
+  font-weight: 700;
+}
+
+.form-success {
+  color: var(--primary, #183d2e);
+  font-weight: 700;
+}
+
+.form-switch {
+  margin-top: 20px;
+  font-size: 0.95rem;
+}
+
+.form-switch button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.form-switch button:focus-visible {
+  outline: 3px solid var(--ring, #183d2e);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.account-summary {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  max-width: 420px;
+}
+
+.account-summary div {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border, #d3cec4);
+  padding-bottom: 8px;
+}
+
+.account-summary dt {
+  font-weight: 700;
+}
+
+.account-summary dd {
+  margin: 0;
+}
+
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,

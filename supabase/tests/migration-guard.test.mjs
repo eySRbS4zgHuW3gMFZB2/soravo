@@ -36,6 +36,22 @@ function privilegeTokens(privs) {
   return privs.replace(/\([^)]*\)/g, ' ').split(/[\s,]+/).filter(Boolean);
 }
 
+// Detects RLS being enabled on the granted relation within normalized SQL.
+// Recognizes both the Supabase dashboard phrasing and the canonical
+// `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` statement.
+function rlsEnabledFor(norm, rel) {
+  // Escape regex metacharacters in the relation name (e.g. `public.profiles`).
+  const escaped = (name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const names = [rel, rel.split('.').pop()];
+  for (const name of names) {
+    if (norm.includes(`enable row level security on ${name}`)) return true;
+    if (new RegExp(`\\balter table (?:only\\s+)?${escaped(name)}\\s+enable row level security`).test(norm)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const SECRET_PATTERNS = [
   /\beyJ[0-9A-Za-z_-]{8,}\.eyJ[0-9A-Za-z_-]{8,}\.[0-9A-Za-z_-]{8,}\b/,
   /\bsb_(secret|service_role|publishable)_[0-9A-Za-z_-]{10,}\b/,
@@ -83,11 +99,7 @@ describe('Supabase migration discipline', () => {
       const norm = normalize(sql);
       for (const grant of extractGrants(norm)) {
         if (grant.role !== 'anon' && grant.role !== 'authenticated') continue;
-        const rel = grant.rel.split('.').pop();
-        const enabled =
-          norm.includes(`enable row level security on ${grant.rel}`) ||
-          norm.includes(`enable row level security on ${rel}`);
-        expect(enabled, `${file}: grant on ${grant.rel} to ${grant.role} without matching RLS enable`)
+        expect(rlsEnabledFor(norm, grant.rel), `${file}: grant on ${grant.rel} to ${grant.role} without matching RLS enable`)
           .toBe(true);
       }
     }

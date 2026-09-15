@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { Layout } from "./components/layout/layout";
+import { AuthProvider } from "./lib/auth-context";
 
 const Landing = lazy(() =>
   import("./pages/landing").then((m) => ({ default: m.Landing })),
@@ -35,6 +36,9 @@ const Login = lazy(() =>
 const Account = lazy(() =>
   import("./pages/account").then((m) => ({ default: m.Account })),
 );
+const ResetPassword = lazy(() =>
+  import("./pages/reset-password").then((m) => ({ default: m.ResetPassword })),
+);
 const Admin = lazy(() =>
   import("./pages/admin").then((m) => ({ default: m.Admin })),
 );
@@ -44,23 +48,26 @@ const NotFound = lazy(() =>
 
 export function AppRoutes() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Landing />} />
-        <Route path="features" element={<Features />} />
-        <Route path="pricing" element={<Pricing />} />
-        <Route path="download" element={<Download />} />
-        <Route path="faq" element={<Faq />} />
-        <Route path="support" element={<Support />} />
-        <Route path="privacy" element={<Privacy />} />
-        <Route path="terms" element={<Terms />} />
-        <Route path="refund" element={<Refund />} />
-        <Route path="login" element={<Login />} />
-        <Route path="account" element={<Account />} />
-        <Route path="admin" element={<Admin />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<Landing />} />
+          <Route path="features" element={<Features />} />
+          <Route path="pricing" element={<Pricing />} />
+          <Route path="download" element={<Download />} />
+          <Route path="faq" element={<Faq />} />
+          <Route path="support" element={<Support />} />
+          <Route path="privacy" element={<Privacy />} />
+          <Route path="terms" element={<Terms />} />
+          <Route path="refund" element={<Refund />} />
+          <Route path="login" element={<Login />} />
+          <Route path="account" element={<Account />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="admin" element={<Admin />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   );
 }
 
