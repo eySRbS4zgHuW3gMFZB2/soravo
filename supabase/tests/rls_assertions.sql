@@ -6,6 +6,12 @@
 -- CLOUD-005 adds the devices/sessions proof (D1–D9 + S1–S10).
 -- CLOUD-006 adds the admin-role proof (R1–R12): profiles.role is a
 -- server-owned, immutable-by-client admin flag with no self-escation path.
+-- CLOUD-007 adds the product-metrics proof (M1–M10): three SECURITY DEFINER
+-- functions (admin_metrics_totals / admin_metrics_growth /
+-- admin_metrics_active_users) aggregate across users for an ADMIN only —
+-- anon and service_role are denied at the privilege layer, non-admin
+-- authenticated sessions and claim-tampered sessions are denied in-body, and
+-- the aggregate counts plus bucket/window semantics are exact.
 --
 -- The suite impersonates the app roles by lowering the session role
 -- (SET ROLE authenticated / anon / service_role) and session-scoped
@@ -1038,6 +1044,273 @@ begin
   perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
   select count(*) into _n from public.profiles;
   if _n <> 1 then raise exception 'FAIL R12: Alice expected 1 profile, got %', _n; end if;
+end $$;
+
+-- ------------------------------------------------------------------ --
+-- M (CLOUD-007): product metrics authorization proof.                  --
+-- The metrics functions (ADR-016) are SECURITY DEFINER because RLS can    --
+-- never aggregate across users; each function gates on auth.uid() +       --
+-- public.profiles.role = 'admin' FIRST. Anon/service_role hold no         --
+-- EXECUTE; non-admin sessions are denied in-body; injected JWT claims     --
+-- grant nothing. Proven here (admin = Erin, ordinary = Frank/Gina):       --
+--   M1 anon denied (schema/privilege layer)                               --
+--   M2 ordinary authenticated user denied (in-body gate)                  --
+--   M3 admin allowed; totals() exact across the accumulated suite state   --
+--   M4 tampered JWT claims (role/user_metadata) add no authority          --
+--   M5 growth('day') exact UTC calendar buckets                           --
+--   M6 invalid bucket rejected                                            --
+--   M7 growth week/month buckets + 10000-bucket cap                       --
+--   M8 active_users: half-open windows, lower-inclusive, upper-exclusive  --
+--   M9 service_role denied (privilege layer)                              --
+--   M10 postgres (owner) without claims denied by the in-body gate       --
+-- ------------------------------------------------------------------ --
+set role postgres;
+select set_config('request.jwt.claims', '{}', false);
+
+-- Fixtures: backdated auth.users.created_at drives growth; Frank's device
+-- and session are backdated with their timestamp triggers DISABLED because
+-- devices_set_timestamps/sessions_set_timestamps overwrite (profiles rows
+-- only need now(), so their triggers stay enabled). Dave is re-dated into a
+-- later week to give the week-bucket test a second bucket.
+insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
+values
+  ('00000000-0000-0000-0000-00000000000e', 'authenticated', 'authenticated', 'erin.clo7@example.com', now(), '2026-01-01 09:00:00+00', '2026-01-01 09:00:00+00'),
+  ('00000000-0000-0000-0000-00000000000f', 'authenticated', 'authenticated', 'frank.clo7@example.com', now(), '2026-01-01 22:00:00+00', '2026-01-01 22:00:00+00'),
+  ('00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'gina.clo7@example.com',  now(), '2026-01-02 05:00:00+00', '2026-01-02 05:00:00+00');
+
+insert into public.profiles (id, display_name, role)
+values
+  ('00000000-0000-0000-0000-00000000000e', 'Erin',  'admin'),
+  ('00000000-0000-0000-0000-00000000000f', 'Frank', 'user'),
+  ('00000000-0000-0000-0000-000000000010', 'Gina',  'user');
+
+update auth.users
+set created_at = '2026-01-06 00:00:00+00', updated_at = '2026-01-06 00:00:00+00'
+where id = '00000000-0000-0000-0000-00000000000d';
+
+alter table public.devices disable trigger devices_set_timestamps;
+insert into public.devices (id, user_id, device_public_id, platform, app_version, first_seen_at, last_seen_at)
+values ('10000000-0000-0000-0000-00000000000f', '00000000-0000-0000-0000-00000000000f', 'dev-frank-0001', 'linux', '1.0.0', '2026-01-01 11:00:00+00', '2026-01-01 11:00:00+00');
+alter table public.devices enable trigger devices_set_timestamps;
+
+alter table public.sessions disable trigger sessions_set_timestamps;
+insert into public.sessions (id, user_id, device_id, session_public_id, created_at, last_seen_at)
+values ('20000000-0000-0000-0000-00000000000f', '00000000-0000-0000-0000-00000000000f', '10000000-0000-0000-0000-00000000000f', 'sess-frank-0001', '2026-01-01 11:30:00+00', '2026-01-01 12:00:00+00');
+alter table public.sessions enable trigger sessions_set_timestamps;
+
+-- M1. anon cannot invoke any metrics function (schema privilege layer).
+set role anon;
+do $$
+begin
+  begin
+    execute 'select public.admin_metrics_totals()';
+    raise exception 'FAIL M1: anon called totals';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    execute 'select public.admin_metrics_growth(''day''::text, ''2026-01-01''::timestamptz, ''2026-01-03''::timestamptz)';
+    raise exception 'FAIL M1: anon called growth';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    execute 'select public.admin_metrics_active_users(''2026-01-01''::timestamptz, ''2026-01-02''::timestamptz)';
+    raise exception 'FAIL M1: anon called active_users';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+set role postgres;
+
+-- M2. An ordinary authenticated user (Frank, profiles.role = 'user') holds
+--      EXECUTE but is denied IN-BODY with the CLOUD-007 gate error.
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000f"}', false);
+  begin
+    perform public.admin_metrics_totals();
+    raise exception 'FAIL M2: non-admin called totals';
+  exception when others then
+    if sqlerrm not like '%CLOUD-007%' then raise exception 'FAIL M2: unexpected error %', sqlerrm; end if;
+  end;
+  begin
+    perform public.admin_metrics_growth('day', '2026-01-01', '2026-01-03');
+    raise exception 'FAIL M2: non-admin called growth';
+  exception when others then
+    if sqlerrm not like '%CLOUD-007%' then raise exception 'FAIL M2: unexpected error %', sqlerrm; end if;
+  end;
+  begin
+    perform public.admin_metrics_active_users('2026-01-01', '2026-01-02');
+    raise exception 'FAIL M2: non-admin called active_users';
+  exception when others then
+    if sqlerrm not like '%CLOUD-007%' then raise exception 'FAIL M2: unexpected error %', sqlerrm; end if;
+  end;
+end $$;
+
+-- M3. An admin (Erin) is allowed; totals() reflects the accumulated suite
+--      state exactly: alice was E14-upgraded to a lifetime-active license,
+--      bob's lifetime was revoked (E14), carol holds an active monthly
+--      (E15); alice's device is revoked (D6), bob's and frank's are active.
+do $$
+declare _j jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_metrics_totals();
+
+  if (_j->>'total_users')::int <> 7 then raise exception 'FAIL M3: total_users=%, want 7', _j->>'total_users'; end if;
+  if (_j->>'paid_users')::int  <> 2 then raise exception 'FAIL M3: paid_users=%, want 2', _j->>'paid_users'; end if;
+
+  if (_j#>>'{subscriptions,active}')::int    <> 1 then raise exception 'FAIL M3: subscriptions.active wrong'; end if;
+  if (_j#>>'{subscriptions,cancelled}')::int <> 0 then raise exception 'FAIL M3: subscriptions.cancelled wrong'; end if;
+  if (_j#>>'{subscriptions,expired}')::int   <> 0 then raise exception 'FAIL M3: subscriptions.expired wrong'; end if;
+  if (_j#>>'{subscriptions,total}')::int     <> 1 then raise exception 'FAIL M3: subscriptions.total wrong'; end if;
+
+  if (_j#>>'{lifetime,active}')::int  <> 1 then raise exception 'FAIL M3: lifetime.active wrong'; end if;
+  if (_j#>>'{lifetime,revoked}')::int <> 1 then raise exception 'FAIL M3: lifetime.revoked wrong'; end if;
+  if (_j#>>'{lifetime,total}')::int   <> 2 then raise exception 'FAIL M3: lifetime.total wrong'; end if;
+
+  if (_j#>>'{devices,total}')::int   <> 3 then raise exception 'FAIL M3: devices.total wrong'; end if;
+  if (_j#>>'{devices,revoked}')::int <> 1 then raise exception 'FAIL M3: devices.revoked wrong'; end if;
+  if (_j#>>'{devices,by_platform,macos}')::int   <> 1 then raise exception 'FAIL M3: platform macos wrong'; end if;
+  if (_j#>>'{devices,by_platform,windows}')::int <> 1 then raise exception 'FAIL M3: platform windows wrong'; end if;
+  if (_j#>>'{devices,by_platform,linux}')::int   <> 1 then raise exception 'FAIL M3: platform linux wrong'; end if;
+end $$;
+
+-- M4. JWT claims (role:admin / user_metadata.role) never map to authority:
+--      Frank with admin-looking claims is still denied because the stored
+--      profiles.role is 'user'.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000f","role":"admin","user_metadata":{"role":"admin"}}', false);
+  begin
+    perform public.admin_metrics_totals();
+    raise exception 'FAIL M4: tampered JWT claims authorized';
+  exception when others then
+    if sqlerrm not like '%CLOUD-007%' then raise exception 'FAIL M4: unexpected error %', sqlerrm; end if;
+  end;
+end $$;
+
+-- M5. growth('day') over [2026-01-01, 2026-01-03): calendar-aligned UTC
+--      buckets -> 01-01 = Erin+Frank = 2; 01-02 = Gina = 1; nothing else.
+do $$
+declare _b timestamptz; _n bigint; _rows int := 0;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  for _b, _n in
+    select * from public.admin_metrics_growth('day', '2026-01-01'::timestamptz, '2026-01-03'::timestamptz)
+  loop
+    _rows := _rows + 1;
+    if _b = '2026-01-01 00:00:00+00'::timestamptz and _n <> 2 then
+      raise exception 'FAIL M5: day bucket 01-01 = %, want 2', _n;
+    end if;
+    if _b = '2026-01-02 00:00:00+00'::timestamptz and _n <> 1 then
+      raise exception 'FAIL M5: day bucket 01-02 = %, want 1', _n;
+    end if;
+    if _b not in ('2026-01-01 00:00:00+00'::timestamptz, '2026-01-02 00:00:00+00'::timestamptz) then
+      raise exception 'FAIL M5: unexpected bucket %', _b;
+    end if;
+  end loop;
+  if _rows <> 2 then raise exception 'FAIL M5: expected 2 buckets, got %', _rows; end if;
+end $$;
+
+-- M6. An invalid bucket is rejected with the CLOUD-007 bucket error.
+do $$
+declare _n bigint;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  begin
+    select count(*) into _n from public.admin_metrics_growth('hour', '2026-01-01'::timestamptz, '2026-01-03'::timestamptz);
+    raise exception 'FAIL M6: invalid bucket accepted';
+  exception when others then
+    if sqlerrm not like '%invalid bucket%' then raise exception 'FAIL M6: unexpected error %', sqlerrm; end if;
+  end;
+end $$;
+
+-- M7. growth('week') and growth('month') are exact, and the 10000-bucket cap
+--      holds under a pathological window.
+do $$
+declare _b timestamptz; _n bigint; _rows int := 0; _cap int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+
+  -- Week buckets (Mondays): 2025-12-29 = Erin+Frank+Gina = 3; 2026-01-05 = Dave = 1.
+  for _b, _n in
+    select * from public.admin_metrics_growth('week', '2025-12-29'::timestamptz, '2026-01-12'::timestamptz)
+  loop
+    _rows := _rows + 1;
+    if _b = '2025-12-29 00:00:00+00'::timestamptz and _n <> 3 then
+      raise exception 'FAIL M7: week bucket 12-29 = %, want 3', _n;
+    end if;
+    if _b = '2026-01-05 00:00:00+00'::timestamptz and _n <> 1 then
+      raise exception 'FAIL M7: week bucket 01-05 = %, want 1', _n;
+    end if;
+  end loop;
+  if _rows <> 2 then raise exception 'FAIL M7: week expected 2 buckets, got %', _rows; end if;
+
+  -- Month bucket: 2026-01-01 = Erin+Frank+Gina+Dave = 4.
+  _rows := 0;
+  for _b, _n in
+    select * from public.admin_metrics_growth('month', '2026-01-01'::timestamptz, '2026-02-01'::timestamptz)
+  loop
+    _rows := _rows + 1;
+    if _b = '2026-01-01 00:00:00+00'::timestamptz and _n <> 4 then
+      raise exception 'FAIL M7: month bucket = %, want 4', _n;
+    end if;
+  end loop;
+  if _rows <> 1 then raise exception 'FAIL M7: month expected 1 bucket, got %', _rows; end if;
+
+  -- Cap: 2000-01-01..2100-01-01 in day buckets is 36525 > 10000 -> exactly 10000.
+  select count(*) into _cap
+  from public.admin_metrics_growth('day', '2000-01-01'::timestamptz, '2100-01-01'::timestamptz);
+  if _cap <> 10000 then raise exception 'FAIL M7: bucket cap not enforced, got %', _cap; end if;
+end $$;
+
+-- M8. active_users half-open window semantics: [p_from, p_to), lower bound
+--      inclusive, upper bound exclusive; revoked sessions never counted.
+do $$
+declare _n bigint;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+
+  -- Frank's live (non-revoked) session last_seen 2026-01-01 12:00 UTC.
+  select public.admin_metrics_active_users('2026-01-01'::timestamptz, '2026-01-02'::timestamptz) into _n;
+  if _n <> 1 then raise exception 'FAIL M8: backdated window = %, want 1', _n; end if;
+
+  -- Alice's live session (sess-alice-0002, last_seen now) in the today window.
+  select public.admin_metrics_active_users(now() - interval '1 day', now() + interval '1 day') into _n;
+  if _n <> 1 then raise exception 'FAIL M8: today window = %, want 1', _n; end if;
+
+  -- Upper bound exclusive: ending exactly at 12:00 excludes Frank.
+  select public.admin_metrics_active_users('2026-01-01'::timestamptz, '2026-01-01 12:00:00+00'::timestamptz) into _n;
+  if _n <> 0 then raise exception 'FAIL M8: upper-exclusive violated (=%)', _n; end if;
+
+  -- Lower bound inclusive: starting exactly at 12:00 includes Frank.
+  select public.admin_metrics_active_users('2026-01-01 12:00:00+00'::timestamptz, '2026-01-02'::timestamptz) into _n;
+  if _n <> 1 then raise exception 'FAIL M8: lower-inclusive violated (=%)', _n; end if;
+end $$;
+
+-- M9. service_role has no EXECUTE (privilege layer; no privileged client path).
+set role service_role;
+do $$
+begin
+  begin
+    execute 'select public.admin_metrics_totals()';
+    raise exception 'FAIL M9: service_role called totals';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+set role postgres;
+
+-- M10. Even the function owner (postgres) is denied by the in-body gate when
+--      no request identity is present — the gate is authorization, not ACL.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{}', false);
+  begin
+    perform public.admin_metrics_totals();
+    raise exception 'FAIL M10: postgres without claims called totals';
+  exception when others then
+    if sqlerrm not like '%CLOUD-007%' then raise exception 'FAIL M10: unexpected error %', sqlerrm; end if;
+  end;
 end $$;
 
 -- ------------------------------------------------------------------ --
