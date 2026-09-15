@@ -27,6 +27,15 @@ Consequences, binding on all future migrations:
 - No `SECURITY DEFINER` functions in `public` unless justified in a later ADR.
 - Never authorize using `auth.users.user_metadata`.
 
+## Authentication and profiles (CLOUD-002)
+
+`20260915120000_establish_profiles_and_rls.sql` introduces the first application table. See ADR-011 for the full decision; highlights:
+
+- `public.profiles`: one row per user (`id` = `auth.users(id)` `ON DELETE CASCADE`), `display_name` (≤80) and server-owned timestamps maintained by a `SECURITY INVOKER` trigger (`profiles_set_timestamps`). `20260915123000_profiles_set_search_path.sql` pins that function's `search_path` to `pg_catalog` (security advisor 0011); it is a `create or replace` delta because the originating migration was already recorded.
+- RLS enabled in the same migration as the grants; three self-owned policies (`select_own`, `insert_own`, `update_own`) all bound to `auth.uid()` — insert/update `WITH CHECK` prevents claiming another user's id. No DELETE policy/grant. Only `authenticated` is granted `select, insert, update`; `anon` and `service_role` have no privileges and no RLS bypass.
+- Website integration: PKCE flow, persisted `localStorage` session, `/login` and `/account` pages, generic (enumeration-safe) auth error messages. Client modules are `apps/website/src/lib/{supabase,auth-service,auth-context}.*`.
+- Behavioral verification lives in `supabase/tests/rls_assertions.sql` (role-impersonation: cross-user isolation + anon default-deny); structural invariants in `db_assertions.sql` (16 checks) and the migration-guard suite (7/7).
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.
