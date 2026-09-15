@@ -162,6 +162,30 @@ describe('Supabase migration discipline', () => {
     }
   });
 
+  it('pairs read grants to anon/authenticated with an auth.uid()-scoped SELECT RLS policy in the same migration', () => {
+    for (const { file, sql } of migs) {
+      const norm = normalize(sql);
+      for (const grant of extractGrants(norm)) {
+        if (grant.role !== 'anon' && grant.role !== 'authenticated') continue;
+        const reads = privilegeTokens(grant.privs).filter(
+          (t) => t === 'select' || t === 'all'
+        );
+        for (const r of reads) {
+          const needed = ['select'];
+          const covered = createPolicyStatements(norm, grant.rel).some((stmt) => {
+            if (!stmt.includes('auth.uid()')) return false;
+            const cmds = policyCommands(stmt);
+            return needed.some((n) => cmds.includes(n));
+          });
+          expect(
+            covered,
+            `${file}: grant ${r} on ${grant.rel} to ${grant.role} lacks an auth.uid()-scoped SELECT RLS policy in the same migration`
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
   it('pairs write grants to anon/authenticated with an auth.uid()-scoped RLS policy in the same migration', () => {
     for (const { file, sql } of migs) {
       const norm = normalize(sql);

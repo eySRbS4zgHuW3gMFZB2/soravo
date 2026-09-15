@@ -57,6 +57,18 @@ Consequences, binding on all future migrations:
 
 Verification: `db_assertions.sql` checks 21–30 (column grants, CHECKs, RLS, trigger); `rls_assertions.sql` scenarios E1–E15 (self-read, isolation, column denial, write denial, CHECK enforcement, legitimate server transitions, trigger ownership); `migration-guard.test.mjs` tests 10–11 (no broad grants, write-grant policy-pairing guard). All pass post-migration; security and performance advisors both clean (0 lints).
 
+## Devices and sessions authorization (CLOUD-005)
+
+`20260915160000_establish_devices_and_sessions.sql` introduces the per-user device/session ledger. See ADR-013 for the full decision; highlights:
+
+- `public.devices`: one row per installed desktop install (user-owned; `user_id` FK → `auth.users(id)` `ON DELETE CASCADE`), `platform` (CHECK-enumerated), `app_version` (≤32), `first_seen_at`/`last_seen_at`, and one-way `revoked_at` (CHECK `revoked_at >= first_seen_at`). Friendly, opaque, non-secret `device_public_id` (8–200, UNIQUE) for client-facing addressing.
+- `public.sessions`: one row per active run, bound to a device (`device_id` FK → `public.devices(id)` `ON DELETE CASCADE`), `last_seen_at`, one-way `revoked_at` (CHECK `revoked_at >= created_at`), and UNIQUE `session_public_id`.
+- RLS enabled in the same migration with three self-owned policies per table (`select_own`/`insert_own`/`update_own`), all bound to `user_id = (select auth.uid())` (USING + WITH CHECK). `sessions` INSERT/UPDATE WITH CHECK additionally requires `exists(select 1 from devices d where d.id = device_id and d.user_id = auth.uid() and d.revoked_at is null)` — a session can only bind to a live, owned device. No DELETE policy/grant.
+- Revocation is terminal: `update_own` USING is `user_id = auth.uid() AND revoked_at IS NULL` (a revoked row cannot be mutated; the one-time revoke passes because USING sees the pre-update row), and a `guard_revocation` trigger rejects clearing `revoked_at` even for postgres. `guard_identity` triggers make `user_id`, public ids, and `first_seen_at`/`created_at` immutable via UPDATE.
+- Three triggers per table (set_timestamps, guard_identity, guard_revocation), all SECURITY INVOKER with `search_path = pg_catalog` and EXECUTE revoked from every app role. Only `authenticated` is granted `select, insert, update`; `anon` and `service_role` have no privileges.
+
+Verification: `db_assertions.sql` checks 31–48 (RLS, FKs, CHECK/UNIQUE constraints, exact grants, policy expressions, trigger attachment/EXECUTE deny); `rls_assertions.sql` scenarios D1–D9 + S1–S10 (self-scope, cross-user isolation, terminal revocation at RLS/trigger/postgres levels, revoked-device session bind AND revoked-device session-write denial, anon denial); `migration-guard.test.mjs` 12/12. All pass post-migration on dev project `zbzhlhoxblguepplqppw`; security advisors clean (0 lints); performance advisor reports one expected INFO for the fresh `sessions_device_id_idx`.
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.
