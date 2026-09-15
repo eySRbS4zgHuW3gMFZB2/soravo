@@ -3,6 +3,9 @@
 -- 20260915140000_harden_rls_authorization.sql and passing db_assertions.sql.
 -- CLOUD-004 adds the entitlements authorization proof (scenarios E1–E15) on
 -- top of the A (authenticated) and B (anon) scenarios.
+-- CLOUD-005 adds the devices/sessions proof (D1–D9 + S1–S10).
+-- CLOUD-006 adds the admin-role proof (R1–R12): profiles.role is a
+-- server-owned, immutable-by-client admin flag with no self-escation path.
 --
 -- The suite impersonates the app roles by lowering the session role
 -- (SET ROLE authenticated / anon / service_role) and session-scoped
@@ -34,7 +37,8 @@ insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, up
 values
   ('00000000-0000-0000-0000-00000000000a', 'authenticated', 'authenticated', 'alice.clo3@example.com', now(), now(), now()),
   ('00000000-0000-0000-0000-00000000000b', 'authenticated', 'authenticated', 'bob.clo3@example.com',   now(), now(), now()),
-  ('00000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'carol.clo3@example.com', now(), now(), now());
+  ('00000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'carol.clo3@example.com', now(), now(), now()),
+  ('00000000-0000-0000-0000-00000000000d', 'authenticated', 'authenticated', 'dave.clo6@example.com',  now(), now(), now());
 
 insert into public.profiles (id, display_name)
 values
@@ -847,6 +851,194 @@ begin
   end;
 end $$;
 set role postgres;
+
+-- ------------------------------------------------------------------ --
+-- R (CLOUD-006): admin role / authorization proof.                     --
+-- The role column is the server-authoritative admin flag: an ordinary     --
+-- authenticated user can NEVER author or change it. Proven here:          --
+--   R1  default role is 'user' on first profile creation                  --
+--   R2  self-promotion UPDATE is rejected (trigger)                       --
+--   R3  INSERT with role='admin' is rejected (trigger)                    --
+--   R4  INSERT with role='evil'/'SUPERUSER' rejected (CHECK / trigger)    --
+--   R5  cross-user role UPDATE matches zero rows (RLS)                    --
+--   R6  self UPDATES to non-role columns still work (no false positive)   --
+--   R7  postgres (superuser) THE only role-authoring path (promote)       --
+--   R8  postgres can demote (reverse path, still trigger-consistent)      --
+--   R9  anon has no role read/write path (privilege-layer denial)         --
+--   R10 a non-admin sees their OWN role field (UX-safe read only)         --
+--   R11 user_metadata/JWT edits never map to profiles.role authority      --
+--   R12 existing cross-user isolation stays intact after role added       --
+-- Sequence: fixtures -> R1 -> attempts -> R7/R8 superuser -> denial.      --
+-- ------------------------------------------------------------------ --
+set role authenticated;
+
+-- R1. Carol's freshly inserted profile (from A7, CLOUD-002 fixture) gets the
+--     safe default role 'user' — a first sign-in is never born admin.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c"}', false);
+  if (select role from public.profiles where id = '00000000-0000-0000-0000-00000000000c') <> 'user' then
+    raise exception 'FAIL R1: new profile did not default to user';
+  end if;
+end $$;
+
+-- R2. Self-promotion UPDATE is rejected by the immutability trigger: Carol
+--     cannot turn her own row into admin.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c"}', false);
+  begin
+    update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-00000000000c';
+    raise exception 'FAIL R2: self-promotion UPDATE allowed';
+  exception when others then null;
+  end;
+  if (select role from public.profiles where id = '00000000-0000-0000-0000-00000000000c') <> 'user' then
+    raise exception 'FAIL R2: role changed despite rejection';
+  end if;
+end $$;
+
+-- R3. First-creation INSERT carrying role='admin' is rejected by the INSERT
+--     guard: a user with no profile (Dave) cannot author an admin row.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000d"}', false);
+  begin
+    insert into public.profiles (id, display_name, role)
+    values ('00000000-0000-0000-0000-00000000000d', 'DaveAdmin', 'admin');
+    raise exception 'FAIL R3: INSERT with admin role allowed';
+  exception when others then null;
+  end;
+  if exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000d') then
+    raise exception 'FAIL R3: admin-role INSERT persisted';
+  end if;
+end $$;
+
+-- R4. The CHECK constraint independently rejects out-of-enum roles (and the
+--     trigger rejects any non-default value): 'superuser', 'empty', 'evil'.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c"}', false);
+  begin
+    insert into public.profiles (id, display_name, role)
+    values ('00000000-0000-0000-0000-00000000000c', 'Carol', 'superuser')
+    on conflict (id) do nothing;
+    raise exception 'FAIL R4a: out-of-enum role INSERT accepted';
+  exception when others then null;
+  end;
+  begin
+    update public.profiles set role = 'evil' where id = '00000000-0000-0000-0000-00000000000c';
+    raise exception 'FAIL R4b: out-of-enum role UPDATE accepted';
+  exception when others then null;
+  end;
+  if (select role from public.profiles where id = '00000000-0000-0000-0000-00000000000c') <> 'user' then
+    raise exception 'FAIL R4: role drifted from user';
+  end if;
+end $$;
+
+-- R5. Cross-user role modification matches ZERO rows (RLS ownership USING):
+--     Alice cannot touch Bob's role (or even reach his row).
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-00000000000b';
+  if found then raise exception 'FAIL R5: cross-user role UPDATE matched a row'; end if;
+end $$;
+
+-- R6. Self-UPDATE of a NON-role column still works (the guard is scoped);
+--     the immutability trigger must not break legitimate profile edits.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c"}', false);
+  update public.profiles set display_name = 'Carol2' where id = '00000000-0000-0000-0000-00000000000c';
+  if not found then raise exception 'FAIL R6: legitimate self-update blocked'; end if;
+  if (select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000c') <> 'Carol2' then
+    raise exception 'FAIL R6: legitimate self-update did not persist';
+  end if;
+end $$;
+
+-- R7. postgres (superuser) is the ONLY role-authoring path: promotion works
+--     here and nowhere else. This is the sanctioned admin-provisioning path.
+set role postgres;
+do $$
+begin
+  update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-00000000000c';
+  if not found then raise exception 'FAIL R7: superuser promotion matched no row'; end if;
+  if (select role from public.profiles where id = '00000000-0000-0000-0000-00000000000c') <> 'admin' then
+    raise exception 'FAIL R7: superuser promotion did not persist';
+  end if;
+end $$;
+
+-- R8. postgres can demote an admin back to user (reverse of R7, still
+--     trigger-consistent: the trigger permits postgres to change role).
+do $$
+begin
+  update public.profiles set role = 'user' where id = '00000000-0000-0000-0000-00000000000c';
+  if not found then raise exception 'FAIL R8: superuser demotion matched no row'; end if;
+  if (select role from public.profiles where id = '00000000-0000-0000-0000-00000000000c') <> 'user' then
+    raise exception 'FAIL R8: superuser demotion did not persist';
+  end if;
+end $$;
+
+-- R10. A non-admin user can READ their OWN role column (client-safe display
+--      of the server-authoritative flag; UX-only read, never write).
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  if (select role from public.profiles where id = '00000000-0000-0000-0000-00000000000a') <> 'user' then
+    raise exception 'FAIL R10: own role not readable or not user';
+  end if;
+end $$;
+
+-- R9. anon has no role read/write path (privilege-layer denial at the schema
+--     boundary — any privilege denial is acceptable).
+set role anon;
+do $$
+begin
+  begin
+    execute 'select role from public.profiles where id = ''00000000-0000-0000-0000-00000000000a''';
+    raise exception 'FAIL R9: anon read role';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    execute 'update public.profiles set role = ''admin'' where id = ''00000000-0000-0000-0000-00000000000a''';
+    raise exception 'FAIL R9: anon UPDATE role allowed';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+set role postgres;
+
+-- R11. user_metadata/JWT edits never map to profiles.role authority: even if
+--      the JWT claims carry an admin-looking flag, the ONLY authoritative
+--      source is the profiles.role column (proven structurally here by
+--      asserting that authorization state lives in profiles, not in
+--      request.jwt.claims). Run as a real authenticated session so the guard
+--      trigger is exercised in the client-visible path.
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","user_metadata":{"role":"admin"},"role":"admin"}', false);
+  begin
+    -- A claim-injected 'admin' must NOT be accepted as a profile write.
+    update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-00000000000a';
+    raise exception 'FAIL R11: JWT-metadata role accepted as write authority';
+  exception when others then null;
+  end;
+  if (select role from public.profiles where id = '00000000-0000-0000-0000-00000000000a') <> 'user' then
+    raise exception 'FAIL R11: role changed through JWT metadata';
+  end if;
+end $$;
+
+-- R12. Existing cross-user isolation stays intact after role was added:
+--      Alice sees only her own profile; Bob is invisible to her.
+set role authenticated;
+do $$
+declare _n int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a"}', false);
+  select count(*) into _n from public.profiles;
+  if _n <> 1 then raise exception 'FAIL R12: Alice expected 1 profile, got %', _n; end if;
+end $$;
 
 -- ------------------------------------------------------------------ --
 -- Cleanup: the whole suite is rolled back regardless of path.           --

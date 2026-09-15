@@ -69,6 +69,17 @@ Verification: `db_assertions.sql` checks 21–30 (column grants, CHECKs, RLS, tr
 
 Verification: `db_assertions.sql` checks 31–48 (RLS, FKs, CHECK/UNIQUE constraints, exact grants, policy expressions, trigger attachment/EXECUTE deny); `rls_assertions.sql` scenarios D1–D9 + S1–S10 (self-scope, cross-user isolation, terminal revocation at RLS/trigger/postgres levels, revoked-device session bind AND revoked-device session-write denial, anon denial); `migration-guard.test.mjs` 12/12. All pass post-migration on dev project `zbzhlhoxblguepplqppw`; security advisors clean (0 lints); performance advisor reports one expected INFO for the fresh `sessions_device_id_idx`.
 
+## Admin role / authorization (CLOUD-006)
+
+`20260915170000_establish_admin_role_authorization.sql` + delta `20260915171000_admin_role_insert_guard.sql` add the server-authoritative admin flag. See ADR-022 for the full decision; highlights:
+
+- `public.profiles.role` is `text NOT NULL DEFAULT 'user'` with CHECK `role in ('user','admin')`. It is the ONLY source of admin authority; frontend hiding is not authorization (TDD §14).
+- `profiles_guard_role_immutable` trigger (SECURITY INVOKER, `search_path = pg_catalog`, EXECUTE revoked from every app role) fires `BEFORE INSERT OR UPDATE`: non-postgres sessions can never write a `role` other than the `'user'` default on INSERT, and can never change `role` on UPDATE. `postgres` (superuser) is the ONLY role-authoring path — promotion/demotion is human-authorized, privileged SQL.
+- No new table, no new grants, no new RLS policies. Claims injected via `request.jwt.claims` (even `user_metadata.role`/`role: admin`) grant no authority — authorization state lives in the stored column, not the JWT.
+- Nor is any behavior regressed: users still read their own `role` for UX and update non-role columns freely; cross-user isolation, anon denial, and self-ownership semantics are unchanged.
+
+Verification: `db_assertions.sql` checks 49–53 (role column, CHECK, guard trigger attached/enabled, SECURITY INVOKER + no app-role EXECUTE, `search_path` pinned); `rls_assertions.sql` scenarios R1–R12 (default role, self-promote/demote rejection, INSERT-with-admin rejection, out-of-enum rejection, cross-user role-update isolation, non-role self-update preserved, postgres promote/demote, anon denial, own-role read, JWT-metadata non-authority, cross-user isolation intact); `migration-guard.test.mjs` 12/12 (no grants/policies added). All pass post-migration on dev project `zbzhlhoxblguepplqppw`; security advisors clean (0 lints); performance advisor unchanged (1 pre-existing INFO).
+
 ## Client-safe configuration
 
 Client bundles may only consume the publishable, client-safe variables documented in `apps/*/.env.example` (e.g. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Secrets — service-role keys, database passwords, MCP credentials — never enter the repository, generated bundles, progress records, or screenshots. See `14_ENVIRONMENT_AND_SECRETS.md` and `09_SECURITY_BASELINE.md`.

@@ -22,6 +22,11 @@
 -- public-id UNIQUE constraints and CHECK invariants, and SECURITY INVOKER
 -- triggers (timestamps / identity-immutability / one-way revocation) with no
 -- EXECUTE for any app role.
+-- CLOUD-006: `profiles.role` exists (text NOT NULL default 'user', CHECK
+-- restricted to the exhaustive user/admin enum) and is server-owned: a
+-- SECURITY INVOKER trigger pinned to pg_catalog protects role on both INSERT
+-- (non-postgres sessions cannot supply a non-default role) and UPDATE (role is
+-- immutable), with no EXECUTE grant for any app role and no SECURITY DEFINER.
 --
 -- NOTE: `execute_sql` may return multi-statement output; expect the PASS
 -- notice text and no RAISE.
@@ -847,5 +852,75 @@ begin
     raise exception 'FAIL 48: devices UPDATE USING must include revoked_at is null';
   end if;
 
-  raise notice 'PASS: all CLOUD-001..CLOUD-005 database assertions held';
+  -- ------------------------------------------------------------------ --
+  -- CLOUD-006: admin role / authorization                               --
+  -- ------------------------------------------------------------------ --
+
+  -- 49. profiles.role exists: text, NOT NULL, default 'user' (safe default).
+  select count(*) into _count
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'profiles'
+    and column_name = 'role' and data_type = 'text'
+    and is_nullable = 'NO' and column_default = '''user''::text';
+  if _count <> 1 then
+    raise exception 'FAIL 49: profiles.role must be text NOT NULL default ''user''';
+  end if;
+
+  -- 50. profiles_role_check CHECK constraint restricts role to the exhaustive
+  --     enum ('user', 'admin').
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.profiles'::regclass
+    and contype = 'c' and conname = 'profiles_role_check'
+    and pg_get_constraintdef(oid) ~* 'user' and pg_get_constraintdef(oid) ~* 'admin';
+  if _count <> 1 then
+    raise exception 'FAIL 50: profiles_role_check must constrain role to user/admin';
+  end if;
+
+  -- 51. The role immutability + INSERT guard trigger is attached and enabled
+  --     on profiles, covering BOTH insert and update.
+  select count(*) into _count
+  from pg_trigger
+  where tgrelid = 'public.profiles'::regclass
+    and not tgisinternal and tgenabled = 'O'
+    and tgname = 'profiles_guard_role_immutable';
+  if _count <> 1 then
+    raise exception 'FAIL 51: profiles_guard_role_immutable trigger missing or disabled';
+  end if;
+
+  -- 52. The guard trigger function is SECURITY INVOKER (never DEFINER), pins its
+  --     search_path to pg_catalog, and carries NO EXECUTE grant for any app role
+  --     / PUBLIC (triggers invoke their function without an EXECUTE grant).
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'profiles_guard_role_immutable'
+    and p.prosecdef;
+  if _count > 0 then
+    raise exception 'FAIL 52: profiles_guard_role_immutable is SECURITY DEFINER';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+  where n.nspname = 'public'
+    and p.proname = 'profiles_guard_role_immutable'
+    and (a.grantee = 0 or a.grantee in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole));
+  if _count > 0 then
+    raise exception 'FAIL 52: % privilege grant(s) remain on profiles_guard_role_immutable', _count;
+  end if;
+
+  -- 53. search_path is pinned on the guard function (proconfig carries it).
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'profiles_guard_role_immutable'
+    and pg_get_function_result(p.oid) = 'trigger'
+    and coalesce(p.proconfig::text, '') ~ 'search_path';
+  if _count <> 1 then
+    raise exception 'FAIL 53: profiles_guard_role_immutable must pin search_path';
+  end if;
+
+  raise notice 'PASS: all CLOUD-001..CLOUD-006 database assertions held';
 end $$;

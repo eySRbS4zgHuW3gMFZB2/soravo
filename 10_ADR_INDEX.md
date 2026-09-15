@@ -25,6 +25,7 @@ Required ADRs:
 - ADR-019 — update/release mechanism
 - ADR-020 — performance benchmark results
 - ADR-021 — Linux support decision if revisited
+- ADR-022 — Supabase admin role / authorization
 
 Each ADR:
 ```text
