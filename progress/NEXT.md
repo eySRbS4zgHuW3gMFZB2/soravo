@@ -1,18 +1,14 @@
 # Next
 
-Resume task: Phase 1 — Website foundation. WEB-007 (accessibility/performance) is DONE and committed. Proceed to WEB-008.
-Read first: `progress/OPENCODE_TAKEOVER.md`, `progress/STATUS.md`, `01_PRD.md`, `05_TASK_BREAKDOWN.md` (WEB-008), `06_DOD_QA.md`, `09_SECURITY_BASELINE.md`.
-Inspect: `05_TASK_BREAKDOWN.md` for what WEB-008 requires.
+Resume task: Phase 2 — CLOUD-002 per `05_TASK_BREAKDOWN.md` (branch to be created from updated `main`). CLOUD-001 Supabase project integration is COMPLETE as of 2026-09-15 (apply + behavioral verification + advisors + gates done).
+Read first: `progress/STATUS.md`, `README.md`, `01_PRD.md`, `02_TDD.md` (§12–13), `05_TASK_BREAKDOWN.md`, `06_DOD_QA.md`, `07_AI_SKILLS.md`, `09_SECURITY_BASELINE.md`, `10_ADR_INDEX.md`, `14_ENVIRONMENT_AND_SECRETS.md`, `decisions/ADR-010-supabase-schema-and-rls.md`, `supabase/README.md`.
+Skills to load (per the Skill Selection Gate): re-run the gate for CLOUD-002; base expectation `supabase`, `supabase-postgres-best-practices`, `security-guidance`, `vitest`, `securability-engineering`, `gh-cli`, `github`, plus any task-specific skills.
+Inspect: current `supabase/` state (baseline + migration-guard suite exist); dev project `zbzhlhoxblguepplqppw` via MCP before any mutation. Hand-authored repository migrations under `supabase/migrations/` are authoritative; applied to the dev project via Supabase MCP (`supabase_apply_migration` is now verified available; `execute_sql` for read-only verification). Correcting earlier stale note: the MCP does expose an `apply_migration` tool.
+Constraints carried from CLOUD-001: `public` is default-deny; any grant to `anon`/`authenticated` must pair with `ENABLE ROW LEVEL SECURITY` in the same migration (enforced by `migration-guard.test.mjs`); no anonymous write grants; no `service_role` in clients; never authorize via `user_metadata`; no `SECURITY DEFINER` in `public` without a later ADR. Do not regress the migration discipline.
+Exact next implementation step: CLOUD-002 (create as its own focused change on a fresh branch; do not reuse this commit). If CLOUD-002 defines public tables, introduce them together with explicit grants and RLS policies in one migration, then apply + verify (assertions, advisors) exactly as CLOUD-001 did.
+Tests to run: repo-standard gates (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm audit --prod`, `cargo fmt --check`, `cargo check --workspace`, `cargo test --workspace`, `cargo clippy --workspace --all-targets`) plus the migration-guard suite and any new DB assertion suite re-run via MCP.
+Security checks: no secrets committed (scan the diff); new grants least-privilege and RLS-paired; advisors clean; no service-role in clients; no transcript/audio/keystrokes/clipboard/history in Supabase.
+Expected completion condition: CLOUD-002 implemented, applied, verified, all gates pass, committed + pushed, PR opened, progress updated; next task = CLOUD-003.
+Do not change: Do not add cloud STT, transcript/audio storage, desktop telemetry, or Supabase Storage/Edge Functions. Do not redesign the backend beyond the active CLOUD task. Do not run destructive migrations without human authorization. Do not modify `main`.
 
-Exact next implementation step:
-1. Open `05_TASK_BREAKDOWN.md` and identify WEB-008. Implement per the PRD with the standard gates.
-2. Keep the analytics, privacy, and on-device boundaries honest: unchanged from WEB-006/WEB-007. No behavioral tracking changes.
-3. Do not claim performance numbers on the public site until measured on documented hardware (`06_DOD_QA.md` §14).
-
-Tests to run: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm audit --prod`, `cargo fmt --all -- --check`, `cargo check --workspace`, `cargo test --workspace`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
-
-Security checks: no secrets in the bundle; if a CSP is added for production, `script-src` must include the configured Umami host when analytics is enabled (record SRI feasibility at that point); no private dictation data in any analytics call.
-
-Expected completion condition: WEB-008 done, all gates pass, committed and pushed; a fresh agent can resume at WEB-009.
-
-Do not change: Do not add cloud STT, transcripts/audio upload, or desktop telemetry. Do not select an STT engine before benchmarking. Do not add Supabase/Cloudflare/Razorpay secrets without the owner's credentials via the approved secret mechanism. Do not silently change Tauri/Supabase/Razorpay/Cloudflare/Parakeet architecture. Do not run `git reset --hard` / `git clean -fd` / force-push without explicit human authorization. Do not install skills/MCP servers merely because they are listed in the registry.
+(Last updated 2026-09-15)

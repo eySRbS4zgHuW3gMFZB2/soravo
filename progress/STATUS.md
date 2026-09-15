@@ -1,14 +1,17 @@
 # Status
 
-Current phase: Phase 1 — Website foundation
-Current task: WEB-007 accessibility/performance — DONE; next is WEB-008
-Branch: main (tracks origin/main)
-Last commit: WEB-007 accessibility/performance/security hardening
-Last successful test: 2026-09-14 — pnpm lint/typecheck/test/build (website 29 tests: 20 content/shell + 4 analytics + 5 a11y CSS), pnpm audit --prod ALL PASS
-Current implementation state: WEB-007 complete. Semantic HTML everywhere (real h2/h3 headings with sensible hierarchy, nav landmarks labeled "Main navigation"/"Legal and account links", main landmark has id="main"); skip link ("Skip to content") focus-revealed; global focus-visible outlines for anchors/summary/buttons; base-ui `nativeButton` warning fixed via `nativeButton={false}` on every `render`-overridden Button (renders `<a role="button" tabindex="0">`, a correct non-native button); contrast darkened from #E26A3B to #A84819 for small text (5.30:1 on bone, 4.72:1 on beige — was 3.01, failed AA) and the download band bg (#A84819, white text 5.82:1); `@media (prefers-reduced-motion: reduce)` fallback; route-level React.lazy code splitting (13 page chunks + shared button/page-intro/card; main vendor chunk 319KB→262KB); dev-server hardening headers (X-Frame-Options DENY, Permissions-Policy, COOP). No behavioral tracking changes; no claims of measured performance on the public site.
-Files changed: `apps/website/src/*.css` (skip-link, focus-visible, reduced-motion, contrast, expanded from minified), `apps/website/src/components/layout/layout.tsx` (skip link + Suspense), `apps/website/src/app.tsx` (React.lazy), `apps/website/src/pages/{features,pricing,download,support,faq}.tsx` (semantic headings + nativeButton=false), `apps/website/vite.config.ts` (headers), `apps/website/tsconfig.json` (exclude tests from build tsc), `apps/website/src/website.test.tsx` (async/findBy, a11y block, 20 tests), `apps/website/src/accessibility.test.tsx` (new, CSS-boundary guards, 5 tests)
-Known failures: None. Remaining env gaps are human-gated (TestSprite account, Supabase project, Cloudflare account, signing credentials, and provisioning a real Umami host + website ID to actually ship analytics).
-Security status: No secrets tracked; dev-server security headers added; headers still need to be reproduced at the real host at deploy time; CSP (with Umami `script-src`) and SRI still open for production, recorded as open item; `pnpm audit --prod` clean.
-TestSprite status: Not configured; requires dedicated account/project (human-gated).
-Benchmark status: Not started; required before an STT production engine is selected (`12_BENCHMARK_PROTOCOL.md`).
-Next exact action: WEB-008 — TBD from `05_TASK_BREAKDOWN.md`.
+Current phase: Phase 2 — Auth/account/backend
+Current task: CLOUD-001 Supabase project integration — COMPLETE (applied and verified)
+Branch: feature/cloud-001-supabase-foundation
+Skills selected/loaded (Skill Selection Gate, 2026-09-15): `supabase`, `supabase-postgres-best-practices`, `security-guidance`, `securability-engineering`, `vitest`, `mcp-server-review`, `gh-cli`, `github`. Skips recorded: `semgrep`/`codeql` (CLI unavailable on host), `supply-chain-risk-auditor` (no new runtime dependency), `secure-workflow-guide` (not applicable), `agent-security-audit` (no agent config change; MCP covered by `mcp-server-review`), `insecure-defaults` (not installed; not installed).
+Last commit: CLOUD-001 commit after `09faafb` (see git log; push + PR to follow)
+Last successful test: 2026-09-15 — all CLOUD-001 gates PASS (`pnpm lint`, `pnpm typecheck`, `pnpm test` incl. supabase migration guard 7/7, `pnpm build`, `pnpm audit --prod` — no known vulnerabilities; `cargo fmt --check`, `cargo check --workspace`, `cargo test --workspace`, `cargo clippy --workspace --all-targets`). Supabase security + performance advisors both clean.
+Current implementation state: WEB-001..WEB-007 complete on `main` (f3e718d, untouched). CLOUD-001 baseline applied to dev project `soravo` (ref `zbzhlhoxblguepplqppw`) via Supabase MCP: migration `establish_supabase_baseline` (file `supabase/migrations/20260915000000_establish_supabase_baseline.sql`), recorded in `supabase_migrations.schema_migrations` (version `20260915050920`). Verified behaviorally: `public` schema empty of app tables/functions/triggers; postgres-owned default ACLs for public tables/sequences/functions grant nothing to anon/authenticated/service_role; anon/authenticated `rolbypassrls=false` unchanged; stock schemas untouched (auth 23 / storage 8 / realtime 3 / vault 1); 0 users. `supabase_admin`-owned stock default ACLs remain (Supabase infrastructure; not enforced against objects created by `postgres`). ADR-010 created and accepted.
+Files changed (CLOUD-001): `supabase/migrations/20260915000000_establish_supabase_baseline.sql` (new), `supabase/tests/db_assertions.sql` (new), `supabase/tests/migration-guard.test.mjs` (new), `supabase/tests/vitest.config.mjs` (new), `supabase/README.md`, `apps/website/.env.example`, `package.json` (root `vitest` devDep + `test:supabase` wired into `test`), `pnpm-lock.yaml`, `decisions/ADR-010-supabase-schema-and-rls.md` (new), plus progress files.
+Known failures: None
+Security status: No secrets tracked. Public default-deny boundary established (CLOUD-001). Explicit grants + RLS pairing enforced by structural tests for future migrations. No service-role in client path. `semgrep`/`codeql` unavailable on host (recorded limitation; substituted by migration invariants, advisors, manual review).
+TestSprite status: Not configured; requires dedicated account/project (human-gated). Not applicable to CLOUD-001.
+Benchmark status: Not started; not applicable to CLOUD-001.
+Next exact action: Open PR for CLOUD-001 against `main`, then STOP. Next task thereafter: CLOUD-002 (per `05_TASK_BREAKDOWN.md`).
+
+(Last updated 2026-09-15)
