@@ -3,6 +3,7 @@
 import { vi } from "vitest";
 import type { User } from "@supabase/supabase-js";
 import type { Profile } from "../lib/auth-service";
+import type { AccountDevice, AccountSession, Entitlement } from "../lib/account-service";
 
 export type MockSessionData = { user: User } | null;
 
@@ -59,7 +60,19 @@ export type MockSupabaseClient = {
   };
   from: ReturnType<typeof vi.fn>;
   __emit: (event: string, session: MockSessionData) => void;
+  __update: (next: MockAccountData) => void;
 };
+
+export type MockAccountData = {
+  entitlements?: Entitlement[];
+  entitlementsError?: { message: string } | null;
+  devices?: AccountDevice[];
+  devicesError?: { message: string } | null;
+  sessions?: AccountSession[];
+  sessionsError?: { message: string } | null;
+};
+
+type AccountState = Required<MockAccountData>;
 
 export function createMockSupabaseClient(options: {
   session?: MockSessionData;
@@ -74,7 +87,7 @@ export function createMockSupabaseClient(options: {
   reauthenticateError?: { message: string } | null;
   profileError?: { message: string } | null;
   existingProfile?: Profile | null;
-} = {}): MockSupabaseClient {
+} & MockAccountData = {}): MockSupabaseClient {
   const listeners = new Set<(event: string, session: MockSessionData) => void>();
   const emit = (event: string, session: MockSessionData) => {
     for (const listener of listeners) listener(event, session);
@@ -95,6 +108,24 @@ export function createMockSupabaseClient(options: {
   const session = options.session ?? null;
   const existingProfile = options.existingProfile ?? options.profile ?? null;
   let profileCreated = false;
+
+  const accountState: AccountState = {
+    entitlements: options.entitlements ?? [],
+    entitlementsError: options.entitlementsError ?? null,
+    devices: options.devices ?? [],
+    devicesError: options.devicesError ?? null,
+    sessions: options.sessions ?? [],
+    sessionsError: options.sessionsError ?? null,
+  };
+
+  const __update = (next: MockAccountData) => {
+    if (next.entitlements !== undefined) accountState.entitlements = next.entitlements;
+    if (next.entitlementsError !== undefined) accountState.entitlementsError = next.entitlementsError;
+    if (next.devices !== undefined) accountState.devices = next.devices;
+    if (next.devicesError !== undefined) accountState.devicesError = next.devicesError;
+    if (next.sessions !== undefined) accountState.sessions = next.sessions;
+    if (next.sessionsError !== undefined) accountState.sessionsError = next.sessionsError;
+  };
 
   const auth = {
     getSession: vi.fn().mockResolvedValue({ data: { session }, error: null }),
@@ -128,26 +159,47 @@ export function createMockSupabaseClient(options: {
   };
 
   const from = vi.fn().mockImplementation((table: string) => {
-    if (table !== "profiles") {
-      const unsupported = chainResult({ data: null, error: { message: `unexpected table ${table}` } });
-      return unsupported;
+    if (table === "profiles") {
+      if (options.profileError) {
+        return chainResult({ data: null, error: options.profileError });
+      }
+      if (!profileCreated) {
+        profileCreated = true;
+        const seen = existingProfile ? { data: existingProfile, error: null } : { data: null, error: null };
+        return chainResult(seen);
+      }
+      const created: Profile = {
+        id: defaultUser.id,
+        display_name: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return chainResult({ data: created, error: null });
     }
-    if (options.profileError) {
-      return chainResult({ data: null, error: options.profileError });
+    if (table === "entitlements") {
+      return chainResult(
+        accountState.entitlementsError
+          ? { data: null, error: accountState.entitlementsError }
+          : { data: accountState.entitlements, error: null },
+      );
     }
-    if (!profileCreated) {
-      profileCreated = true;
-      const seen = existingProfile ? { data: existingProfile, error: null } : { data: null, error: null };
-      return chainResult(seen);
+    if (table === "devices") {
+      return chainResult(
+        accountState.devicesError
+          ? { data: null, error: accountState.devicesError }
+          : { data: accountState.devices, error: null },
+      );
     }
-    const created: Profile = {
-      id: defaultUser.id,
-      display_name: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    return chainResult({ data: created, error: null });
+    if (table === "sessions") {
+      return chainResult(
+        accountState.sessionsError
+          ? { data: null, error: accountState.sessionsError }
+          : { data: accountState.sessions, error: null },
+      );
+    }
+    const unsupported = chainResult({ data: null, error: { message: `unexpected table ${table}` } });
+    return unsupported;
   });
 
-  return { auth, from, __emit: emit };
+  return { auth, from, __emit: emit, __update };
 }
