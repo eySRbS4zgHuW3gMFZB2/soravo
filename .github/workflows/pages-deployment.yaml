@@ -24,6 +24,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare Pages
+    # Skip until the owner supplies the least-privilege API token (ADR-014
+    # decision 10); otherwise merging to `main` would fail the run at auth.
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
