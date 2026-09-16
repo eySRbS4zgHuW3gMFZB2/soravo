@@ -4,9 +4,16 @@ import type { AppSupabaseClient } from "./supabase";
 export type Profile = {
   id: string;
   display_name: string | null;
+  // Server-authoritative role backed by public.profiles.role (ADR-022):
+  // immutable by every non-superuser session and only ever read back for the
+  // owner via RLS self-select (scenario R10). The admin page uses it only as
+  // a UX gate; the metrics RPCs re-enforce the check server-side.
+  role: "user" | "admin";
   created_at: string;
   updated_at: string;
 };
+
+export type ProfileRole = Profile["role"];
 
 export const DISPLAY_NAME_MAX = 80;
 
@@ -116,7 +123,7 @@ export async function getProfile(
 ): Promise<Profile | null> {
   const { data, error } = await client
     .from("profiles")
-    .select("id, display_name, created_at, updated_at")
+    .select("id, display_name, role, created_at, updated_at")
     .eq("id", userId)
     .maybeSingle()
     .returns<Profile>();
@@ -135,7 +142,7 @@ export async function ensureProfile(
   const { data, error } = await client
     .from("profiles")
     .insert({ id: user.id })
-    .select("id, display_name, created_at, updated_at")
+    .select("id, display_name, role, created_at, updated_at")
     .single()
     .returns<Profile>();
   if (error || !data) return null;

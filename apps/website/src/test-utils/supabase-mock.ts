@@ -4,6 +4,7 @@ import { vi } from "vitest";
 import type { User } from "@supabase/supabase-js";
 import type { Profile } from "../lib/auth-service";
 import type { AccountDevice, AccountSession, Entitlement } from "../lib/account-service";
+import type { AdminTotals, GrowthBucket } from "../lib/admin-metrics-service";
 
 export type MockSessionData = { user: User } | null;
 
@@ -59,6 +60,7 @@ export type MockSupabaseClient = {
     reauthenticate: ReturnType<typeof vi.fn>;
   };
   from: ReturnType<typeof vi.fn>;
+  rpc: ReturnType<typeof vi.fn>;
   __emit: (event: string, session: MockSessionData) => void;
   __update: (next: MockAccountData) => void;
 };
@@ -70,6 +72,12 @@ export type MockAccountData = {
   devicesError?: { message: string } | null;
   sessions?: AccountSession[];
   sessionsError?: { message: string } | null;
+  adminTotals?: AdminTotals | null;
+  adminTotalsError?: { message: string } | null;
+  adminGrowth?: GrowthBucket[];
+  adminGrowthError?: { message: string } | null;
+  adminActiveUsers?: number;
+  adminActiveUsersError?: { message: string } | null;
 };
 
 type AccountState = Required<MockAccountData>;
@@ -87,6 +95,7 @@ export function createMockSupabaseClient(options: {
   reauthenticateError?: { message: string } | null;
   profileError?: { message: string } | null;
   existingProfile?: Profile | null;
+  profileRole?: "user" | "admin";
 } & MockAccountData = {}): MockSupabaseClient {
   const listeners = new Set<(event: string, session: MockSessionData) => void>();
   const emit = (event: string, session: MockSessionData) => {
@@ -116,6 +125,12 @@ export function createMockSupabaseClient(options: {
     devicesError: options.devicesError ?? null,
     sessions: options.sessions ?? [],
     sessionsError: options.sessionsError ?? null,
+    adminTotals: options.adminTotals ?? null,
+    adminTotalsError: options.adminTotalsError ?? null,
+    adminGrowth: options.adminGrowth ?? [],
+    adminGrowthError: options.adminGrowthError ?? null,
+    adminActiveUsers: options.adminActiveUsers ?? 0,
+    adminActiveUsersError: options.adminActiveUsersError ?? null,
   };
 
   const __update = (next: MockAccountData) => {
@@ -125,6 +140,12 @@ export function createMockSupabaseClient(options: {
     if (next.devicesError !== undefined) accountState.devicesError = next.devicesError;
     if (next.sessions !== undefined) accountState.sessions = next.sessions;
     if (next.sessionsError !== undefined) accountState.sessionsError = next.sessionsError;
+    if (next.adminTotals !== undefined) accountState.adminTotals = next.adminTotals;
+    if (next.adminTotalsError !== undefined) accountState.adminTotalsError = next.adminTotalsError;
+    if (next.adminGrowth !== undefined) accountState.adminGrowth = next.adminGrowth;
+    if (next.adminGrowthError !== undefined) accountState.adminGrowthError = next.adminGrowthError;
+    if (next.adminActiveUsers !== undefined) accountState.adminActiveUsers = next.adminActiveUsers;
+    if (next.adminActiveUsersError !== undefined) accountState.adminActiveUsersError = next.adminActiveUsersError;
   };
 
   const auth = {
@@ -171,6 +192,7 @@ export function createMockSupabaseClient(options: {
       const created: Profile = {
         id: defaultUser.id,
         display_name: null,
+        role: options.profileRole ?? "user",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -201,5 +223,30 @@ export function createMockSupabaseClient(options: {
     return unsupported;
   });
 
-  return { auth, from, __emit: emit, __update };
+  const rpc = vi.fn().mockImplementation((fn: string) => {
+    if (fn === "admin_metrics_totals") {
+      return chainResult(
+        accountState.adminTotalsError
+          ? { data: null, error: accountState.adminTotalsError }
+          : { data: accountState.adminTotals, error: null },
+      );
+    }
+    if (fn === "admin_metrics_growth") {
+      return chainResult(
+        accountState.adminGrowthError
+          ? { data: null, error: accountState.adminGrowthError }
+          : { data: accountState.adminGrowth, error: null },
+      );
+    }
+    if (fn === "admin_metrics_active_users") {
+      return chainResult(
+        accountState.adminActiveUsersError
+          ? { data: null, error: accountState.adminActiveUsersError }
+          : { data: accountState.adminActiveUsers, error: null },
+      );
+    }
+    return chainResult({ data: null, error: { message: `unexpected rpc ${fn}` } });
+  });
+
+  return { auth, from, rpc, __emit: emit, __update };
 }
