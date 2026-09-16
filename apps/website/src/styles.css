@@ -610,6 +610,89 @@ footer {
   margin-top: 36px;
 }
 
+/* ---- Owner dashboard helpers (WEB-009) ---- */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 6px;
+}
+
+.chart-block {
+  margin: 8px 0 20px;
+  max-width: 700px;
+}
+
+.chart-canvas {
+  border: 1px solid var(--border, #d3cec4);
+  border-radius: 12px;
+  padding: 8px;
+  background: var(--card, #faf8f3);
+}
+
+.distribution {
+  margin: 10px 0 22px;
+  max-width: 700px;
+}
+
+.distribution-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e8e4d9;
+  margin-bottom: 12px;
+}
+
+.distribution-bar > span {
+  height: 100%;
+}
+
+.distribution-bar-empty {
+  background: #e8e4d9;
+}
+
+.distribution-key {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.distribution-key li {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.92rem;
+}
+
+.distribution-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.distribution-count {
+  font-weight: 700;
+}
+
+.distribution-share {
+  color: #53625a;
+  min-width: 3ch;
+  text-align: right;
+}
+
 /* ---- Plan / pricing helpers ---- */
 .plan-kicker {
   font-size: 0.72rem;
