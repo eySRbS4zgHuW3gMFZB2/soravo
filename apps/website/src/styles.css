@@ -771,6 +771,43 @@ footer {
   margin: 0;
 }
 
+.session-list,
+.link-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+
+.session-list li {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--border, #d3cec4);
+  background: var(--card, #faf8f3);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.session-list li strong {
+  color: #17271f;
+}
+
+.session-list li span {
+  color: #53625a;
+  font-size: 0.92rem;
+}
+
+.session-id {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.82rem;
+}
+
+.link-list a {
+  font-weight: 700;
+}
+
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,

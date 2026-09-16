@@ -201,4 +201,143 @@ describe("account page", () => {
       nonce: "123456",
     });
   });
+
+  it("shows the empty state when no license records exist", async () => {
+    renderAccount(createMockSupabaseClient({ session: mockSession() }));
+    expect(await screen.findByText(/no license records to show yet/i)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /subscription and licensing/i })).toBeTruthy();
+  });
+
+  it("renders the active entitlement with plan, status, and dates", async () => {
+    renderAccount(
+      createMockSupabaseClient({
+        session: mockSession(),
+        entitlements: [
+          {
+            product: "Soravo Membership",
+            plan: "Lifetime",
+            status: "Active",
+            starts_at: "2026-01-01T00:00:00Z",
+            expires_at: null,
+            updated_at: "2026-01-02T00:00:00Z",
+          },
+        ],
+      }),
+    );
+    expect(await screen.findByText("Soravo Membership")).toBeTruthy();
+    expect(screen.getByText("Lifetime")).toBeTruthy();
+    expect(screen.getByText("Active")).toBeTruthy();
+    expect(screen.getByText(/lifetime — no renewal/i)).toBeTruthy();
+  });
+
+  it("shows the empty state when no devices are recorded", async () => {
+    renderAccount(createMockSupabaseClient({ session: mockSession() }));
+    expect(await screen.findByText(/no devices recorded yet/i)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /devices/i })).toBeTruthy();
+  });
+
+  it("lists each signed-in device with platform and version", async () => {
+    renderAccount(
+      createMockSupabaseClient({
+        session: mockSession(),
+        devices: [
+          {
+            device_public_id: "device-public-1",
+            platform: "macOS",
+            app_version: "1.4.2",
+            first_seen_at: "2026-01-01T00:00:00Z",
+            last_seen_at: "2026-01-03T00:00:00Z",
+            revoked_at: null,
+          },
+        ],
+      }),
+    );
+    expect(await screen.findByText("device-public-1")).toBeTruthy();
+    expect(screen.getAllByText("macOS").length).toBe(2);
+    expect(screen.getByText("1.4.2")).toBeTruthy();
+    expect(screen.getByText("First seen:")).toBeTruthy();
+    expect(screen.getByText("2026-01-01")).toBeTruthy();
+    expect(screen.getByText("Last seen:")).toBeTruthy();
+    expect(screen.getByText("2026-01-03")).toBeTruthy();
+  });
+
+  it("shows the empty state when no sessions are recorded", async () => {
+    renderAccount(createMockSupabaseClient({ session: mockSession() }));
+    expect(await screen.findByText(/no active sessions to show/i)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /active sessions/i })).toBeTruthy();
+  });
+
+  it("lists active sessions with the linked device details", async () => {
+    renderAccount(
+      createMockSupabaseClient({
+        session: mockSession(),
+        sessions: [
+          {
+            session_public_id: "session-public-1",
+            created_at: "2026-01-01T00:00:00Z",
+            last_seen_at: "2026-01-03T00:00:00Z",
+            revoked_at: null,
+            devices: { device_public_id: "device-public-1", platform: "macOS", app_version: "1.4.2" },
+          },
+        ],
+      }),
+    );
+    expect(await screen.findByText("macOS · 1.4.2")).toBeTruthy();
+    expect(screen.getByText(/started 2026-01-01/i)).toBeTruthy();
+    expect(screen.getByText(/last active 2026-01-03/i)).toBeTruthy();
+    expect(screen.getByText("session-public-1")).toBeTruthy();
+  });
+
+  it("shows a generic error banner with a retry action when data fails to load", async () => {
+    renderAccount(
+      createMockSupabaseClient({
+        session: mockSession(),
+        entitlementsError: { message: "permission denied" },
+      }),
+    );
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByText(/we couldn't load your account data/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy();
+  });
+
+  it("recovers after retrying once data becomes available", async () => {
+    const client = createMockSupabaseClient({
+      session: mockSession(),
+      entitlementsError: { message: "transient failure" },
+    });
+    renderAccount(client);
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    client.__update({
+      entitlementsError: null,
+      entitlements: [
+        {
+          product: "Soravo Membership",
+          plan: "Lifetime",
+          status: "Active",
+          starts_at: "2026-01-01T00:00:00Z",
+          expires_at: null,
+          updated_at: "2026-01-02T00:00:00Z",
+        },
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(await screen.findByText("Soravo Membership")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps downloads staged with no release artifacts available", async () => {
+    renderAccount(createMockSupabaseClient({ session: mockSession() }));
+    expect((await screen.findAllByText("No build yet")).length).toBe(2);
+    expect(screen.getAllByText(/not yet available/i).length).toBe(2);
+    expect(screen.getByRole("heading", { name: /downloads/i })).toBeTruthy();
+  });
+
+  it("links to downloads, support, privacy, and terms from the account page", async () => {
+    renderAccount(createMockSupabaseClient({ session: mockSession() }));
+    expect(await screen.findByRole("heading", { name: /help and resources/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /downloads/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /support centre/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /privacy policy/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /terms of service/i })).toBeTruthy();
+  });
 });
