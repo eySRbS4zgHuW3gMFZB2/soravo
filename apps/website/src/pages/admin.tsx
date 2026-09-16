@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { PageIntro } from "../components/page-intro";
 import { useAuth } from "../lib/auth-context";
 import { DistributionBar, GrowthChart, type DistributionSegment } from "../components/admin/charts";
+import { UserDirectory } from "../components/admin/user-directory";
 import {
   GROWTH_WINDOW_DAYS,
   loadAdminMetrics,
@@ -192,7 +193,7 @@ export function Admin() {
     <PageIntro
       eyebrow="OWNER"
       title="Owner dashboard."
-      lede="Activation, subscription, lifetime licence, and device aggregates for Soravo — aggregates only, never individual users."
+      lede="Activation, subscription, lifetime licence, and device aggregates for Soravo, plus a searchable user directory — never internal ids, provider references, or financial details."
     >
       {dashboard.status === "loading" && dashboard.data === null ? (
         <p className="form-note" role="status">
@@ -296,23 +297,10 @@ export function Admin() {
               Snapshot generated {generatedAt} (UTC).
             </p>
           ) : null}
-
-          <section aria-labelledby="directory-heading">
-            <h2 id="directory-heading" className="form-heading">
-              User directory
-            </h2>
-            <p className="form-note" role="note">
-              Searchable per-user details aren't available yet.
-            </p>
-            <p>
-              The current data layer returns aggregate metrics only, so we can't
-              list or search individual users — their identities, subscription
-              status, or device session details aren't exposed here. User search
-              is scheduled for a later milestone.
-            </p>
-          </section>
         </>
       ) : null}
+
+      {client ? <UserDirectory client={client} /> : null}
     </PageIntro>
   );
 }

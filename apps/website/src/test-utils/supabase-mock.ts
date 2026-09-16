@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import type { Profile } from "../lib/auth-service";
 import type { AccountDevice, AccountSession, Entitlement } from "../lib/account-service";
 import type { AdminTotals, GrowthBucket } from "../lib/admin-metrics-service";
+import type { AdminUserDirectory } from "../lib/admin-users-service";
 
 export type MockSessionData = { user: User } | null;
 
@@ -78,6 +79,8 @@ export type MockAccountData = {
   adminGrowthError?: { message: string } | null;
   adminActiveUsers?: number;
   adminActiveUsersError?: { message: string } | null;
+  adminDirectory?: AdminUserDirectory | null;
+  adminDirectoryError?: { message: string } | null;
 };
 
 type AccountState = Required<MockAccountData>;
@@ -131,6 +134,16 @@ export function createMockSupabaseClient(options: {
     adminGrowthError: options.adminGrowthError ?? null,
     adminActiveUsers: options.adminActiveUsers ?? 0,
     adminActiveUsersError: options.adminActiveUsersError ?? null,
+    adminDirectory:
+      options.adminDirectory ?? {
+        users: [],
+        has_more: false,
+        page_size: 25,
+        offset: 0,
+        search: null,
+        generated_at: "2026-09-16T00:00:00Z",
+      },
+    adminDirectoryError: options.adminDirectoryError ?? null,
   };
 
   const __update = (next: MockAccountData) => {
@@ -146,6 +159,8 @@ export function createMockSupabaseClient(options: {
     if (next.adminGrowthError !== undefined) accountState.adminGrowthError = next.adminGrowthError;
     if (next.adminActiveUsers !== undefined) accountState.adminActiveUsers = next.adminActiveUsers;
     if (next.adminActiveUsersError !== undefined) accountState.adminActiveUsersError = next.adminActiveUsersError;
+    if (next.adminDirectory !== undefined) accountState.adminDirectory = next.adminDirectory;
+    if (next.adminDirectoryError !== undefined) accountState.adminDirectoryError = next.adminDirectoryError;
   };
 
   const auth = {
@@ -243,6 +258,13 @@ export function createMockSupabaseClient(options: {
         accountState.adminActiveUsersError
           ? { data: null, error: accountState.adminActiveUsersError }
           : { data: accountState.adminActiveUsers, error: null },
+      );
+    }
+    if (fn === "admin_users") {
+      return chainResult(
+        accountState.adminDirectoryError
+          ? { data: null, error: accountState.adminDirectoryError }
+          : { data: accountState.adminDirectory, error: null },
       );
     }
     return chainResult({ data: null, error: { message: `unexpected rpc ${fn}` } });

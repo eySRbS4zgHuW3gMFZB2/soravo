@@ -891,6 +891,89 @@ footer {
   font-weight: 700;
 }
 
+/* ---- Admin user directory (WEB-009) ---- */
+.directory-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 18px 0 4px;
+  max-width: 640px;
+}
+
+.directory-search .field {
+  margin-bottom: 0;
+}
+
+.directory-list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: grid;
+  gap: 12px;
+  max-width: 800px;
+}
+
+.directory-user {
+  border: 1px solid var(--border, #d3cec4);
+  background: var(--card, #faf8f3);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.directory-user-head {
+  display: grid;
+  gap: 4px;
+}
+
+.directory-user-head strong {
+  color: #17271f;
+}
+
+.directory-user-head span {
+  color: #53625a;
+}
+
+.directory-user dl {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.directory-field {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.directory-field dt {
+  color: #53625a;
+  font-weight: 600;
+}
+
+.directory-field dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.directory-id {
+  word-break: break-all;
+}
+
+.pagination-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.pagination-row .form-note {
+  margin: 0;
+}
+
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -965,5 +1048,9 @@ footer {
 
   .persona-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .directory-search {
+    grid-template-columns: 1fr;
   }
 }
