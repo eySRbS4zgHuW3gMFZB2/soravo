@@ -7,12 +7,15 @@
     "build": "pnpm --filter @soravo/website build && pnpm --filter @soravo/desktop build",
     "dev:website": "pnpm --filter @soravo/website dev",
     "dev:desktop": "pnpm --filter @soravo/desktop tauri dev",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium",
     "lint": "pnpm --filter @soravo/website lint && pnpm --filter @soravo/desktop lint && pnpm --filter @soravo/license-api lint",
     "test": "pnpm --filter @soravo/website test && pnpm --filter @soravo/desktop test && pnpm --filter @soravo/license-api test && pnpm test:supabase",
     "test:supabase": "vitest run --config supabase/tests/vitest.config.mjs",
     "typecheck": "pnpm --filter @soravo/website typecheck && pnpm --filter @soravo/desktop typecheck && pnpm --filter @soravo/license-api typecheck"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "vitest": "latest"
   }
 }

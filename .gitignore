@@ -6,6 +6,8 @@ coverage/
 target/
 .vite/
 apps/desktop/src-tauri/gen/
+test-results/
+playwright-report/
 
 # Local configuration and secrets
 .env
