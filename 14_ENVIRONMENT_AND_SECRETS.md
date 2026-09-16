@@ -77,6 +77,22 @@ If tokens are unavoidable:
 - documented owner;
 - rotation plan.
 
+## Cloudflare Pages deployment (GitHub Actions)
+
+Released by the repo-owned workflow `.github/workflows/pages-deployment.yaml` on pushes to `main` (ADR-014).
+
+GitHub Actions secrets (never in the repository, never in `.env`):
+- `CLOUDFLARE_API_TOKEN` — least-privilege token scoped to Account > Cloudflare Pages > Edit;
+- `CLOUDFLARE_ACCOUNT_ID`.
+
+GitHub Actions variables (client-safe build values only):
+- `VITE_SUPABASE_URL`;
+- `VITE_SUPABASE_ANON_KEY`;
+- `VITE_UMAMI_HOST_URL`;
+- `VITE_UMAMI_WEBSITE_ID`.
+
+Never add `VITE_E2E_TEST_MODE` to the deploy workflow. Never add `VITE_SUPABASE_SERVICE_ROLE_KEY` or any Razorpay secret to the workflow or the website bundle; the service role is server-only for other components.
+
 ## Payment secrets
 
 Payment verification happens server-side only.
