@@ -1,14 +1,19 @@
-// Soravo production security headers generator (WEB-011 / ADR-014).
+// Soravo production security headers generator (WEB-011 / WEB-012, ADR-014).
 //
 // The deployed static assets directory needs a `_headers` file that Cloudflare
-// Workers Static Assets applies to asset responses (ADR-014 decision 4). The
+// Pages parses and applies to static asset responses (ADR-014 decision 4). The
 // Content-Security-Policy must come from the ACTUAL resource graph: it depends
 // on the build-time environment (VITE_SUPABASE_URL and/or VITE_UMAMI_HOST_URL
 // when those integrations are enabled), so a hand-authored file in `public/`
 // cannot safely represent production. Instead this module is driven at build
 // time by Vite's resolved environment (via the plugin in `vite.config.ts`) so
 // the emitted CSP always matches the bundle that was built. No runtime server
-// is introduced and no wildcard CSP source is used.
+// or Cloudflare Worker runtime is introduced and no wildcard CSP source is used.
+//
+// Cloudflare Pages path: SPA fallback relies on Pages' default single-page
+// application rendering, which requires that the dist tree contains NO top-level
+// `404.html` and NO `_redirects`; `verifyDist` enforces that so React Router
+// direct navigation works without an added server function.
 //
 // Security posture (09_SECURITY_BASELINE.md §17, ASVS 3.4.x):
 // - default-src 'self'; script-src 'self' (+ Umami origin only when enabled)
@@ -76,7 +81,9 @@ export function buildCsp(env = {}) {
   ].join("; ");
 }
 
-// Emits the Cloudflare Workers Static Assets `_headers` file text.
+// Emits the Cloudflare Pages `_headers` file text (`/*` matches every path;
+// Pages applies the `/*` rule to static asset responses, and the project uses
+// no Pages Functions so the rule also covers SPA-fallback responses).
 export function buildHeadersText(env = {}) {
   const headers = [
     ["Content-Security-Policy", buildCsp(env)],
@@ -109,8 +116,10 @@ async function walk(dir, out = []) {
   return out;
 }
 
-// Verifies the production dist directory satisfies the WEB-011 invariants.
-// Throws on the first violation so a broken build fails the pipeline.
+// Verifies the production dist directory satisfies the WEB-011/WEB-012
+// invariants (security headers/CSP, SEO assets, Pages SPA fallback shape,
+// no E2E harness, no Razorpay references). Throws on the first violation so a
+// broken build fails the pipeline.
 export async function verifyDist(distDir) {
   const problems = [];
   const read = async (name) => {
@@ -121,6 +130,19 @@ export async function verifyDist(distDir) {
       return null;
     }
   };
+
+  // Cloudflare Pages SPA fallback (ADR-014 decision 3): Pages performs default
+  // SPA rendering ONLY when the output has no top-level `404.html`. A `_redirects`
+  // file would take precedence over `_headers`, so the Pages output must contain
+  // neither. These negatives make the intended serving contract deterministic.
+  for (const forbidden of ["404.html", "_redirects"]) {
+    try {
+      await readFile(path.join(distDir, forbidden));
+      problems.push(`Cloudflare Pages SPA fallback requires NO ${forbidden} in the Pages output`);
+    } catch {
+      // absent as required
+    }
+  }
 
   const headers = await read("_headers");
   if (headers) {

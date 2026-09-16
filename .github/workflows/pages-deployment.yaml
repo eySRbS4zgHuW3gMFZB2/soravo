@@ -1,0 +1,53 @@
+name: Deploy website to Cloudflare Pages
+
+# Repo-owned CI/CD for the Vite + React SPA (ADR-014). On a push to `main` the
+# verified build output is uploaded to the Cloudflare Pages project `soravo`
+# via direct upload (`wrangler pages deploy`). See:
+#   https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/
+# The Pages project itself is created in the separate deployment task; this
+# workflow only becomes active after it is merged to `main`.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Pages
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build website
+        run: pnpm build
+        env:
+          # Client-safe build values only (ADR-014 decision 11). Supplied as
+          # non-secret GitHub Actions variables because they are publishable;
+          # the E2E-test-only flag is intentionally never set for production builds.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_UMAMI_HOST_URL: ${{ vars.VITE_UMAMI_HOST_URL }}
+          VITE_UMAMI_WEBSITE_ID: ${{ vars.VITE_UMAMI_WEBSITE_ID }}
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          # Least-privilege credential: Account > Cloudflare Pages > Edit,
+          # stored in GitHub Actions secrets (ADR-014 decision 10).
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/website/dist --project-name=soravo --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

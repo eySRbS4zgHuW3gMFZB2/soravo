@@ -1,8 +1,8 @@
 # Status
 
-Current phase: Phase 2 — WEB-011 deployment readiness (pre-deployment) — IN PROGRESS on `feature/web-011-deployment-readiness` (based on `main` = `feaad9b`, WEB-010 merged via PR #14).
-Current task: WEB-011 — ADR-014 (Cloudflare Worker + Static Assets), production security headers/CSP, P2 SEO assets, deterministic tests, gates, PR → merge. Deployment itself is a later, separately-authorized task.
-Working tree: WEB-011 files written but NOT yet committed (decisions/ADR-014, apps/website scripts/vite.config/index.html/public assets, production-readiness.test.ts, this file).
-Repo-gate status (baseline on `feaad9b`): `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` (138 website) ✓, `pnpm build` ✓, `pnpm audit --prod` ✓, `pnpm e2e` (20/20 chromium) ✓. CI on main: web ✓, rust ✓, e2e ✓. WEB-011 must re-run all gates before its PR.
-Skills loaded (WEB-011): `cloudflare`, `security-guidance`, `vitest`, `gh-cli` (deployment/UI/perf skills explicitly NOT loaded — no deploy, no UI changes).
+Current phase: Phase 2 — WEB-012 Cloudflare Pages deployment (configuration) — IN PROGRESS on `feature/web-012-cloudflare-pages-deployment` (based on `main` = `f18f9a1`, WEB-011 merged via PR #15).
+Current task: WEB-012 — revise the hosting decision from Cloudflare Workers + Workers Static Assets to Cloudflare Pages (ADR-014 stays the single authoritative hosting ADR): Pages decision rewrite, Pages-compatible `_headers` + SPA-fallback dist assertions, GitHub Actions Pages deployment workflow, deterministic Pages-deployment tests, docs/progress updates, gates, PR → merge. Actual deployment (Pages project creation, DNS cutover) is a later, separately-authorized task.
+Working tree: WEB-012 files written but NOT yet committed (decisions/ADR-014, apps/website scripts/vite.config.ts/production-readiness.test.ts, .github/workflows/pages-deployment.yaml, 02_TDD.md §16, 14_ENVIRONMENT_AND_SECRETS.md, this file).
+Repo-gate status (baseline on `main` = `f18f9a1`): `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` (138 website) ✓, `pnpm build` ✓, `pnpm audit --prod` ✓, `pnpm e2e` (20/20 chromium) ✓. CI on main: web ✓, rust ✓, e2e ✓. WEB-012 must re-run all gates before its PR.
+Skills loaded (WEB-012): `cloudflare`, `cloudflare-deploy` (Pages reference + live docs), `security-guidance`, `github`, `gh-cli`, `vitest`, `react` (informational; no React changes made). Deployment/UI/perf skills intentionally NOT loaded — no actual deploy, no UI changes. `wrangler` CLI not used.
 (Last updated 2026-09-16)

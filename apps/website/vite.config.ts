@@ -8,12 +8,13 @@ import { verifyDist, writeProductionHeaders } from "./scripts/prod-headers.mjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
-// WEB-011 / ADR-014: emit `dist/_headers` from the resolved build environment so
-// the Content-Security-Policy exactly matches the resource graph baked into the
-// bundle (Supabase/Umami origins are only added when those env-gated features are
-// actually configured). `writeBundle` runs after all assets are on disk; the
-// dist is then verified against the deployment-readiness invariants so a broken
-// production build fails the pipeline.
+// WEB-011 / WEB-012 / ADR-014: emit `dist/_headers` for Cloudflare Pages from
+// the resolved build environment so the Content-Security-Policy exactly matches
+// the resource graph baked into the bundle (Supabase/Umami origins are only
+// added when those env-gated features are actually configured). `writeBundle`
+// runs after all assets are on disk; the dist is then verified against the
+// deployment-readiness invariants (including the Pages SPA-fallback shape) so
+// a broken production build fails the pipeline.
 function productionSecurityHeaders(): Plugin {
   let resolved: ResolvedConfig | null = null;
   return {

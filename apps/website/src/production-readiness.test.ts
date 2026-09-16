@@ -233,3 +233,72 @@ describe("website source guardrails", () => {
     expect(main).toContain('VITE_E2E_TEST_MODE === "true"');
   });
 });
+
+// WEB-012 — Cloudflare Pages hosting (ADR-014).
+const WORKFLOW_PATH = path.join(SITE_ROOT, "..", "..", ".github", "workflows", "pages-deployment.yaml");
+
+describe("cloudflare pages deployment workflow", () => {
+  it("defines a Pages direct-upload workflow for the Vite dist output", async () => {
+    const workflow = await readFile(WORKFLOW_PATH, "utf8");
+    expect(workflow).toContain("cloudflare/wrangler-action@v3");
+    expect(workflow).toContain("command: pages deploy apps/website/dist --project-name=soravo --branch=main");
+    expect(workflow).toContain("pnpm build");
+  });
+
+  it("uses least-privilege Cloudflare credentials from repository secrets only", async () => {
+    const workflow = await readFile(WORKFLOW_PATH, "utf8");
+    const credentialLines = workflow
+      .split("\n")
+      .filter((raw) => /\b(?:apiToken|accountId)\s*:/.test(raw));
+    expect(credentialLines).toHaveLength(2);
+    for (const raw of credentialLines) {
+      expect(raw).toMatch(/^\s+(?:apiToken|accountId):\s*\$\{\{\s*secrets\.CLOUDFLARE_(?:API_TOKEN|ACCOUNT_ID)\s*\}\}\s*$/);
+    }
+  });
+
+  it("requests the permissions the Pages action needs and nothing more", async () => {
+    const workflow = await readFile(WORKFLOW_PATH, "utf8");
+    expect(workflow).toMatch(/permissions:/);
+    expect(workflow).toMatch(/contents: read/);
+    expect(workflow).toMatch(/deployments: write/);
+  });
+
+  it("embeds no client-sensitive or test configuration", async () => {
+    const workflow = await readFile(WORKFLOW_PATH, "utf8");
+    expect(workflow).not.toContain("VITE_E2E_TEST_MODE");
+    expect(workflow.toLowerCase()).not.toContain("razorpay");
+    expect(workflow).not.toMatch(/service[-_ ]?role/i);
+  });
+
+  it("supplies only client-safe VITE_ values as build variables", async () => {
+    const workflow = await readFile(WORKFLOW_PATH, "utf8");
+    for (const variable of ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_UMAMI_HOST_URL", "VITE_UMAMI_WEBSITE_ID"]) {
+      const assignment = `${variable}: ` + "${{ vars." + variable + " }}";
+      expect(workflow).toContain(assignment);
+    }
+  });
+});
+
+describe("cloudflare pages spa fallback and headers", () => {
+  it("emits a Pages-compatible `_headers` rule that matches every path", () => {
+    const line = (n: number) => buildHeadersText({}).split("\n")[n];
+    expect(line(0)).toBe("/*");
+    for (let i = 1; i < buildHeadersText({}).split("\n").length; i++) {
+      if (line(i).length > 0) expect(line(i)).toMatch(/^\s{2}[A-Za-z-]+:/);
+    }
+  });
+
+  it("keeps every `_headers` line within the Pages 2,000-character limit", () => {
+    for (const env of [{}, { VITE_SUPABASE_URL: "https://abc.supabase.co" }, { VITE_SUPABASE_URL: "https://abc.supabase.co", VITE_UMAMI_HOST_URL: "https://analytics.example.com" }]) {
+      for (const raw of buildHeadersText(env).split("\n")) {
+        expect(raw.length).toBeLessThanOrEqual(2000);
+      }
+    }
+  });
+
+  it("keeps 404.html and _redirects out of the source that feeds the Pages output", async () => {
+    const publicDir = await readdir(path.join(SITE_ROOT, "public"));
+    expect(publicDir).not.toContain("404.html");
+    expect(publicDir).not.toContain("_redirects");
+  });
+});

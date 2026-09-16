@@ -393,7 +393,7 @@ Umami is for website behavior.
 
 Use Cloudflare-hosted deployment.
 
-Cloudflare Pages may remain the selected hosting product if already established, but the agent must verify current Cloudflare recommendations and limits before implementation because Cloudflare's current skills now recommend Workers/Workers Static Assets for new sites.
+The selected hosting product is **Cloudflare Pages** (ADR-014): the website is a Vite + React static SPA with no server-side logic, needs no Cloudflare Worker runtime, and Pages hosts the existing `dist/` build on the free plan with native SPA fallback and a static `_headers` mechanism. Cloudflare's current guidance recommends Workers + Workers Static Assets for new sites; that option was evaluated and recorded as the alternative not selected for V1 (ADR-014). Verifying current Cloudflare recommendations remains mandatory before deployment.
 
 Do not migrate hosting merely because a skill suggests it. Existing product scope wins unless an ADR approves migration.
 
