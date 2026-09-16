@@ -45,6 +45,10 @@ jobs:
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
+          # `wrangler` is pre-installed as a workspace-root devDependency so the
+          # action's `pnpm exec wrangler` probe succeeds and it skips its own
+          # `pnpm add wrangler`, which `pnpm` rejects in a workspace root
+          # (ERR_PNPM_ADDING_TO_ROOT).
           # Least-privilege credential: Account > Cloudflare Pages > Edit,
           # stored in GitHub Actions secrets (ADR-014 decision 10).
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
