@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { Layout } from "./components/layout/layout";
 import { AuthProvider } from "./lib/auth-context";
+import type { AppSupabaseClient } from "./lib/supabase";
 
 const Landing = lazy(() =>
   import("./pages/landing").then((m) => ({ default: m.Landing })),
@@ -46,9 +47,9 @@ const NotFound = lazy(() =>
   import("./pages/not-found").then((m) => ({ default: m.NotFound })),
 );
 
-export function AppRoutes() {
+export function AppRoutes({ client }: { client?: AppSupabaseClient | null }) {
   return (
-    <AuthProvider>
+    <AuthProvider client={client}>
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Landing />} />
@@ -71,10 +72,10 @@ export function AppRoutes() {
   );
 }
 
-export function App() {
+export function App({ client }: { client?: AppSupabaseClient | null }) {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <AppRoutes client={client} />
     </BrowserRouter>
   );
 }
