@@ -12,6 +12,19 @@
 -- anon and service_role are denied at the privilege layer, non-admin
 -- authenticated sessions and claim-tampered sessions are denied in-body, and
 -- the aggregate counts plus bucket/window semantics are exact.
+-- CLOUD-013 adds the admin user-directory proof (U1–U21): the new
+-- `profiles.public_user_id` (server-generated, immutable) and the
+-- `admin_users(p_search, p_offset)` SECURITY DEFINER RPC (ADR-025) which
+-- serves the WEB-009 admin user directory across users for an ADMIN only.
+-- The U-block proves: anon/service_role privilege denial, non-admin and
+-- claim-tampered in-body denial with the CLOUD-013 gate error, admin allow
+-- with the exact closed projection (search by email/public_user_id/
+-- display_name; case-insensitivity), bounded search/pagination (25/page,
+-- offset 0..100000, has_more, deterministic ORDER BY), account status
+-- derivation (active/banned/deleted), entitlement/device/session summary
+-- exactness, strict data minimization (no internal UUIDs, provider refs, or
+-- sensitive fields), and the public_user_id server-owned + immutable
+-- contract.
 --
 -- The suite impersonates the app roles by lowering the session role
 -- (SET ROLE authenticated / anon / service_role) and session-scoped
@@ -1311,6 +1324,432 @@ begin
   exception when others then
     if sqlerrm not like '%CLOUD-007%' then raise exception 'FAIL M10: unexpected error %', sqlerrm; end if;
   end;
+end $$;
+
+-- ------------------------------------------------------------------ --
+-- U (CLOUD-013): admin user-directory authorization + contract proof.  --
+-- The directory is served by admin_users(p_search, p_offset) (SECURITY    --
+-- DEFINER, ADR-025), gated in-body on auth.uid() + profiles.role. A        --
+-- separate immutable, server-generated public user ID (public_user_id)     --
+-- backs the PRD §7 unique-user-ID column. Proven here:                    --
+--   U1  anon has no EXECUTE (privilege/schema layer)                      --
+--   U2  ordinary authenticated user denied in-body (CLOUD-013)            --
+--   U3  admin allowed; exact single-row projection + envelope             --
+--   U4  tampered JWT claims (role/user_metadata) add no authority         --
+--   U5  postgres (owner) without claims denied by the in-body gate        --
+--   U6  service_role denied (privilege layer)                             --
+--   U7  search by public_user_id matches the owning user                  --
+--   U8  search by display_name works (case-insensitive)                   --
+--   U9  search by email is case-insensitive                               --
+--   U10 no-match search -> empty result, has_more false                   --
+--   U11 oversized search is bounded (truncated to 100), never errors      --
+--   U12 negative offset rejected (CLOUD-013)                              --
+--   U13 oversized offset rejected (CLOUD-013)                             --
+--   U14 pagination: page_size 25, has_more, pages cover all rows in      --
+--       deterministic ORDER BY (no gaps/dupes)                            --
+--   U15 repeated identical calls are byte-identical (determinism)         --
+--   U16 data minimization: closed key set; no internal UUID/provider/     --
+--       sensitive fields in the payload                                   --
+--   U17 entitlement summary exact (monthly active / null for free)        --
+--   U18 device summary exact (count/active/platforms/last_seen)           --
+--   U19 session summary exact (count/active/last_seen)                    --
+--   U20 account_status derived (banned / deleted / active)                --
+--   U21 public_user_id server-owned on INSERT + immutable on UPDATE       --
+--       (client AND postgres paths)                                       --
+-- Sequence: fixtures -> privilege denials -> gate denials -> admin        --
+-- contract -> public_user_id immutability.                                --
+-- ------------------------------------------------------------------ --
+set role postgres;
+select set_config('request.jwt.claims', '{}', false);
+
+-- Richter fixture: a registered user with a server-generated public_user_id
+-- (produced by the NEW profiles_set_public_user_id trigger), an active
+-- monthly entitlement, one active device, and one active session.
+insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
+values ('00000000-0000-0000-0000-000000000021', 'authenticated', 'authenticated', 'ulrich.clo13@example.com', now(), now(), now());
+
+insert into public.profiles (id, display_name)
+values ('00000000-0000-0000-0000-000000000021', 'Ulrich');
+
+insert into public.entitlements (user_id, product, plan, status, provider, provider_customer_ref, provider_payment_ref, starts_at, expires_at)
+values ('00000000-0000-0000-0000-000000000021', 'soravo', 'monthly', 'active', 'razorpay', 'cus_ulrich_clo13', 'pay_ulrich_clo13', now() - interval '2 days', now() + interval '28 days');
+
+insert into public.devices (id, user_id, device_public_id, platform, app_version)
+values ('10000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000021', 'dev-ulrich-0001', 'linux', '1.0.0');
+
+insert into public.sessions (id, user_id, device_id, session_public_id)
+values ('20000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000021', 'sess-ulrich-0001');
+
+-- Account-status fixtures: banned vs deleted vs active (no profiles needed).
+insert into auth.users (id, aud, role, email, email_confirmed_at, banned_until, created_at, updated_at)
+values ('00000000-0000-0000-0000-000000000022', 'authenticated', 'authenticated', 'ursula.clo13@example.com', now(), now() + interval '1 day', now(), now());
+
+insert into auth.users (id, aud, role, email, email_confirmed_at, deleted_at, created_at, updated_at)
+values ('00000000-0000-0000-0000-000000000023', 'authenticated', 'authenticated', 'mauro.clo13@example.com', now(), now(), now(), now());
+
+-- Hugo: needed for the client-path public_user_id server-ownership/immutability
+-- proof (U21); his profile is self-INSERTed by the authenticated session.
+insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
+values ('00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'hugo.clo13@example.com', now(), now(), now());
+
+-- Pagination batch: 22 extra registered accounts -> 33 total directory rows
+-- (> the 25/page_size bound, so has_more is genuinely exercised).
+insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
+select
+  ('00000000-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid,
+  'authenticated', 'authenticated',
+  format('bulk.clo13-%s@example.com', g),
+  now(), '2026-01-06 00:00:00+00', '2026-01-06 00:00:00+00'
+from generate_series(101, 122) g;
+
+-- U1. anon cannot invoke admin_users (schema privilege layer, like M1).
+set role anon;
+do $$
+begin
+  begin
+    execute 'select public.admin_users()';
+    raise exception 'FAIL U1: anon called admin_users';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+set role postgres;
+
+-- U2. An ordinary authenticated user (Frank, profiles.role = 'user') holds
+--      EXECUTE but is denied IN-BODY with the CLOUD-013 gate error.
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000f"}', false);
+  begin
+    perform public.admin_users();
+    raise exception 'FAIL U2: non-admin called admin_users';
+  exception when others then
+    if sqlerrm not like '%CLOUD-013%' then raise exception 'FAIL U2: unexpected error %', sqlerrm; end if;
+  end;
+end $$;
+
+-- U3. An admin (Erin) is allowed; a single-row search returns the exact
+--      projection and a correct envelope.
+do $$
+declare _j jsonb; _u jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('ulrich');
+  if (_j->>'has_more')::boolean then raise exception 'FAIL U3: has_more true on single row'; end if;
+  if (_j->>'page_size')::int <> 25 then raise exception 'FAIL U3: page_size=%', _j->>'page_size'; end if;
+  if (_j->>'offset')::int <> 0 then raise exception 'FAIL U3: offset echo wrong'; end if;
+  if _j->>'search' <> 'ulrich' then raise exception 'FAIL U3: search echo %', _j->>'search'; end if;
+  if _j->>'generated_at' is null then raise exception 'FAIL U3: generated_at missing'; end if;
+  if jsonb_array_length(_j->'users') <> 1 then
+    raise exception 'FAIL U3: expected 1 user, got %', jsonb_array_length(_j->'users');
+  end if;
+  _u := _j->'users'->0;
+  if _u->>'email' <> 'ulrich.clo13@example.com' then raise exception 'FAIL U3: email %', _u->>'email'; end if;
+  if _u->>'display_name' <> 'Ulrich' then raise exception 'FAIL U3: display_name'; end if;
+  if _u->>'role' <> 'user' then raise exception 'FAIL U3: role'; end if;
+  if _u->>'account_status' <> 'active' then raise exception 'FAIL U3: account_status'; end if;
+  if _u->>'public_user_id' !~ '^user-[0-9a-f]{32}$' then
+    raise exception 'FAIL U3: public_user_id format %', _u->>'public_user_id';
+  end if;
+end $$;
+
+-- U4. JWT claims (role:admin / user_metadata.role) never map to authority.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000f","role":"admin","user_metadata":{"role":"admin"}}', false);
+  begin
+    perform public.admin_users();
+    raise exception 'FAIL U4: tampered JWT claims authorized';
+  exception when others then
+    if sqlerrm not like '%CLOUD-013%' then raise exception 'FAIL U4: unexpected error %', sqlerrm; end if;
+  end;
+end $$;
+
+-- U5. Even the function owner (postgres) is denied by the in-body gate when
+--      no request identity is present — the gate is authorization, not ACL.
+set role postgres;
+do $$
+begin
+  perform set_config('request.jwt.claims', '{}', false);
+  begin
+    perform public.admin_users();
+    raise exception 'FAIL U5: postgres without claims called admin_users';
+  exception when others then
+    if sqlerrm not like '%CLOUD-013%' then raise exception 'FAIL U5: unexpected error %', sqlerrm; end if;
+  end;
+end $$;
+
+-- U6. service_role has no EXECUTE (privilege layer; no privileged client path).
+set role service_role;
+do $$
+begin
+  begin
+    execute 'select public.admin_users()';
+    raise exception 'FAIL U6: service_role called admin_users';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+set role postgres;
+
+-- U7. Search by public_user_id addresses exactly the owning user. (Read the
+--      server-generated value as postgres, then call as the admin identity;
+--      the gate is in-body, so the session role is not the boundary.)
+do $$
+declare _pid text; _j jsonb;
+begin
+  select public_user_id into _pid from public.profiles where id = '00000000-0000-0000-0000-000000000021';
+  if _pid is null then raise exception 'FAIL U7: fixture missing public_user_id'; end if;
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users(_pid);
+  if jsonb_array_length(_j->'users') <> 1 then
+    raise exception 'FAIL U7: public_id search expected 1, got %', jsonb_array_length(_j->'users');
+  end if;
+  if (_j->'users'->0->>'email') <> 'ulrich.clo13@example.com' then
+    raise exception 'FAIL U7: public_id search returned wrong row';
+  end if;
+end $$;
+
+-- U8. Search by display_name matches (partial, case-insensitive).
+--      (Use 'lrich' -> 'Ulrich'; a term like 'er' would collide with the
+--      literal 'user-' prefix of every public_user_id and match that column.)
+do $$
+declare _j jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('lrich');   -- 'Ulrich' display_name + ulrich email
+  if jsonb_array_length(_j->'users') <> 1 then
+    raise exception 'FAIL U8: display_name/email search expected 1, got %', jsonb_array_length(_j->'users');
+  end if;
+  if (_j->'users'->0->>'email') <> 'ulrich.clo13@example.com' then
+    raise exception 'FAIL U8: search returned wrong row';
+  end if;
+end $$;
+
+-- U9. Email search is case-insensitive (and echoes the caller's casing).
+do $$
+declare _j jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('ERIN.CLO7');
+  if jsonb_array_length(_j->'users') <> 1 then
+    raise exception 'FAIL U9: case-insensitive search expected 1, got %', jsonb_array_length(_j->'users');
+  end if;
+  if _j->>'search' <> 'ERIN.CLO7' then raise exception 'FAIL U9: search echo %', _j->>'search'; end if;
+end $$;
+
+-- U10. A no-match search returns an empty page with has_more = false.
+do $$
+declare _j jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('zzz-no-such-user');
+  if jsonb_array_length(_j->'users') <> 0 then raise exception 'FAIL U10: no-match returned rows'; end if;
+  if (_j->>'has_more')::boolean then raise exception 'FAIL U10: has_more on empty page'; end if;
+end $$;
+
+-- U11. An oversized search string is truncated to 100 chars and never errors.
+do $$
+declare _j jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users(repeat('a', 400));
+  if (_j->>'has_more')::boolean then raise exception 'FAIL U11: has_more on no-match'; end if;
+  if jsonb_array_length(_j->'users') <> 0 then raise exception 'FAIL U11: oversized search matched'; end if;
+  if octet_length(_j->>'search') <> 100 then raise exception 'FAIL U11: search not bounded to 100'; end if;
+end $$;
+
+-- U12/U13. Out-of-range offsets are rejected with the CLOUD-013 gate prefix.
+do $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  begin
+    perform public.admin_users(null, -1);
+    raise exception 'FAIL U12: negative offset accepted';
+  exception when others then
+    if sqlerrm not like '%CLOUD-013%' then raise exception 'FAIL U12: unexpected error %', sqlerrm; end if;
+  end;
+  begin
+    perform public.admin_users(null, 100001);
+    raise exception 'FAIL U13: oversized offset accepted';
+  exception when others then
+    if sqlerrm not like '%CLOUD-013%' then raise exception 'FAIL U13: unexpected error %', sqlerrm; end if;
+  end;
+end $$;
+
+-- U14. Pagination: page_size 25, offset 0/25, has_more transitions, and the
+--      concatenated pages exactly reconstruct the fully-ordered directory.
+do $$
+declare _j0 jsonb; _j1 jsonb; _a0 jsonb; _a1 jsonb; _expected jsonb; _total int;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j0 := public.admin_users(null, 0);
+  _j1 := public.admin_users(null, 25);
+
+  if (_j0->>'has_more')::boolean is distinct from true then raise exception 'FAIL U14: page0 has_more false'; end if;
+  if (_j1->>'has_more')::boolean is distinct from false then raise exception 'FAIL U14: page1 has_more true'; end if;
+  if jsonb_array_length(_j0->'users') <> 25 then raise exception 'FAIL U14: page0 len=%', jsonb_array_length(_j0->'users'); end if;
+  if jsonb_array_length(_j1->'users') <> 8 then raise exception 'FAIL U14: page1 len=%', jsonb_array_length(_j1->'users'); end if;
+
+  select count(*) into _total from auth.users;
+  if _total <> 33 then raise exception 'FAIL U14: expected 33 users, got %', _total; end if;
+
+  select jsonb_agg(x.email) into _a0 from (select (u->>'email') as email from jsonb_array_elements(_j0->'users') u) x;
+  select jsonb_agg(x.email) into _a1 from (select (u->>'email') as email from jsonb_array_elements(_j1->'users') u) x;
+  select jsonb_agg(email order by lower(email) collate "C", id) into _expected from auth.users;
+
+  if _a0 || _a1 <> _expected then
+    raise exception 'FAIL U14: pages do not reconstruct the deterministic directory order';
+  end if;
+end $$;
+
+-- U15. Determinism: two identical calls produce byte-identical responses
+--      (ignoring the generated_at timestamp, which is wall-clock).
+do $$
+declare _a jsonb; _b jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _a := public.admin_users(null, 0) - 'generated_at';
+  _b := public.admin_users(null, 0) - 'generated_at';
+  if _a is distinct from _b then raise exception 'FAIL U15: non-deterministic response'; end if;
+end $$;
+
+-- U16. Data minimization: the per-user object carries EXACTLY the closed key
+--      set, and the payload never contains internal UUIDs, provider/payment
+--      references, or sensitive fields.
+do $$
+declare _j jsonb; _u jsonb; _key text;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('ulrich');
+  _u := _j->'users'->0;
+  for _key in select jsonb_object_keys(_u) loop
+    if _key not in (
+      'public_user_id','email','display_name','role','account_status',
+      'created_at','updated_at','last_sign_in_at','entitlement','devices','sessions'
+    ) then
+      raise exception 'FAIL U16: unexpected user key %', _key;
+    end if;
+  end loop;
+  if _j::text ~ '00000000-0000-0000' then raise exception 'FAIL U16: internal uuid leaked'; end if;
+  if _j::text ~ '"(id|user_id|device_id|session_id|provider|customer_ref|payment_ref|password)"' then
+    raise exception 'FAIL U16: forbidden field present in payload';
+  end if;
+end $$;
+
+-- U17. Entitlement summary is the safe closed projection (monthly active);
+--      a free user (Gina) has entitlement = null.
+do $$
+declare _j jsonb; _e jsonb; _key text;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('ulrich');
+  _e := _j->'users'->0->'entitlement';
+  if _e->>'plan' <> 'monthly' or _e->>'status' <> 'active' then
+    raise exception 'FAIL U17: entitlement plan/status mismatch';
+  end if;
+  for _key in select jsonb_object_keys(_e) loop
+    if _key not in ('plan','status','starts_at','expires_at') then
+      raise exception 'FAIL U17: entitlement key %', _key;
+    end if;
+  end loop;
+  _j := public.admin_users('gina.clo7');
+  if jsonb_typeof(_j->'users'->0->'entitlement') is distinct from 'null' then
+    raise exception 'FAIL U17: free user entitlement not json-null';
+  end if;
+end $$;
+
+-- U18. Device summary is exact: count/active/platforms/last_seen_at.
+do $$
+declare _j jsonb; _d jsonb; _key text;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('ulrich');
+  _d := _j->'users'->0->'devices';
+  if (_d->>'count')::int <> 1 or (_d->>'active')::int <> 1 then
+    raise exception 'FAIL U18: device counts=%/%', _d->>'count', _d->>'active';
+  end if;
+  if _d->'platforms' <> '{"linux": 1}'::jsonb then raise exception 'FAIL U18: platforms %', _d->'platforms'; end if;
+  if _d->>'last_seen_at' is null then raise exception 'FAIL U18: last_seen_at missing'; end if;
+  for _key in select jsonb_object_keys(_d) loop
+    if _key not in ('count','active','platforms','last_seen_at') then
+      raise exception 'FAIL U18: devices key %', _key;
+    end if;
+  end loop;
+end $$;
+
+-- U19. Session summary is exact: count/active/last_seen_at.
+do $$
+declare _j jsonb; _s jsonb; _key text;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('ulrich');
+  _s := _j->'users'->0->'sessions';
+  if (_s->>'count')::int <> 1 or (_s->>'active')::int <> 1 then
+    raise exception 'FAIL U19: session counts=%/%', _s->>'count', _s->>'active';
+  end if;
+  if _s->>'last_seen_at' is null then raise exception 'FAIL U19: session last_seen_at missing'; end if;
+  for _key in select jsonb_object_keys(_s) loop
+    if _key not in ('count','active','last_seen_at') then
+      raise exception 'FAIL U19: sessions key %', _key;
+    end if;
+  end loop;
+end $$;
+
+-- U20. account_status is derived from auth.users: banned / deleted / active.
+do $$
+declare _j jsonb;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e"}', false);
+  _j := public.admin_users('ursula');
+  if (_j->'users'->0->>'account_status') <> 'banned' then raise exception 'FAIL U20: ursula %', _j->'users'->0->>'account_status'; end if;
+  _j := public.admin_users('mauro');
+  if (_j->'users'->0->>'account_status') <> 'deleted' then raise exception 'FAIL U20: mauro %', _j->'users'->0->>'account_status'; end if;
+  _j := public.admin_users('ulrich');
+  if (_j->'users'->0->>'account_status') <> 'active' then raise exception 'FAIL U20: ulrich %', _j->'users'->0->>'account_status'; end if;
+end $$;
+
+-- U21. public_user_id is server-owned and immutable: a client-supplied value
+--      is overwritten on INSERT, and every UPDATE path (client and postgres)
+--      is rejected.
+set role authenticated;
+do $$
+declare _pid text; _pid_after text;
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000030"}', false);
+  insert into public.profiles (id, display_name, public_user_id)
+  values ('00000000-0000-0000-0000-000000000030', 'Hugo', 'spoofed-0000');
+
+  select public_user_id into _pid from public.profiles where id = '00000000-0000-0000-0000-000000000030';
+  if _pid = 'spoofed-0000' or _pid !~ '^user-[0-9a-f]{32}$' then
+    raise exception 'FAIL U21: client-supplied public_user_id persisted (%)', _pid;
+  end if;
+
+  begin
+    update public.profiles set public_user_id = 'changed' where id = '00000000-0000-0000-0000-000000000030';
+    raise exception 'FAIL U21: public_user_id UPDATE allowed';
+  exception when others then
+    if sqlerrm not like '%CLOUD-013%' then raise exception 'FAIL U21: unexpected error %', sqlerrm; end if;
+  end;
+
+  select public_user_id into _pid_after from public.profiles where id = '00000000-0000-0000-0000-000000000030';
+  if _pid_after is distinct from _pid then raise exception 'FAIL U21: public_user_id changed despite rejection'; end if;
+end $$;
+
+-- U21c. Even the superuser path cannot re-key the public user ID.
+set role postgres;
+do $$
+begin
+  begin
+    update public.profiles set public_user_id = 'postgres-override'
+    where id = '00000000-0000-0000-0000-000000000030';
+  exception when others then null;
+  end;
+  if exists (
+    select 1 from public.profiles
+    where id = '00000000-0000-0000-0000-000000000030' and public_user_id = 'postgres-override'
+  ) then
+    raise exception 'FAIL U21c: postgres re-keyed public_user_id';
+  end if;
 end $$;
 
 -- ------------------------------------------------------------------ --

@@ -28,6 +28,7 @@ Required ADRs:
 - ADR-022 — Supabase admin role / authorization
 - ADR-023 — scoped sign-out and password reauthentication flows
 - ADR-024 — payment service skeleton
+- ADR-025 — admin user directory query surface
 
 Each ADR:
 ```text

@@ -35,6 +35,13 @@
 -- no-SECURITY-DEFINER rule: check 16 is now a whitelist of exactly these
 -- three functions, checks 54-57 pin the surface (signatures, ACLs, security
 -- attributes, supporting index).
+-- CLOUD-013: admin user-directory query surface — `profiles.public_user_id`
+-- (server-generated, immutable opaque public user ID per PRD §7 / TDD §13,
+-- with length + UNIQUE constraints) plus `admin_users(p_search, p_offset)`
+-- SECURITY DEFINER RPC admitted to the check-16 whitelist by ADR-025
+-- (3 -> 4 functions). Checks 54-56 now also pin admin_users' signature,
+-- ACL, and security attributes; checks 58-60 pin the two new
+-- profiles triggers and the public_user_id column contract.
 --
 -- NOTE: `execute_sql` may return multi-statement output; expect the PASS
 -- notice text and no RAISE.
@@ -234,15 +241,19 @@ begin
     raise exception 'FAIL 15: profiles timestamps trigger missing or disabled';
   end if;
 
-  -- 16. SECURITY DEFINER in public is the CLOUD-007 whitelist ONLY (the
-  --     ADR-016-sanctioned exception to the CLOUD-001/010 invariant): exactly
-  --     the three admin metrics functions, nothing else. Any future privileged
+  -- 16. SECURITY DEFINER in public is the CLOUD-007/013 whitelist ONLY (the
+  --     ADR-016 + ADR-025-sanctioned exception to the CLOUD-001/010
+  --     invariant): exactly the three admin metrics functions plus the
+  --     admin_users directory function, nothing else. Any future privileged
   --     function must be deliberately admitted here with its own ADR.
   select count(*) into _count
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef
-    and p.proname not in ('admin_metrics_totals', 'admin_metrics_growth', 'admin_metrics_active_users');
+    and p.proname not in (
+      'admin_metrics_totals', 'admin_metrics_growth', 'admin_metrics_active_users',
+      'admin_users'
+    );
   if _count > 0 then
     raise exception 'FAIL 16: % unapproved SECURITY DEFINER function(s) in public', _count;
   end if;
@@ -251,8 +262,8 @@ begin
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef;
-  if _count <> 3 then
-    raise exception 'FAIL 16: expected exactly 3 SECURITY DEFINER functions in public, found %', _count;
+  if _count <> 4 then
+    raise exception 'FAIL 16: expected exactly 4 SECURITY DEFINER functions in public, found %', _count;
   end if;
 
   -- ------------------------------------------------------------------ --
@@ -943,10 +954,10 @@ begin
   end if;
 
   -- ------------------------------------------------------------------ --
-  -- CLOUD-007: product metrics queries (admin dashboard data layer).     --
+  -- CLOUD-007 / CLOUD-013: admin query surface (metrics + user directory). --
   -- ------------------------------------------------------------------ --
 
-  -- 54. The three metrics functions exist with their exact signatures.
+  -- 54. The admin query functions exist with their exact signatures.
   if to_regprocedure('public.admin_metrics_totals()') is null then
     raise exception 'FAIL 54: admin_metrics_totals() missing';
   end if;
@@ -956,6 +967,9 @@ begin
   if to_regprocedure('public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)') is null then
     raise exception 'FAIL 54: admin_metrics_active_users(timestamptz, timestamptz) missing';
   end if;
+  if to_regprocedure('public.admin_users(text, integer)') is null then
+    raise exception 'FAIL 54: admin_users(text, integer) missing';
+  end if;
 
   -- 55. EXECUTE ACL: granted to authenticated ONLY — anon/service_role hold no
   --     EXECUTE and no PUBLIC entry remains (grantee oid 0 = PUBLIC).
@@ -963,7 +977,8 @@ begin
     select unnest(array[
       'public.admin_metrics_totals()',
       'public.admin_metrics_growth(text, timestamp with time zone, timestamp with time zone)',
-      'public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)'
+      'public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)',
+      'public.admin_users(text, integer)'
     ]) as sig
   loop
     if not has_function_privilege('authenticated', _acl_row.sig::regprocedure, 'EXECUTE') then
@@ -988,13 +1003,14 @@ begin
     end if;
   end loop;
 
-  -- 56. Each metrics function is SECURITY DEFINER (ADR-016 whitelist) and pins
-  --     search_path to pg_catalog (security advisor 0011).
+  -- 56. Each admin query function is SECURITY DEFINER (ADR-016/025
+  --     whitelist) and pins search_path to pg_catalog (advisor 0011).
   for _acl_row in
     select unnest(array[
       'public.admin_metrics_totals()',
       'public.admin_metrics_growth(text, timestamp with time zone, timestamp with time zone)',
-      'public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)'
+      'public.admin_metrics_active_users(timestamp with time zone, timestamp with time zone)',
+      'public.admin_users(text, integer)'
     ]) as sig
   loop
     select count(*) into _count
@@ -1024,5 +1040,120 @@ begin
     raise exception 'FAIL 57: sessions_last_seen_at_idx missing';
   end if;
 
-  raise notice 'PASS: all CLOUD-001..CLOUD-007 database assertions held';
+  -- ------------------------------------------------------------------ --
+  -- CLOUD-013: profiles.public_user_id + directory triggers.            --
+  -- ------------------------------------------------------------------ --
+
+  -- 58. profiles.public_user_id is the PRD §7 / TDD §13 unique user ID:
+  --     text NOT NULL, server-generated (no client default), with a
+  --     length-CONSTRAINED public format and a UNIQUE constraint.
+  select count(*) into _count
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'profiles'
+    and column_name = 'public_user_id' and data_type = 'text'
+    and is_nullable = 'NO' and column_default is null;
+  if _count <> 1 then
+    raise exception 'FAIL 58: profiles.public_user_id must be text NOT NULL with no default';
+  end if;
+
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.profiles'::regclass
+    and contype = 'c' and conname = 'profiles_public_user_id_length';
+  if _count <> 1 then
+    raise exception 'FAIL 58: profiles_public_user_id_length CHECK constraint missing';
+  end if;
+
+  select count(*) into _count
+  from pg_constraint c
+  where c.conrelid = 'public.profiles'::regclass and c.contype = 'u'
+    and c.conname = 'profiles_public_user_id_unique'
+    and pg_get_constraintdef(c.oid) ~* 'public_user_id';
+  if _count <> 1 then
+    raise exception 'FAIL 58: profiles_public_user_id_unique UNIQUE constraint missing';
+  end if;
+
+  -- 59. The INSERT generation trigger (profiles_set_public_user_id) is
+  --     attached/enabled on profiles, SECURITY INVOKER, search_path pinned,
+  --     and carries NO EXECUTE grant for any app role / PUBLIC.
+  select count(*) into _count
+  from pg_trigger
+  where tgrelid = 'public.profiles'::regclass
+    and not tgisinternal and tgenabled = 'O'
+    and tgname = 'profiles_set_public_user_id';
+  if _count <> 1 then
+    raise exception 'FAIL 59: profiles_set_public_user_id trigger missing or disabled';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'profiles_set_public_user_id' and p.prosecdef;
+  if _count > 0 then
+    raise exception 'FAIL 59: profiles_set_public_user_id is SECURITY DEFINER';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+  where n.nspname = 'public'
+    and p.proname = 'profiles_set_public_user_id'
+    and (a.grantee = 0 or a.grantee in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole));
+  if _count > 0 then
+    raise exception 'FAIL 59: % privilege grant(s) remain on profiles_set_public_user_id', _count;
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'profiles_set_public_user_id'
+    and pg_get_function_result(p.oid) = 'trigger'
+    and coalesce(p.proconfig::text, '') ~ 'search_path';
+  if _count <> 1 then
+    raise exception 'FAIL 59: profiles_set_public_user_id must pin search_path';
+  end if;
+
+  -- 60. The immutability guard (profiles_guard_public_user_id_immutable) is
+  --     attached/enabled on profiles, SECURITY INVOKER, search_path pinned,
+  --     and carries NO EXECUTE grant for any app role / PUBLIC.
+  select count(*) into _count
+  from pg_trigger
+  where tgrelid = 'public.profiles'::regclass
+    and not tgisinternal and tgenabled = 'O'
+    and tgname = 'profiles_guard_public_user_id_immutable';
+  if _count <> 1 then
+    raise exception 'FAIL 60: profiles_guard_public_user_id_immutable trigger missing or disabled';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'profiles_guard_public_user_id_immutable' and p.prosecdef;
+  if _count > 0 then
+    raise exception 'FAIL 60: profiles_guard_public_user_id_immutable is SECURITY DEFINER';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+  where n.nspname = 'public'
+    and p.proname = 'profiles_guard_public_user_id_immutable'
+    and (a.grantee = 0 or a.grantee in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole));
+  if _count > 0 then
+    raise exception 'FAIL 60: % privilege grant(s) remain on profiles_guard_public_user_id_immutable', _count;
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'profiles_guard_public_user_id_immutable'
+    and pg_get_function_result(p.oid) = 'trigger'
+    and coalesce(p.proconfig::text, '') ~ 'search_path';
+  if _count <> 1 then
+    raise exception 'FAIL 60: profiles_guard_public_user_id_immutable must pin search_path';
+  end if;
+
+  raise notice 'PASS: all CLOUD-001..CLOUD-013 database assertions held';
 end $$;
