@@ -20,6 +20,7 @@ This repository specification is the authoritative engineering handoff for an AI
 12. `12_BENCHMARK_PROTOCOL.md` — STT performance/quality benchmark protocol
 13. `13_RELEASE_RUNBOOK.md` — build, signing, release and rollback procedure
 14. `14_ENVIRONMENT_AND_SECRETS.md` — development environment and secret-handling rules
+15. `SORAVO_HANDY_CODE_REUSE_REPORT.md` — Handy V1 reuse strategy (authoritative)
 
 ## Authority
 

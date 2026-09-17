@@ -62,22 +62,24 @@ Exit:
 - non-admin cannot access admin routes/data;
 - RLS/security tests pass.
 
-## Phase 3 — Desktop shell
+## Phase 3 — Desktop foundation (Handy audit/adapt)
 
-Build:
-- Tauri v2
-- React/TS
-- shadcn
-- settings shell
-- event bus
-- state machine
-- diagnostics
-- single instance
+Audit and adapt:
+- Handy codebase provenance and licensing review
+- Handy architecture audit (Tauri/Rust/React)
+- Fork/rebase Handy as Soravo desktop foundation
+- Replace Handy branding with Soravo branding
+- Adapt Handy IPC/events for Soravo requirements
+- Single instance management
+- Settings framework adaptation
+- Account/entitlement UI integration points
+- Diagnostics adaptation
 
 Exit:
-- desktop app starts;
-- UI communicates with Rust;
-- no STT yet required.
+- Handy foundation integrated as Soravo desktop shell;
+- all Handy branding replaced;
+- provenance/licensing documented;
+- Soravo spec compliance verified against Handy foundation.
 
 ## Phase 4 — Audio
 

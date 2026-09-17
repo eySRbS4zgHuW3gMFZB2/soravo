@@ -29,6 +29,7 @@ Required ADRs:
 - ADR-023 — scoped sign-out and password reauthentication flows
 - ADR-024 — payment service skeleton
 - ADR-025 — admin user directory query surface
+- ADR-026 — Handy foundation for V1 desktop application
 
 Each ADR:
 ```text

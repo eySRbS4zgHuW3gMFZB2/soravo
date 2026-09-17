@@ -42,15 +42,15 @@ branch → implement → test → security review → QA → docs → progress �
 - CLOUD-011 webhook/idempotency
 - CLOUD-012 signed entitlement
 
-## DESKTOP
+## DESKTOP (Handy Foundation)
 
-- DESKTOP-001 Tauri v2 bootstrap
-- DESKTOP-002 React/shadcn shell
-- DESKTOP-003 typed IPC/events
-- DESKTOP-004 single instance
-- DESKTOP-005 settings framework
-- DESKTOP-006 account/entitlement UI
-- DESKTOP-007 diagnostics
+- DESKTOP-001 Handy provenance/licensing/dependency audit
+- DESKTOP-002 Handy architecture review and fork/rebase
+- DESKTOP-003 Replace Handy branding with Soravo branding
+- DESKTOP-004 Adapt Handy IPC/events for Soravo requirements
+- DESKTOP-005 Adapt Handy settings framework
+- DESKTOP-006 Integrate account/entitlement UI over Handy shell
+- DESKTOP-007 Adapt Handy diagnostics for Soravo
 
 ## AUDIO
 

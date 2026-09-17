@@ -40,6 +40,8 @@ Students are not a primary acquisition segment.
 
 ### 4.1 Desktop shell
 
+> **V1 Strategy Note (2026-09-17):** Soravo V1 uses Handy (https://github.com/cjpais/Handy) as desktop foundation. See `SORAVO_HANDY_CODE_REUSE_REPORT.md` for authoritative reuse strategy. The requirements below remain valid — they define what Soravo V1 must deliver, regardless of foundation choice.
+
 - Tauri v2.
 - React + TypeScript frontend.
 - Rust core.
