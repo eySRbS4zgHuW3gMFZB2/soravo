@@ -1,5 +1,7 @@
 # 02 — Technical Design Document
 
+> **V1 Strategy Note (2026-09-17):** Soravo V1 desktop application will use Handy (https://github.com/cjpais/Handy) as its primary technical foundation. See `SORAVO_HANDY_CODE_REUSE_REPORT.md` for the authoritative reuse strategy. Technical requirements below remain valid — they define implementation targets.
+
 ## 1. Architecture
 
 ```text
