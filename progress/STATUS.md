@@ -1,36 +1,36 @@
 # Status
 
 Current phase: Phase 6 — WEB-012 Cloudflare Pages DEPLOYMENT — **COMPLETE**. Site live at `https://soravo.xyz/` (production branch `main` → Pages project `soravo`), deployed via the repo-owned GitHub Actions pipeline after the owner supplied `CLOUDFLARE_API_TOKEN`. `origin/main` = `4f6d521`.
-Current task: **TASK 1.3 COMPLETE** — Hotkey + pill UX implemented (HOTKEY-001 through HOTKEY-006, PILL-001 through PILL-003).
+Current task: **TASK 1.4 IN PROGRESS** — Audio capture (AUDIO-001 capture abstraction).
 
-## Task 1.3 Implementation Summary
+## Task 1.4 Implementation Summary
 
-### Implemented Components
-- **Hotkey Crate** (`crates/hotkeys/`): Platform-agnostic hotkey subsystem with cross-platform support for Windows and macOS
-- **Hotkey Service** (`apps/desktop/src-tauri/src/hotkey.rs`): Tauri state management and IPC commands
-- **Pill UI Component** (`apps/desktop/src/components/pill.tsx`): Floating status indicator with hold-to-talk and toggle-to-talk modes
+### Implemented (AUDIO-001: capture abstraction)
+- **Audio Crate** (`crates/audio/`): Platform-agnostic audio capture subsystem
+  - Real-time-safe callback with no allocations/locks/fs/network/inference
+  - Bounded ring buffer support (configurable duration)
+  - Timestamped audio frames (Unix ms)
+  - Device enumeration and selection
+  - Capture state machine (Idle/Warming/Running/Stopping)
+  - Platform-specific backends (CoreAudio on macOS, WASAPI on Windows)
+  - Stub implementation for Linux (deferred per spec)
 
 ### Changes Made
-1. `crates/hotkeys/Cargo.toml` — New hotkey crate manifest
-2. `crates/hotkeys/src/lib.rs` — Core hotkey types (KeyCode, Modifiers, HotkeyBinding, HotkeyConfig, InteractionMode, HotkeyResult)
-3. `apps/desktop/src-tauri/Cargo.toml` — Added soravo-hotkeys dependency
-4. `apps/desktop/src-tauri/src/hotkey.rs` — Hotkey state machine and Tauri commands
-5. `apps/desktop/src-tauri/src/lib.rs` — Registered hotkey module and commands
-6. `apps/desktop/src/ipc.ts` — Added hotkey IPC functions
-7. `apps/desktop/src/components/pill.tsx` — Pill UI component
-8. `apps/desktop/src/styles.css` — Added pill component styles
-9. `apps/desktop/src/app.tsx` — Integrated pill component
+1. `crates/audio/Cargo.toml` — New audio crate manifest with platform-specific cpal
+2. `crates/audio/src/lib.rs` — Core audio types and capture interface
+3. `Cargo.toml` — Added soravo-audio to workspace
+4. `apps/desktop/src-tauri/Cargo.toml` — Added soravo-audio dependency
 
 ### Tests & Checks
-- `pnpm lint` ✓
-- `pnpm typecheck` ✓
-- `pnpm test` ✓ (8 tests passed)
-- `cargo check --package soravo-hotkeys` ✓
-- `cargo check --package soravo-desktop` ✓
+- `cargo check` ✓
+- `cargo check --package soravo-audio` ✓
 
 ### Next Steps
-- Desktop foundation is ready for audio/STT integration
-- Hotkey commands are wired but await actual hotkey listener implementation (platform-specific registration)
-- Pill component renders UI states but is not yet connected to actual hotkey events
+- AUDIO-002: warm capture (complete warm up flow)
+- AUDIO-003: ring buffer implementation
+- AUDIO-004: pre-roll support
+- AUDIO-005: VAD integration
+- AUDIO-006: device lifecycle handling
+- AUDIO-007: audio benchmark harness
 
 (Last updated 2026-09-18)

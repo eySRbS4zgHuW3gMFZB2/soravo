@@ -4,10 +4,7 @@ members = [
   "crates/audio",
   "crates/config",
   "crates/hotkeys",
-  "crates/transcript",
-  "crates/models",
-  "crates/stt",
-  "crates/scheduler"
+  "crates/transcript"
 ]
 resolver = "2"
 
