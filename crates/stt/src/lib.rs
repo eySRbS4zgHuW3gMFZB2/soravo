@@ -36,8 +36,8 @@ pub struct TranscriptionConfig {
 }
 
 pub trait SpeechEngine: Send + Sync {
-    fn initialize(&mut self, model_path: &str, config: &TranscriptionConfig) -> Result<(), SpeechError>;
-    fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError>;
+    fn initialize(&mut self, model_path: &str, _config: &TranscriptionConfig) -> Result<(), SpeechError>;
+    fn process_audio(&mut self, _audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError>;
     fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError>;
     fn reset(&mut self);
 }
@@ -57,7 +57,7 @@ impl Default for ParakeetEngine {
 }
 
 impl SpeechEngine for ParakeetEngine {
-    fn initialize(&mut self, model_path: &str, config: &TranscriptionConfig) -> Result<(), SpeechError> {
+    fn initialize(&mut self, model_path: &str, _config: &TranscriptionConfig) -> Result<(), SpeechError> {
         if std::path::Path::new(model_path).exists() {
             self.initialized = true;
             self.session_id = Some(format!("session_{}", std::time::SystemTime::now()
@@ -70,7 +70,7 @@ impl SpeechEngine for ParakeetEngine {
         }
     }
 
-    fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
+    fn process_audio(&mut self, _audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
         if !self.initialized {
             return Err(SpeechError::NotInitialized);
         }
@@ -107,7 +107,7 @@ impl Default for WhisperEngine {
 }
 
 impl SpeechEngine for WhisperEngine {
-    fn initialize(&mut self, model_path: &str, config: &TranscriptionConfig) -> Result<(), SpeechError> {
+    fn initialize(&mut self, model_path: &str, _config: &TranscriptionConfig) -> Result<(), SpeechError> {
         if std::path::Path::new(model_path).exists() {
             self.initialized = true;
             self.session_id = Some(format!("session_{}", std::time::SystemTime::now()
@@ -120,7 +120,7 @@ impl SpeechEngine for WhisperEngine {
         }
     }
 
-    fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
+    fn process_audio(&mut self, _audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
         if !self.initialized {
             return Err(SpeechError::NotInitialized);
         }
