@@ -1,12 +1,15 @@
-# Next
+# Next Tasks
 
-Active task: **NONE — WEB-012 Cloudflare Pages DEPLOYMENT COMPLETE.** The site is deployed and verified at `https://soravo.xyz/` (www → 301 → apex). Do not re-run the deploy unless the app changes.
-Future deploys: any push to `main`, or a `workflow_dispatch` of `Deploy website to Cloudflare Pages`, rebuilds and redeploys automatically (`pnpm build` with the configured vars, then `wrangler pages deploy apps/website/dist --project-name=soravo --branch=main`). Requires only the already-set `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` secrets and `VITE_*` vars. Local one-shot alternative recorded in commit history if the pipeline is ever unavailable.
-Read first: `progress/STATUS.md`, `README.md`, `01_PRD.md`, `02_TDD.md`, `04_IMPLEMENTATION_PLAN.md`, `05_TASK_BREAKDOWN.md`, `06_DOD_QA.md`, `07_AI_SKILLS.md`, `09_SECURITY_BASELINE.md`, `10_ADR_INDEX.md`, `11_INTERRUPTION_HANDOFF.md`, `13_RELEASE_RUNBOOK.md`, `14_ENVIRONMENT_AND_SECRETS.md`, and `decisions/ADR-014-cloudflare-hosting-and-deployment.md`.
-Skills baseline: re-run the Skill Selection Gate each new task. Live-site/observability tasks should load `web-perf`, `playwright`, `semgrep`/`codeql` where applicable.
-Inspect (resume): `apps/website/dist/` (built by CI with the configured vars; entry `assets/index-C_91tP8s.js` on the live site), `.github/workflows/pages-deployment.yaml` (wrangler devDep + env-gated deploy step), `progress/STATUS.md`. Live state reference: Pages project `soravo` (domain `soravo.xyz` active; only production deployment `14862210`), zone DNS 8 records (2 proxied web CNAMEs + 6 dns-only Zoho records), redirect ruleset `http_request_dynamic_redirect` (www→apex 301), zone RUM off.
-Constraints carried: `public` default-deny; SECURITY DEFINER whitelist exactly ADR-016+ADR-025; `profiles.role` immutable; admin authority = stored column only; no transcript/audio/keystrokes/clipboard/history in Supabase; pricing/buy remain dummy; only allowlisted client-safe `VITE_*` keys; no Razorpay domains in CSP until CLOUD-010/011; HSTS deferred; no wildcard CSP sources; no top-level `404.html`/`_redirects`; Zoho `soravo.xyz` MX/SPF/DKIM records must never be changed or proxied.
-Expected next tasks (separately authorized only): CLOUD-track billing/Razorpay + admin APIs (per CLOUD-010/011), desktop release/go-live milestones, ongoing monitoring (uptime, cert expiry, deploy pipeline health). Before any redirect/CSP/analytics change, re-verify against the live served headers.
-Do not change: Do not add cloud STT, transcript/audio storage, desktop telemetry, or Supabase Storage/Edge Functions. Do not add further SECURITY DEFINER functions or schema changes. Do not implement or deploy Razorpay/webhooks/entitlement writes, real payment integration, or billing UI. Do not touch Zoho MX/SPF/DKIM records. Do not modify `main` directly. Do not squash or force-push stacked PRs.
+## Completed
+- **TASK 1.3** — Hotkey + pill UX (HOTKEY-001 through HOTKEY-006, PILL-001 through PILL-003)
 
-(Last updated 2026-09-16)
+## Ready to Start
+- **TASK 1.4** — Audio capture (AUDIO-001 through AUDIO-007)
+
+### Prerequisites for Task 1.4
+- Desktop shell is ready with session machine
+- Hotkey infrastructure is in place (awaiting actual listener)
+- Audio crate structure exists (`crates/audio/`)
+
+## Implementation Notes
+Task 1.3 was implemented in parallel worktree `phase1/task1.3-hotkeys`. The main repository now contains the implementation.

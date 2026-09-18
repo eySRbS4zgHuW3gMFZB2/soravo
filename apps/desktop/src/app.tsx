@@ -4,13 +4,12 @@ import {
   onPing,
   onSessionChanged,
   ping,
-  sessionReset,
-  sessionTransition,
   type PingReply,
   type RuntimeStatus,
   type SessionPhase,
   type SessionTransition,
 } from "./ipc";
+import { Pill } from "./components/pill";
 
 export const PHASE_LABEL: Record<SessionPhase, string> = {
   IDLE: "Ready",
@@ -76,15 +75,6 @@ export function App() {
 
   const hasSession = sessionId !== null && phase !== "IDLE";
 
-  function startDictation() {
-    setMessage("Starting session…");
-    sessionTransition("STARTING").catch(() => setMessage("Transition rejected"));
-  }
-
-  function stopDictation() {
-    sessionReset().catch(() => setMessage("Reset rejected"));
-  }
-
   function probeRuntime() {
     ping().then((reply) => setPingReply(reply));
   }
@@ -128,11 +118,7 @@ export function App() {
                 : "Your audio pipeline will be warmed before a session starts."}
             </span>
           </div>
-          {hasSession ? (
-            <button type="button" onClick={stopDictation}>Stop dictation</button>
-          ) : (
-            <button type="button" onClick={startDictation}>Start dictation</button>
-          )}
+          <Pill />
         </article>
 
         <div className="cards">

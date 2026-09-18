@@ -1,0 +1,41 @@
+{
+  "$schema": "https://unpkg.com/opencode-swarm/opencode-swarm.schema.json",
+  "agents": {
+    "test_engineer": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "critic_sounding_board": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "critic_drift_verifier": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "critic_hallucination_verifier": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "critic_oversight": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "curator_init": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "curator_phase": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "curator_postmortem": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    },
+    "curator_consolidation": {
+      "model": "opencode/big-pickle",
+      "fallback_models": ["opencode/big-pickle"]
+    }
+  }
+}

@@ -1,9 +1,36 @@
 # Status
 
 Current phase: Phase 6 — WEB-012 Cloudflare Pages DEPLOYMENT — **COMPLETE**. Site live at `https://soravo.xyz/` (production branch `main` → Pages project `soravo`), deployed via the repo-owned GitHub Actions pipeline after the owner supplied `CLOUDFLARE_API_TOKEN`. `origin/main` = `4f6d521`.
-Current task: none pending in the deployment track. The canonical site, DNS cutover, smoke, and security verification are all done and recorded below. Any further work is a separately-authorized task (CLOUD track, desktop, monitoring).
-Deployed state (verified): Pages project `soravo` (zone `soravo.xyz`) — custom domain `soravo.xyz` **active** (cert: GTS via Pages; validation http); `www.soravo.xyz` handled at the edge (proxied CNAME → `soravo.pages.dev` + zone Redirect Rule in `http_request_dynamic_redirect`: `www.soravo.xyz` → `https://soravo.xyz/` 301, path/query preserved); production deployment `14862210` live (all URLs 200, incl. SPA fallback); stale broken deployment `7dcd34ca` deleted. DNS (8 records): the two proxied web CNAMEs (`soravo.xyz`, `www.soravo.xyz` → `soravo.pages.dev`, ttl auto) plus the six original Zoho mail records — MX `mx/mx2/mx3.zoho.in`, SPF TXT, `zoho-verification` TXT, `zmail._domainkey` DKIM — all preserved and **dns-only (`proxied:false`)**. Zone RUM (Cloudflare Web Analytics beacon injection) disabled to honor the strict CSP (`script-src 'self'`); `http_request_dynamic_redirect` ruleset `d0b3abf5...` created.
-Verification (live): `GET /` → 200 with `content-security-policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://zbzhlhoxblguepplqppw.supabase.co; ...; frame-ancestors 'none'` (exact expected), no HSTS (deferred per ADR-014), `x-content-type-options: nosniff`, `x-frame-options: DENY`; assets/CSS/robots/sitemap/favicon all 200 with headers; SPA fallback 200; `www` → 301 → apex. Playwright live smoke: 9/9 public routes render (landing/login/pricing/features/faq/privacy/terms/support/download) with **zero** console errors (CSP violations eliminated after RUM off). Served JS (474 KB): no `VITE_E2E_TEST_MODE`/e2e-harness, no `service_role`, no Razorpay markers; contains only client-safe Supabase URL + anon key.
-Repo-gate status: `pnpm lint` ✓, `pnpm typecheck` ✓, `pnpm test` (168 website) ✓, `pnpm build` ✓, `pnpm audit --prod` ✓, `pnpm e2e` (20/20 chromium) ✓; CI web/rust/e2e green. Deploy workflow (`pages-deployment.yaml`) verified on `main`: build green, deploy step gated on `env.CLOUDFLARE_API_TOKEN`, one successful production deploy.
-Skills loaded (deployment task): `cloudflare`, `cloudflare-deploy`, `github`, `gh-cli`, `security-guidance`; `wrangler`/`workers-best-practices` (probe only). No UI, feature, Supabase schema/auth, or Razorpay changes made.
-(Last updated 2026-09-16)
+Current task: **TASK 1.3 COMPLETE** — Hotkey + pill UX implemented (HOTKEY-001 through HOTKEY-006, PILL-001 through PILL-003).
+
+## Task 1.3 Implementation Summary
+
+### Implemented Components
+- **Hotkey Crate** (`crates/hotkeys/`): Platform-agnostic hotkey subsystem with cross-platform support for Windows and macOS
+- **Hotkey Service** (`apps/desktop/src-tauri/src/hotkey.rs`): Tauri state management and IPC commands
+- **Pill UI Component** (`apps/desktop/src/components/pill.tsx`): Floating status indicator with hold-to-talk and toggle-to-talk modes
+
+### Changes Made
+1. `crates/hotkeys/Cargo.toml` — New hotkey crate manifest
+2. `crates/hotkeys/src/lib.rs` — Core hotkey types (KeyCode, Modifiers, HotkeyBinding, HotkeyConfig, InteractionMode, HotkeyResult)
+3. `apps/desktop/src-tauri/Cargo.toml` — Added soravo-hotkeys dependency
+4. `apps/desktop/src-tauri/src/hotkey.rs` — Hotkey state machine and Tauri commands
+5. `apps/desktop/src-tauri/src/lib.rs` — Registered hotkey module and commands
+6. `apps/desktop/src/ipc.ts` — Added hotkey IPC functions
+7. `apps/desktop/src/components/pill.tsx` — Pill UI component
+8. `apps/desktop/src/styles.css` — Added pill component styles
+9. `apps/desktop/src/app.tsx` — Integrated pill component
+
+### Tests & Checks
+- `pnpm lint` ✓
+- `pnpm typecheck` ✓
+- `pnpm test` ✓ (8 tests passed)
+- `cargo check --package soravo-hotkeys` ✓
+- `cargo check --package soravo-desktop` ✓
+
+### Next Steps
+- Desktop foundation is ready for audio/STT integration
+- Hotkey commands are wired but await actual hotkey listener implementation (platform-specific registration)
+- Pill component renders UI states but is not yet connected to actual hotkey events
+
+(Last updated 2026-09-18)

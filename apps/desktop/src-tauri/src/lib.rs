@@ -8,12 +8,14 @@
 
 mod commands;
 mod events;
+mod hotkey;
 mod session;
 
 use std::sync::Mutex;
 
 use tauri::Manager;
 
+use hotkey::HotkeyState;
 use session::SessionMachine;
 
 /// Tauri app entry point, invoked by `main.rs`.
@@ -39,6 +41,7 @@ pub fn run() {
             }
         }))
         .manage(Mutex::new(SessionMachine::default()))
+        .manage(Mutex::new(HotkeyState::default()))
         .invoke_handler(tauri::generate_handler![
             commands::runtime_status,
             commands::ping,
@@ -46,6 +49,13 @@ pub fn run() {
             commands::session_transition,
             commands::session_reset,
             commands::emit_ping,
+            hotkey::hotkey_config,
+            hotkey::set_hotkey_config,
+            hotkey::hotkey_start,
+            hotkey::hotkey_stop,
+            hotkey::hotkey_toggle,
+            hotkey::hotkey_recording,
+            hotkey::hotkey_check_conflicts,
         ]);
 
     builder
