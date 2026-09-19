@@ -203,7 +203,6 @@ impl StreamPerf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crossbeam_channel::unbounded;
 
     #[test]
     fn stream_perf_tracks_feeds() {
