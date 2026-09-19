@@ -16,19 +16,74 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KeyCode {
     // Letters
-    A, B, C, D, E, F, G, H, I, J, K, L, M,
-    N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
     // Numbers
-    Digit0, Digit1, Digit2, Digit3, Digit4,
-    Digit5, Digit6, Digit7, Digit8, Digit9,
+    Digit0,
+    Digit1,
+    Digit2,
+    Digit3,
+    Digit4,
+    Digit5,
+    Digit6,
+    Digit7,
+    Digit8,
+    Digit9,
     // Function keys
-    F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
     // Special keys
-    Escape, Backspace, Delete, End, Enter,
-    Home, Insert, Space, Tab,
-    ArrowDown, ArrowLeft, ArrowRight, ArrowUp,
+    Escape,
+    Backspace,
+    Delete,
+    End,
+    Enter,
+    Home,
+    Insert,
+    Space,
+    Tab,
+    ArrowDown,
+    ArrowLeft,
+    ArrowRight,
+    ArrowUp,
     // Media/volume
-    VolumeDown, VolumeUp, Mute,
+    VolumeDown,
+    VolumeUp,
+    Mute,
 }
 
 /// Modifier keys.
@@ -90,7 +145,10 @@ pub struct HotkeyConfig {
 impl HotkeyConfig {
     pub fn default_binding() -> HotkeyBinding {
         HotkeyBinding::new(
-            Modifiers { meta: true, ..Modifiers::none() },
+            Modifiers {
+                meta: true,
+                ..Modifiers::none()
+            },
             KeyCode::S,
         )
     }
@@ -100,9 +158,17 @@ impl HotkeyConfig {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "lowercase")]
 pub enum HotkeyResult {
-    Success { message: String },
-    Invalid { code: HotkeyErrorCode, message: String },
-    Conflict { conflicting_app: String, message: String },
+    Success {
+        message: String,
+    },
+    Invalid {
+        code: HotkeyErrorCode,
+        message: String,
+    },
+    Conflict {
+        conflicting_app: String,
+        message: String,
+    },
 }
 
 /// Error codes for hotkey operations.

@@ -246,10 +246,7 @@ impl ModelDownloader {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_millis(config.timeout_ms))
             .redirect(reqwest::redirect::Policy::limited(config.max_redirects))
-            .user_agent(format!(
-                "Soravo-ModelManager/{}",
-                env!("CARGO_PKG_VERSION")
-            ))
+            .user_agent(format!("Soravo-ModelManager/{}", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|e| ModelError::Download(format!("Failed to create HTTP client: {}", e)))?;
 
@@ -424,10 +421,7 @@ impl ModelDownloader {
     /// 3. Atomically install to final location
     /// 4. Preserve previous working model on failure
     /// 5. Never execute arbitrary model code
-    pub fn download_and_install(
-        &self,
-        manifest: &ModelManifest,
-    ) -> Result<String, ModelError> {
+    pub fn download_and_install(&self, manifest: &ModelManifest) -> Result<String, ModelError> {
         // Download all files (with checksum + size verification)
         let downloaded = self.download_manifest(manifest)?;
 
@@ -488,11 +482,7 @@ impl ModelManager {
         Ok(())
     }
 
-    fn install_to_temp(
-        &self,
-        manifest: &ModelManifest,
-        temp_dir: &str,
-    ) -> Result<(), ModelError> {
+    fn install_to_temp(&self, manifest: &ModelManifest, temp_dir: &str) -> Result<(), ModelError> {
         fs::create_dir_all(temp_dir).map_err(|e| ModelError::Install(e.to_string()))?;
 
         for file in &manifest.files {
@@ -515,7 +505,8 @@ impl ModelManager {
 
 /// Computes SHA-256 hash of a file.
 pub fn compute_sha256(path: &str) -> Result<String, ModelError> {
-    let data = fs::read(path).map_err(|e| ModelError::Io(format!("Failed to read {}: {}", path, e)))?;
+    let data =
+        fs::read(path).map_err(|e| ModelError::Io(format!("Failed to read {}: {}", path, e)))?;
     let mut hasher = Sha256::new();
     hasher.update(&data);
     Ok(hex::encode(hasher.finalize()))
