@@ -149,6 +149,7 @@ impl SpeechEngine for ParakeetEngine {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+            revision: 0,
         }])
     }
 
