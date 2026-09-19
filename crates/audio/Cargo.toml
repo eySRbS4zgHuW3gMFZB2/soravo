@@ -8,15 +8,12 @@ authors.workspace = true
 [dependencies]
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+anyhow = "1.0"
 
-# cpal is only needed on macOS and Windows (Linux is deferred per spec)
-[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 cpal = "0.15"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-# macOS: CoreAudio backend (default)
-
-[target.'cfg(target_os = "windows")'.dependencies]
-# Windows: WASAPI backend (default)
+rtrb = "0.3"
+rubato = "0.14"
+earshot = "1.0"
 
 [lints]
