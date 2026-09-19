@@ -4,6 +4,7 @@ import {
   onPing,
   onSessionChanged,
   ping,
+  sessionTransition,
   type PingReply,
   type RuntimeStatus,
   type SessionPhase,
@@ -27,6 +28,7 @@ export function App() {
   const [phase, setPhase] = useState<SessionPhase>("IDLE");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [lastTransition, setLastTransition] = useState<SessionTransition | null>(null);
+  const [pendingTransition, setPendingTransition] = useState<SessionPhase | null>(null);
   const [pingReply, setPingReply] = useState<PingReply | null>(null);
   const [connected, setConnected] = useState(false);
 
@@ -55,6 +57,7 @@ export function App() {
       setPhase(payload.transition.phase);
       setSessionId(payload.transition.sessionId);
       setLastTransition(payload.transition);
+      setPendingTransition(null);
     }).then((unlisten) => {
       unsubSession = unlisten;
     });
@@ -74,6 +77,26 @@ export function App() {
   }, []);
 
   const hasSession = sessionId !== null && phase !== "IDLE";
+
+  async function handleSessionStart() {
+    if (phase !== "IDLE") return;
+    try {
+      setPendingTransition("STARTING");
+      await sessionTransition("STARTING");
+    } catch {
+      setPendingTransition(null);
+    }
+  }
+
+  async function handleSessionStop() {
+    if (phase === "IDLE") return;
+    try {
+      setPendingTransition("DONE");
+      await sessionTransition("DONE");
+    } catch {
+      setPendingTransition(null);
+    }
+  }
 
   function probeRuntime() {
     ping().then((reply) => setPingReply(reply));
@@ -117,6 +140,18 @@ export function App() {
                 ? `Session #${sessionId} in flight`
                 : "Your audio pipeline will be warmed before a session starts."}
             </span>
+            <div className="session-controls">
+              {phase === "IDLE" && (
+                <button type="button" onClick={handleSessionStart} className="session-start">
+                  Start session
+                </button>
+              )}
+              {phase !== "IDLE" && (
+                <button type="button" onClick={handleSessionStop} className="session-stop">
+                  End session
+                </button>
+              )}
+            </div>
           </div>
           <Pill />
         </article>
