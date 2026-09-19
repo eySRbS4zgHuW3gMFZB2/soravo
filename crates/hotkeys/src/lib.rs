@@ -119,7 +119,7 @@ impl HotkeyBinding {
 }
 
 /// Interaction mode for the hotkey.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum InteractionMode {
     /// Hold to record, release to stop.
