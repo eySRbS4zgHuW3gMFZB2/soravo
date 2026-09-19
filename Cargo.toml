@@ -4,7 +4,8 @@ members = [
   "crates/config",
   "crates/hotkeys",
   "crates/models",
-  "crates/transcript"
+  "crates/transcript",
+  "crates/typing"
 ]
 resolver = "2"
 

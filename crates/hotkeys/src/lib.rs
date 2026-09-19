@@ -119,19 +119,14 @@ impl HotkeyBinding {
 }
 
 /// Interaction mode for the hotkey.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum InteractionMode {
     /// Hold to record, release to stop.
+    #[default]
     HoldToTalk,
     /// Toggle on/off with each press.
     ToggleToTalk,
-}
-
-impl Default for InteractionMode {
-    fn default() -> Self {
-        Self::HoldToTalk
-    }
 }
 
 /// Hotkey configuration.
