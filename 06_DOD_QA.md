@@ -13,7 +13,8 @@ A task is done only when:
 - diff reviewed;
 - commit created;
 - branch pushed;
-- PR opened/updated.
+- PR opened/updated;
+- Handy reuse audit completed (§9 of `03_AI_INSTRUCTIONS.md`): Handy source inspected, files/modules/functions reused/adapted documented, any from-scratch implementation justified.
 
 ## 2. Severity
 
@@ -213,7 +214,19 @@ Verify:
 - no clipboard telemetry;
 - logs contain no transcript/audio/secrets.
 
-## 16. MCP gate
+## 16. Handy reuse gate
+
+For every task that touches a subsystem with Handy-derived code, the completion report MUST include:
+
+- Handy source inspected: exact files, modules, and functions read in the pinned Handy tree
+- Exact files/modules/functions reused: what was directly reused or adapted
+- Adaptations made: what was changed and why
+- Functionality implemented from scratch: what was built new and why
+- Reason for any non-reuse: explicit justification when Handy had equivalent code that was not reused
+
+"Handy Code Reused: None" is NOT acceptable without an explicit justification. See `03_AI_INSTRUCTIONS.md` section 9 for the full Handy Reuse First policy.
+
+## 17. MCP gate
 
 Before using a production-connected MCP:
 - scope to correct project/account;
@@ -224,7 +237,7 @@ Before using a production-connected MCP:
 - record server/source/version/date;
 - do not expose customer data unnecessarily.
 
-## 17. Handoff gate
+## 18. Handoff gate
 
 Before an AI session ends:
 - `STATUS.md` current;
