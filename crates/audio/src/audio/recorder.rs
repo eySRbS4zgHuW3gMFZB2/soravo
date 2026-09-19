@@ -599,6 +599,7 @@ enum ChunkDisposition {
 pub(crate) struct CaptureProcessor {
     in_sample_rate: u32,
     vad: Option<VadConfig>,
+    #[allow(dead_code)]
     level_cb: Option<LevelCallback>,
     audio_cb: Option<AudioFrameCallback>,
     stream_running_at: Instant,
