@@ -38,37 +38,43 @@ pub struct TranscriptionConfig {
 }
 
 pub trait SpeechEngine: Send + Sync {
-    fn initialize(&mut self, model_path: &str, _config: &TranscriptionConfig) -> Result<(), SpeechError>;
+    fn initialize(
+        &mut self,
+        model_path: &str,
+        _config: &TranscriptionConfig,
+    ) -> Result<(), SpeechError>;
     fn process_audio(&mut self, _audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError>;
     fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError>;
     fn reset(&mut self);
 }
 
+#[derive(Default)]
 pub struct ParakeetEngine {
     initialized: bool,
     session_id: Option<String>,
 }
 
-impl Default for ParakeetEngine {
-    fn default() -> Self {
-        Self {
-            initialized: false,
-            session_id: None,
-        }
-    }
-}
-
 impl SpeechEngine for ParakeetEngine {
-    fn initialize(&mut self, model_path: &str, _config: &TranscriptionConfig) -> Result<(), SpeechError> {
+    fn initialize(
+        &mut self,
+        model_path: &str,
+        _config: &TranscriptionConfig,
+    ) -> Result<(), SpeechError> {
         if std::path::Path::new(model_path).exists() {
             self.initialized = true;
-            self.session_id = Some(format!("session_{}", std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis()));
+            self.session_id = Some(format!(
+                "session_{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis()
+            ));
             Ok(())
         } else {
-            Err(SpeechError::ModelLoad(format!("Model not found at {}", model_path)))
+            Err(SpeechError::ModelLoad(format!(
+                "Model not found at {}",
+                model_path
+            )))
         }
     }
 
@@ -76,7 +82,7 @@ impl SpeechEngine for ParakeetEngine {
         if !self.initialized {
             return Err(SpeechError::NotInitialized);
         }
-        
+
         // Placeholder: real implementation would run inference
         Ok(vec![])
     }
@@ -94,31 +100,33 @@ impl SpeechEngine for ParakeetEngine {
     }
 }
 
+#[derive(Default)]
 pub struct WhisperEngine {
     initialized: bool,
     session_id: Option<String>,
 }
 
-impl Default for WhisperEngine {
-    fn default() -> Self {
-        Self {
-            initialized: false,
-            session_id: None,
-        }
-    }
-}
-
 impl SpeechEngine for WhisperEngine {
-    fn initialize(&mut self, model_path: &str, _config: &TranscriptionConfig) -> Result<(), SpeechError> {
+    fn initialize(
+        &mut self,
+        model_path: &str,
+        _config: &TranscriptionConfig,
+    ) -> Result<(), SpeechError> {
         if std::path::Path::new(model_path).exists() {
             self.initialized = true;
-            self.session_id = Some(format!("session_{}", std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis()));
+            self.session_id = Some(format!(
+                "session_{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis()
+            ));
             Ok(())
         } else {
-            Err(SpeechError::ModelLoad(format!("Model not found at {}", model_path)))
+            Err(SpeechError::ModelLoad(format!(
+                "Model not found at {}",
+                model_path
+            )))
         }
     }
 
@@ -154,8 +162,10 @@ mod tests {
             streaming: true,
             hotwords: vec![],
         };
-        
+
         // Test with non-existent path
-        assert!(engine.initialize("/nonexistent/model.bin", &config).is_err());
+        assert!(engine
+            .initialize("/nonexistent/model.bin", &config)
+            .is_err());
     }
 }

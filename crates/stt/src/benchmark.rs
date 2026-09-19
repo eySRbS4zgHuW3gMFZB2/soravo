@@ -142,13 +142,14 @@ impl BenchmarkHarness {
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "txt") {
+            if path.extension().is_some_and(|ext| ext == "txt") {
                 let file_id = path
                     .file_stem()
                     .map(|s| s.to_string_lossy().to_string())
                     .unwrap_or_default();
                 let transcript = std::fs::read_to_string(&path)?;
-                self.ground_truth.push((file_id, transcript.trim().to_string()));
+                self.ground_truth
+                    .push((file_id, transcript.trim().to_string()));
             }
         }
 
@@ -190,11 +191,11 @@ impl BenchmarkHarness {
 
         let mut dp = vec![vec![0usize; hyp_len + 1]; ref_len + 1];
 
-        for i in 0..=ref_len {
-            dp[i][0] = i;
+        for (i, row) in dp.iter_mut().enumerate() {
+            row[0] = i;
         }
-        for j in 0..=hyp_len {
-            dp[0][j] = j;
+        for (j, cell) in dp[0].iter_mut().enumerate() {
+            *cell = j;
         }
 
         for i in 1..=ref_len {
@@ -202,9 +203,7 @@ impl BenchmarkHarness {
                 if ref_words[i - 1] == hyp_words[j - 1] {
                     dp[i][j] = dp[i - 1][j - 1];
                 } else {
-                    dp[i][j] = 1 + dp[i - 1][j - 1]
-                        .min(dp[i - 1][j])
-                        .min(dp[i][j - 1]);
+                    dp[i][j] = 1 + dp[i - 1][j - 1].min(dp[i - 1][j]).min(dp[i][j - 1]);
                 }
             }
         }
@@ -230,11 +229,11 @@ impl BenchmarkHarness {
 
         let mut dp = vec![vec![0usize; hyp_len + 1]; ref_len + 1];
 
-        for i in 0..=ref_len {
-            dp[i][0] = i;
+        for (i, row) in dp.iter_mut().enumerate() {
+            row[0] = i;
         }
-        for j in 0..=hyp_len {
-            dp[0][j] = j;
+        for (j, cell) in dp[0].iter_mut().enumerate() {
+            *cell = j;
         }
 
         for i in 1..=ref_len {
@@ -242,9 +241,7 @@ impl BenchmarkHarness {
                 if ref_chars[i - 1] == hyp_chars[j - 1] {
                     dp[i][j] = dp[i - 1][j - 1];
                 } else {
-                    dp[i][j] = 1 + dp[i - 1][j - 1]
-                        .min(dp[i - 1][j])
-                        .min(dp[i][j - 1]);
+                    dp[i][j] = 1 + dp[i - 1][j - 1].min(dp[i - 1][j]).min(dp[i][j - 1]);
                 }
             }
         }
@@ -261,9 +258,12 @@ impl BenchmarkHarness {
     where
         F: FnMut() -> Duration,
     {
-        let audio_path = std::path::Path::new(&self.config.audio_dir).join(format!("{}.wav", file_id));
+        let audio_path =
+            std::path::Path::new(&self.config.audio_dir).join(format!("{}.wav", file_id));
         if !audio_path.exists() {
-            return Err(BenchmarkError::MissingFile(audio_path.to_string_lossy().to_string()));
+            return Err(BenchmarkError::MissingFile(
+                audio_path.to_string_lossy().to_string(),
+            ));
         }
 
         let audio_info = std::fs::metadata(&audio_path)?;
@@ -311,21 +311,17 @@ impl BenchmarkHarness {
         for result in results {
             engines
                 .entry(result.engine.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(result);
         }
 
         engines
             .into_iter()
             .map(|(engine, runs)| {
-                let avg_first_partial_ms = runs
-                    .iter()
-                    .map(|r| r.first_partial_ms)
-                    .sum::<u64>() as f64 / runs.len() as f64;
-                let avg_finalization_ms = runs
-                    .iter()
-                    .map(|r| r.finalization_ms)
-                    .sum::<u64>() as f64 / runs.len() as f64;
+                let avg_first_partial_ms =
+                    runs.iter().map(|r| r.first_partial_ms).sum::<u64>() as f64 / runs.len() as f64;
+                let avg_finalization_ms =
+                    runs.iter().map(|r| r.finalization_ms).sum::<u64>() as f64 / runs.len() as f64;
                 let avg_rtf = runs.iter().map(|r| r.rtf).sum::<f64>() / runs.len() as f64;
                 let avg_wer = runs.iter().map(|r| r.wer).sum::<f64>() / runs.len() as f64;
                 let avg_cer = runs.iter().map(|r| r.cer).sum::<f64>() / runs.len() as f64;
