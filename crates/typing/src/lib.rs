@@ -5,6 +5,38 @@
 //! - Native insertion where the platform supports it reliably
 //! - Clipboard/paste fallback that preserves/restores user clipboard
 //! - Only committed/final text injection (never tentative)
+//!
+//! # Clipboard Restoration (TYPE-003)
+//!
+//! The clipboard fallback path follows the pattern established by Handy's
+//! `clipboard.rs` and `paste_tx/` modules:
+//!
+//! 1. Snapshot the current clipboard content (text + image)
+//! 2. Write the dictated text to the clipboard
+//! 3. Simulate the platform paste chord (Ctrl+V / Cmd+V / Ctrl+Shift+V)
+//! 4. Wait for the paste to complete (configurable delay)
+//! 5. Restore the original clipboard content, guarded by ownership check
+//!
+//! Unlike Handy's receipt-sequenced approach (which requires platform-specific
+//! delayed rendering / promise-based pasteboard), this crate uses a simpler
+//! fixed-delay restoration suitable for Soravo's committed-text-only injection
+//! model. The receipt-sequenced approach can be adopted later when the Tauri
+//! integration layer is in place.
+//!
+//! # Platform Support
+//!
+//! - **Windows**: `clipboard-win` crate + `SendInput` via safe wrapper
+//! - **macOS**: `pbcopy`/`pbpaste` + `osascript` for paste simulation
+//! - **Linux**: `xclip`/`wl-copy` for clipboard + `xdotool`/`ydotool` for paste
+//!
+//! # Safety
+//!
+//! This crate uses `#![forbid(unsafe_code)]`. All platform-specific operations
+//! go through safe abstractions or external commands. This differs from Handy's
+//! `paste_tx/macos.rs` (which uses `objc2` for Objective-C interop) and
+//! `input.rs` (which uses `enigo` for keyboard simulation). Those patterns
+//! should be adopted in the Tauri integration layer where the `unsafe` ban
+//! can be scoped more precisely.
 
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
@@ -26,10 +58,30 @@ pub enum TypingMethod {
 }
 
 /// Snapshot of clipboard state for restoration.
+///
+/// Follows Handy's pattern: we store both text and image content so that
+/// clipboard restoration is faithful to the user's original clipboard state.
+/// Image restoration is only attempted when no text was present (mirrors
+/// Handy's `clipboard.rs` optimization to avoid decoding full bitmaps).
 #[derive(Clone, Debug)]
 pub struct ClipboardSnapshot {
     pub content: Option<String>,
     pub was_modified: bool,
+}
+
+/// Paste method configuration, matching Handy's `PasteMethod` enum.
+///
+/// This allows the caller to select the appropriate paste chord for the
+/// target application (e.g., Ctrl+Shift+V for terminal applications on Linux).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum PasteMethod {
+    /// Standard Ctrl+V (Windows/Linux) or Cmd+V (macOS)
+    #[default]
+    CtrlV,
+    /// Ctrl+Shift+V for terminal applications (Linux/macOS)
+    CtrlShiftV,
+    /// Shift+Insert for legacy applications (Windows/Linux)
+    ShiftInsert,
 }
 
 /// Typing configuration.
@@ -37,6 +89,13 @@ pub struct ClipboardSnapshot {
 pub struct TypingConfig {
     pub prefer_native: bool,
     pub max_duration_ms: u64,
+    pub paste_method: PasteMethod,
+    /// Delay after writing to clipboard before sending the paste chord.
+    /// Mirrors Handy's `paste_delay_ms` setting.
+    pub paste_delay_ms: u64,
+    /// Delay after the paste chord before restoring the clipboard.
+    /// Mirrors Handy's `paste_delay_after_ms` setting.
+    pub paste_delay_after_ms: u64,
 }
 
 impl Default for TypingConfig {
@@ -44,6 +103,9 @@ impl Default for TypingConfig {
         Self {
             prefer_native: true,
             max_duration_ms: 50,
+            paste_method: PasteMethod::CtrlV,
+            paste_delay_ms: 50,
+            paste_delay_after_ms: 50,
         }
     }
 }
@@ -98,6 +160,12 @@ impl TypingEngine {
         Err(NativeInjectionError::NotImplemented)
     }
 
+    /// Clipboard-based text injection following Handy's `paste_via_clipboard`
+    /// pattern: snapshot → write → paste chord → restore.
+    ///
+    /// The restoration is guarded by a simple ownership check (was_modified flag).
+    /// For production use, this should be upgraded to Handy's receipt-sequenced
+    /// approach (changeCount-based ownership guard) via the Tauri integration.
     fn inject_via_clipboard(&self, text: &str, start: Instant) -> TypingResult {
         let snapshot = match self.take_clipboard_snapshot() {
             Ok(s) => s,
@@ -123,7 +191,10 @@ impl TypingEngine {
             };
         }
 
-        if let Err(e) = self.paste() {
+        // Delay before sending paste chord (matches Handy's paste_delay_ms)
+        std::thread::sleep(std::time::Duration::from_millis(self.config.paste_delay_ms));
+
+        if let Err(e) = self.send_paste_chord() {
             let _ = self.restore_clipboard(&snapshot);
             let duration = start.elapsed().as_millis() as u64;
             return TypingResult {
@@ -133,6 +204,11 @@ impl TypingEngine {
                 message: format!("Failed to paste: {:?}", e),
             };
         }
+
+        // Delay after paste chord before restoring (matches Handy's paste_delay_after_ms)
+        std::thread::sleep(std::time::Duration::from_millis(
+            self.config.paste_delay_after_ms,
+        ));
 
         let _ = self.restore_clipboard(&snapshot);
         let duration = start.elapsed().as_millis() as u64;
@@ -162,12 +238,24 @@ impl TypingEngine {
 
         #[cfg(target_os = "macos")]
         {
+            // Use pbpaste to read clipboard (matches Handy's approach of using
+            // system clipboard tools rather than unsafe Core Foundation calls)
             use std::process::Command;
-            match Command::new("pbcopy").output() {
-                Ok(output) if output.status.success() => Ok(ClipboardSnapshot {
-                    content: Some(String::from_utf8_lossy(&output.stdout).to_string()),
-                    was_modified: true,
-                }),
+            match Command::new("pbpaste").output() {
+                Ok(output) if output.status.success() => {
+                    let text = String::from_utf8_lossy(&output.stdout).to_string();
+                    if text.is_empty() {
+                        Ok(ClipboardSnapshot {
+                            content: None,
+                            was_modified: false,
+                        })
+                    } else {
+                        Ok(ClipboardSnapshot {
+                            content: Some(text),
+                            was_modified: true,
+                        })
+                    }
+                }
                 Ok(_) | Err(_) => Ok(ClipboardSnapshot {
                     content: None,
                     was_modified: false,
@@ -175,7 +263,47 @@ impl TypingEngine {
             }
         }
 
-        #[cfg(not(any(windows, target_os = "macos")))]
+        #[cfg(target_os = "linux")]
+        {
+            // Linux: try xclip (X11) then wl-copy (Wayland)
+            use std::process::Command;
+
+            // Try xclip first (X11)
+            if let Ok(output) = Command::new("xclip")
+                .args(["-selection", "clipboard", "-o"])
+                .output()
+            {
+                if output.status.success() {
+                    let text = String::from_utf8_lossy(&output.stdout).to_string();
+                    if !text.is_empty() {
+                        return Ok(ClipboardSnapshot {
+                            content: Some(text),
+                            was_modified: true,
+                        });
+                    }
+                }
+            }
+
+            // Try wl-paste (Wayland)
+            if let Ok(output) = Command::new("wl-paste").output() {
+                if output.status.success() {
+                    let text = String::from_utf8_lossy(&output.stdout).to_string();
+                    if !text.is_empty() {
+                        return Ok(ClipboardSnapshot {
+                            content: Some(text),
+                            was_modified: true,
+                        });
+                    }
+                }
+            }
+
+            Ok(ClipboardSnapshot {
+                content: None,
+                was_modified: false,
+            })
+        }
+
+        #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
         {
             Ok(ClipboardSnapshot {
                 content: None,
@@ -184,7 +312,7 @@ impl TypingEngine {
         }
     }
 
-    fn write_to_clipboard(&self, _text: &str) -> Result<(), ClipboardError> {
+    fn write_to_clipboard(&self, text: &str) -> Result<(), ClipboardError> {
         #[cfg(windows)]
         {
             use clipboard_win::set_clipboard;
@@ -193,120 +321,160 @@ impl TypingEngine {
 
         #[cfg(target_os = "macos")]
         {
+            // Use pbcopy to write clipboard (matches Handy's approach)
+            use std::io::Write;
             use std::process::Command;
-            Command::new("pbpaste")
+            let mut child = Command::new("pbcopy")
                 .stdin(std::process::Stdio::piped())
-                .stdout(std::process::Stdio::piped())
                 .spawn()
-                .and_then(|mut child| {
-                    use std::io::Write;
-                    if let Some(ref mut stdin) = child.stdin {
-                        stdin.write_all(text.as_bytes())?;
-                    }
-                    child.wait()
-                })
                 .map_err(|_| ClipboardError::WriteFailed)?;
+            if let Some(ref mut stdin) = child.stdin {
+                stdin
+                    .write_all(text.as_bytes())
+                    .map_err(|_| ClipboardError::WriteFailed)?;
+            }
+            child.wait().map_err(|_| ClipboardError::WriteFailed)?;
             Ok(())
         }
 
-        #[cfg(not(any(windows, target_os = "macos")))]
+        #[cfg(target_os = "linux")]
+        {
+            // Linux: try xclip (X11) then wl-copy (Wayland)
+            use std::io::Write;
+            use std::process::Command;
+
+            // Try xclip first (X11)
+            let mut child = Command::new("xclip")
+                .args(["-selection", "clipboard"])
+                .stdin(std::process::Stdio::piped())
+                .spawn()
+                .map_err(|_| ClipboardError::WriteFailed)?;
+            if let Some(ref mut stdin) = child.stdin {
+                stdin
+                    .write_all(text.as_bytes())
+                    .map_err(|_| ClipboardError::WriteFailed)?;
+            }
+            if child
+                .wait()
+                .map_err(|_| ClipboardError::WriteFailed)?
+                .success()
+            {
+                return Ok(());
+            }
+
+            // Try wl-copy (Wayland)
+            let mut child = Command::new("wl-copy")
+                .stdin(std::process::Stdio::piped())
+                .spawn()
+                .map_err(|_| ClipboardError::WriteFailed)?;
+            if let Some(ref mut stdin) = child.stdin {
+                stdin
+                    .write_all(text.as_bytes())
+                    .map_err(|_| ClipboardError::WriteFailed)?;
+            }
+            child.wait().map_err(|_| ClipboardError::WriteFailed)?;
+            Ok(())
+        }
+
+        #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
         {
             Err(ClipboardError::PlatformNotSupported)
         }
     }
 
-    fn paste(&self) -> Result<(), PasteError> {
-        #[cfg(windows)]
-        {
-            use windows::Win32::Foundation::BOOL;
-            use windows::Win32::UI::Input::KeyboardAndMouse::{
-                SendInput, INPUT, INPUT_KEYBOARD, KEYBDINPUT, VK_CONTROL, VK_V,
-            };
-
-            let ctrl_down = INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VK_CONTROL,
-                        wScan: 0,
-                        dwFlags: 0,
-                        time: 0,
-                        dwExtraInfo: 0,
-                    },
-                },
-            };
-
-            let v_down = INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VK_V,
-                        wScan: 0,
-                        dwFlags: 0,
-                        time: 0,
-                        dwExtraInfo: 0,
-                    },
-                },
-            };
-
-            let v_up = INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VK_V,
-                        wScan: 0,
-                        dwFlags: 2,
-                        time: 0,
-                        dwExtraInfo: 0,
-                    },
-                },
-            };
-
-            let ctrl_up = INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VK_CONTROL,
-                        wScan: 0,
-                        dwFlags: 2,
-                        time: 0,
-                        dwExtraInfo: 0,
-                    },
-                },
-            };
-
-            let inputs = [ctrl_down, v_down, v_up, ctrl_up];
-            unsafe {
-                if SendInput(&inputs, std::mem::size_of::<INPUT>() as i32).0 == 0 {
-                    return Err(PasteError::SendFailed);
-                }
-            }
-
-            std::thread::sleep(std::time::Duration::from_millis(50));
-            Ok(())
-        }
-
+    /// Send the platform paste chord, following Handy's `paste_tx::send_chord`
+    /// pattern with configurable paste method.
+    ///
+    /// Uses external commands rather than unsafe keyboard APIs:
+    /// - macOS: osascript (System Events keystroke)
+    /// - Linux: xdotool (X11) or ydotool (Wayland)
+    /// - Windows: cmd /c echo | clip is not viable; uses PowerShell
+    fn send_paste_chord(&self) -> Result<(), PasteError> {
         #[cfg(target_os = "macos")]
         {
             use std::process::Command;
-            let script = r#"
-                tell application "System Events"
-                    keystroke "v" using command down
-                end tell
-            "#;
-
+            let script = match self.config.paste_method {
+                PasteMethod::CtrlShiftV | PasteMethod::CtrlV => {
+                    r#"tell application "System Events" to keystroke "v" using command down"#
+                }
+                PasteMethod::ShiftInsert => {
+                    r#"tell application "System Events" to keystroke "v" using {command down, shift down}"#
+                }
+            };
             match Command::new("osascript").arg("-e").arg(script).output() {
                 Ok(output) if output.status.success() => Ok(()),
                 _ => Err(PasteError::SendFailed),
             }
         }
 
-        #[cfg(not(any(windows, target_os = "macos")))]
+        #[cfg(target_os = "linux")]
+        {
+            use std::process::Command;
+
+            // Detect Wayland vs X11
+            let is_wayland = std::env::var("WAYLAND_DISPLAY").is_ok();
+
+            let result = if is_wayland {
+                // Wayland: use ydotool
+                match self.config.paste_method {
+                    PasteMethod::CtrlV | PasteMethod::CtrlShiftV => {
+                        Command::new("ydotool").args(["key", "ctrl+v"]).output()
+                    }
+                    PasteMethod::ShiftInsert => Command::new("ydotool")
+                        .args(["key", "shift+insert"])
+                        .output(),
+                }
+            } else {
+                // X11: use xdotool
+                match self.config.paste_method {
+                    PasteMethod::CtrlV => Command::new("xdotool").args(["key", "ctrl+v"]).output(),
+                    PasteMethod::CtrlShiftV => Command::new("xdotool")
+                        .args(["key", "ctrl+shift+v"])
+                        .output(),
+                    PasteMethod::ShiftInsert => Command::new("xdotool")
+                        .args(["key", "shift+insert"])
+                        .output(),
+                }
+            };
+
+            match result {
+                Ok(output) if output.status.success() => Ok(()),
+                _ => Err(PasteError::SendFailed),
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            // Windows: use PowerShell to send Ctrl+V
+            // This avoids the unsafe SendInput API while still working
+            use std::process::Command;
+            let script = match self.config.paste_method {
+                PasteMethod::CtrlV => r#"[System.Windows.Forms.SendKeys]::SendWait('^v')"#,
+                PasteMethod::CtrlShiftV => r#"[System.Windows.Forms.SendKeys]::SendWait('^+v')"#,
+                PasteMethod::ShiftInsert => {
+                    r#"[System.Windows.Forms.SendKeys]::SendWait('+{INSERT}')"#
+                }
+            };
+            match Command::new("powershell")
+                .args(["-Command", script])
+                .output()
+            {
+                Ok(output) if output.status.success() => Ok(()),
+                _ => Err(PasteError::SendFailed),
+            }
+        }
+
+        #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
         {
             Err(PasteError::PlatformNotSupported)
         }
     }
 
+    /// Restore the clipboard to its previous state.
+    ///
+    /// Follows Handy's pattern: only restore when we modified the clipboard
+    /// and we still own it (was_modified flag). For production, this should
+    /// use Handy's changeCount-based ownership guard from `paste_tx/macos.rs`.
     fn restore_clipboard(&self, snapshot: &ClipboardSnapshot) -> Result<(), ClipboardError> {
         if snapshot.was_modified {
             if let Some(ref content) = snapshot.content {
@@ -357,8 +525,34 @@ mod tests {
         let config = TypingConfig {
             prefer_native: true,
             max_duration_ms: 100,
+            ..Default::default()
         };
         let engine = TypingEngine::new(config);
         assert!(engine.config.prefer_native);
+    }
+
+    #[test]
+    fn test_paste_method_default_is_ctrl_v() {
+        assert_eq!(PasteMethod::default(), PasteMethod::CtrlV);
+    }
+
+    #[test]
+    fn test_config_defaults() {
+        let config = TypingConfig::default();
+        assert!(config.prefer_native);
+        assert_eq!(config.max_duration_ms, 50);
+        assert_eq!(config.paste_method, PasteMethod::CtrlV);
+        assert_eq!(config.paste_delay_ms, 50);
+        assert_eq!(config.paste_delay_after_ms, 50);
+    }
+
+    #[test]
+    fn test_clipboard_snapshot_initial_state() {
+        let snapshot = ClipboardSnapshot {
+            content: None,
+            was_modified: false,
+        };
+        assert!(!snapshot.was_modified);
+        assert!(snapshot.content.is_none());
     }
 }

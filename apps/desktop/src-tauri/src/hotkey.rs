@@ -5,20 +5,29 @@
 //! - Hold-to-talk and toggle-to-talk modes
 //! - Hotkey state management
 
-use soravo_hotkeys::{HotkeyBinding, HotkeyConfig, HotkeyResult};
+use soravo_hotkeys::{HotkeyBinding, HotkeyConfig, HotkeyResult, InteractionMode};
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 /// Hotkey state managed by the Tauri runtime.
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct HotkeyState {
     config: HotkeyConfig,
     is_listening: bool,
     toggle_state: bool, // For toggle mode: true = recording, false = idle
 }
 
+impl Default for HotkeyState {
+    fn default() -> Self {
+        Self {
+            config: HotkeyConfig::default(),
+            is_listening: false,
+            toggle_state: false,
+        }
+    }
+}
+
 impl HotkeyState {
-    #[allow(dead_code)]
     pub fn new(config: HotkeyConfig) -> Self {
         Self {
             config,
@@ -31,12 +40,10 @@ impl HotkeyState {
         &self.config
     }
 
-    #[allow(dead_code)]
     pub fn is_listening(&self) -> bool {
         self.is_listening
     }
 
-    #[allow(dead_code)]
     pub fn is_toggle_on(&self) -> bool {
         self.toggle_state
     }
@@ -144,7 +151,7 @@ pub fn hotkey_recording(state: State<'_, Mutex<HotkeyState>>) -> bool {
 pub fn hotkey_check_conflicts(binding: Option<HotkeyBinding>) -> HotkeyResult {
     // This is a placeholder for platform-specific conflict detection
     // In a real implementation, this would query OS-level hotkey registry
-    if let Some(_b) = binding {
+    if let Some(b) = binding {
         // Simulated conflict check - always returns success for now
         HotkeyResult::Success {
             message: String::from("No conflicts detected"),
