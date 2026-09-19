@@ -70,9 +70,11 @@ pub struct VadTailReport {
 }
 
 mod earshot;
+mod silero;
 mod smoothed;
 
 pub use earshot::EarshotVad;
+pub use silero::SileroVad;
 pub use smoothed::SmoothedVad;
 
 #[cfg(test)]
