@@ -664,7 +664,7 @@ mod tests {
 
     #[test]
     fn whisper_engine_state_transitions() {
-        let mut engine = WhisperEngine::default();
+        let engine = WhisperEngine::default();
         assert_eq!(engine.engine_state(), EngineState::Uninitialized);
     }
 

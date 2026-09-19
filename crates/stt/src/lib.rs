@@ -203,8 +203,8 @@ pub trait SpeechEngine: Send {
     /// stale result rejection. Default implementation returns error.
     fn feed_stream(
         &mut self,
-        handle: &mut dyn StreamHandle,
-        audio: &[f32],
+        _handle: &mut dyn StreamHandle,
+        _audio: &[f32],
     ) -> Result<Vec<StreamingTranscript>, SpeechError> {
         Err(SpeechError::StreamingNotSupported)
     }
@@ -214,7 +214,7 @@ pub trait SpeechEngine: Send {
     /// Consumes the stream handle. Default implementation returns error.
     fn finalize_stream(
         &mut self,
-        handle: Box<dyn StreamHandle>,
+        _handle: Box<dyn StreamHandle>,
     ) -> Result<Vec<TranscriptionResult>, SpeechError> {
         Err(SpeechError::StreamingNotSupported)
     }
@@ -222,7 +222,7 @@ pub trait SpeechEngine: Send {
     /// Cancel an active streaming session without producing output.
     ///
     /// Default implementation returns error.
-    fn cancel_stream(&mut self, handle: Box<dyn StreamHandle>) -> Result<(), SpeechError> {
+    fn cancel_stream(&mut self, _handle: Box<dyn StreamHandle>) -> Result<(), SpeechError> {
         Err(SpeechError::StreamingNotSupported)
     }
 
