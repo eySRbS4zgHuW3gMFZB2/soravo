@@ -4,6 +4,8 @@
 //! Implements SpeechEngine trait with Parakeet and Whisper adapters.
 //! Benchmark-driven selection (protocol §12).
 
+pub mod benchmark;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
