@@ -5,6 +5,7 @@ members = [
   "crates/config",
   "crates/hotkeys",
   "crates/models",
+  "crates/stt",
   "crates/transcript",
   "crates/typing"
 ]
