@@ -3,6 +3,18 @@
 Each task follows:
 branch → implement → test → security review → QA → docs → progress → commit → push → PR.
 
+## Handy Reuse Requirement
+
+Every task in the DESKTOP, AUDIO, STT, HOTKEY/PILL, TYPING, MODELS, and SETTINGS/HISTORY sections MUST complete a Handy reuse audit before marking done. The audit must report (per `03_AI_INSTRUCTIONS.md` section 9):
+
+- Handy source inspected
+- Exact files/modules/functions reused
+- Adaptations made
+- Functionality implemented from scratch
+- Reason for any non-reuse
+
+Tasks without a completed Handy reuse audit are NOT done. See `06_DOD_QA.md` section 16 for the full gate.
+
 ## FOUNDATION
 
 - FOUNDATION-001 repository/bootstrap
@@ -43,6 +55,8 @@ branch → implement → test → security review → QA → docs → progress �
 - CLOUD-012 signed entitlement
 
 ## DESKTOP (Handy Foundation)
+
+All desktop tasks MUST follow the Handy Reuse First policy (`03_AI_INSTRUCTIONS.md` section 9). Each task completion requires a Handy reuse audit documenting inspected source, reused code, adaptations, and justifications for any from-scratch implementation.
 
 - DESKTOP-001 Handy provenance/licensing/dependency audit
 - DESKTOP-002 Handy architecture review and fork/rebase

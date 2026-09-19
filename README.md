@@ -28,6 +28,10 @@ Security/safety > this AI instruction set > ADRs > TDD > PRD > implementation pl
 
 If two documents conflict, the higher-authority document wins. The agent must record the conflict in `progress/` and fix the lower-authority document rather than silently choosing.
 
+## Handy Reuse First (mandatory)
+
+Soravo V1 desktop application is built on Handy (MIT). Before implementing any feature that may overlap with Handy functionality, agents MUST locate, inspect, and reuse the actual pinned Handy source code wherever technically and legally compatible. Reimplementing existing Handy functionality is not permitted without explicit justification. See `03_AI_INSTRUCTIONS.md` section 9 for the full policy and `SORAVO_HANDY_CODE_REUSE_REPORT.md` for the authoritative reuse strategy.
+
 ## Product principles
 
 - Audio and transcription are local by default.
@@ -43,6 +47,7 @@ If two documents conflict, the higher-authority document wins. The agent must re
 - Supabase stores account, entitlement, device/session and operational metadata, not audio or transcript history.
 - Admin analytics are product/account metrics, separate from Umami.
 - GitHub, Supabase, Cloudflare and TestSprite MCP are development/operations tools only; MCP is not part of the shipped application runtime.
+- Handy (MIT) is the V1 desktop foundation. Reuse its implementation wherever practical; do not reimplement from scratch. See `03_AI_INSTRUCTIONS.md` section 9.
 
 ## Target
 
