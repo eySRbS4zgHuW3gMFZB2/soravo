@@ -28,7 +28,7 @@ export function App() {
   const [phase, setPhase] = useState<SessionPhase>("IDLE");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [lastTransition, setLastTransition] = useState<SessionTransition | null>(null);
-  const [pendingTransition, setPendingTransition] = useState<SessionPhase | null>(null);
+  const [, setPendingTransition] = useState<SessionPhase | null>(null);
   const [pingReply, setPingReply] = useState<PingReply | null>(null);
   const [connected, setConnected] = useState(false);
 

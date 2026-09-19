@@ -5,8 +5,8 @@
 //! - Hold-to-talk and toggle-to-talk modes
 //! - Hotkey state management
 
-use std::sync::Mutex;
 use soravo_hotkeys::{HotkeyBinding, HotkeyConfig, HotkeyResult, InteractionMode};
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, State};
 
 /// Hotkey state managed by the Tauri runtime.
@@ -120,45 +120,35 @@ pub fn set_hotkey_config(
 
 /// Tauri command: start recording (hold mode).
 #[tauri::command]
-pub fn hotkey_start(
-    state: State<'_, Mutex<HotkeyState>>,
-) -> HotkeyResult {
+pub fn hotkey_start(state: State<'_, Mutex<HotkeyState>>) -> HotkeyResult {
     let mut state = state.lock().expect("hotkey state poisoned");
     state.start_listening()
 }
 
 /// Tauri command: stop recording (hold mode).
 #[tauri::command]
-pub fn hotkey_stop(
-    state: State<'_, Mutex<HotkeyState>>,
-) -> HotkeyResult {
+pub fn hotkey_stop(state: State<'_, Mutex<HotkeyState>>) -> HotkeyResult {
     let mut state = state.lock().expect("hotkey state poisoned");
     state.stop_listening()
 }
 
 /// Tauri command: toggle recording (toggle mode).
 #[tauri::command]
-pub fn hotkey_toggle(
-    state: State<'_, Mutex<HotkeyState>>,
-) -> HotkeyResult {
+pub fn hotkey_toggle(state: State<'_, Mutex<HotkeyState>>) -> HotkeyResult {
     let mut state = state.lock().expect("hotkey state poisoned");
     state.toggle()
 }
 
 /// Tauri command: get current recording state.
 #[tauri::command]
-pub fn hotkey_recording(
-    state: State<'_, Mutex<HotkeyState>>,
-) -> bool {
+pub fn hotkey_recording(state: State<'_, Mutex<HotkeyState>>) -> bool {
     let state = state.lock().expect("hotkey state poisoned");
     state.is_recording()
 }
 
 /// Tauri command: check if a hotkey conflict exists.
 #[tauri::command]
-pub fn hotkey_check_conflicts(
-    binding: Option<HotkeyBinding>,
-) -> HotkeyResult {
+pub fn hotkey_check_conflicts(binding: Option<HotkeyBinding>) -> HotkeyResult {
     // This is a placeholder for platform-specific conflict detection
     // In a real implementation, this would query OS-level hotkey registry
     if let Some(b) = binding {
