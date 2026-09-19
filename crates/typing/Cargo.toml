@@ -1,0 +1,17 @@
+[package]
+name = "soravo-typing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+soravo-transcript = { path = "../transcript" }
+enigo = { version = "=0.6.1" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json = "1"
