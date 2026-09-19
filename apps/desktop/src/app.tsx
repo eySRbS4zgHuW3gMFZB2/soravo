@@ -28,7 +28,6 @@ export function App() {
   const [phase, setPhase] = useState<SessionPhase>("IDLE");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [lastTransition, setLastTransition] = useState<SessionTransition | null>(null);
-  const [pendingTransition, setPendingTransition] = useState<SessionPhase | null>(null);
   const [pingReply, setPingReply] = useState<PingReply | null>(null);
   const [connected, setConnected] = useState(false);
 
@@ -57,7 +56,6 @@ export function App() {
       setPhase(payload.transition.phase);
       setSessionId(payload.transition.sessionId);
       setLastTransition(payload.transition);
-      setPendingTransition(null);
     }).then((unlisten) => {
       unsubSession = unlisten;
     });
@@ -81,20 +79,18 @@ export function App() {
   async function handleSessionStart() {
     if (phase !== "IDLE") return;
     try {
-      setPendingTransition("STARTING");
       await sessionTransition("STARTING");
     } catch {
-      setPendingTransition(null);
+      // Transition failed; phase remains unchanged
     }
   }
 
   async function handleSessionStop() {
     if (phase === "IDLE") return;
     try {
-      setPendingTransition("DONE");
       await sessionTransition("DONE");
     } catch {
-      setPendingTransition(null);
+      // Transition failed; phase remains unchanged
     }
   }
 
