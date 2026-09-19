@@ -49,6 +49,7 @@ pub fn run() {
             commands::session_transition,
             commands::session_reset,
             commands::emit_ping,
+            commands::inject_text,
             hotkey::hotkey_config,
             hotkey::set_hotkey_config,
             hotkey::hotkey_start,

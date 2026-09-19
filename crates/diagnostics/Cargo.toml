@@ -1,0 +1,11 @@
+[package]
+name = "soravo-diagnostics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Soravo diagnostics and health reporting"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+log = "0.4"

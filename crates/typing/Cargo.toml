@@ -4,14 +4,18 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
+description = "Soravo text injection abstraction - native + clipboard fallback"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-soravo-transcript = { path = "../transcript" }
-enigo = { version = "=0.6.1" }
+log = "0.4"
 
-[lints]
-workspace = true
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_DataExchange"] }
+clipboard-win = "5"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+osascript = "0.3"
 
 [dev-dependencies]
 serde_json = "1"

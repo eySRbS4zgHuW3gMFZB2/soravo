@@ -158,36 +158,26 @@ mod tests {
     #[test]
     fn transcript_state_maintains_session_isolation() {
         let mut state = TranscriptState::new(SessionId::new(42));
-        assert!(
-            state
-                .update(make_update(42, 1, TranscriptKind::Committed, "hello"))
-                .is_some()
-        );
-        assert!(
-            state
-                .update(make_update(99, 1, TranscriptKind::Committed, "world"))
-                .is_none()
-        );
+        assert!(state
+            .update(make_update(42, 1, TranscriptKind::Committed, "hello"))
+            .is_some());
+        assert!(state
+            .update(make_update(99, 1, TranscriptKind::Committed, "world"))
+            .is_none());
     }
 
     #[test]
     fn transcript_state_prevents_duplicate_committed() {
         let mut state = TranscriptState::new(SessionId::new(1));
-        assert!(
-            state
-                .update(make_update(1, 1, TranscriptKind::Committed, "hello"))
-                .is_some()
-        );
-        assert!(
-            state
-                .update(make_update(1, 1, TranscriptKind::Committed, "duplicate"))
-                .is_none()
-        );
-        assert!(
-            state
-                .update(make_update(1, 2, TranscriptKind::Committed, "world"))
-                .is_some()
-        );
+        assert!(state
+            .update(make_update(1, 1, TranscriptKind::Committed, "hello"))
+            .is_some());
+        assert!(state
+            .update(make_update(1, 1, TranscriptKind::Committed, "duplicate"))
+            .is_none());
+        assert!(state
+            .update(make_update(1, 2, TranscriptKind::Committed, "world"))
+            .is_some());
     }
 
     #[test]
@@ -218,20 +208,14 @@ mod tests {
     #[test]
     fn transcript_state_handles_stale_sequences() {
         let mut state = TranscriptState::new(SessionId::new(1));
-        assert!(
-            state
-                .update(make_update(1, 10, TranscriptKind::Committed, "first"))
-                .is_some()
-        );
-        assert!(
-            state
-                .update(make_update(1, 5, TranscriptKind::Committed, "stale"))
-                .is_none()
-        );
-        assert!(
-            state
-                .update(make_update(1, 15, TranscriptKind::Committed, "second"))
-                .is_some()
-        );
+        assert!(state
+            .update(make_update(1, 10, TranscriptKind::Committed, "first"))
+            .is_some());
+        assert!(state
+            .update(make_update(1, 5, TranscriptKind::Committed, "stale"))
+            .is_none());
+        assert!(state
+            .update(make_update(1, 15, TranscriptKind::Committed, "second"))
+            .is_some());
     }
 }
