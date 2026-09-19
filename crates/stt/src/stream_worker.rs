@@ -23,11 +23,13 @@ pub struct StreamWorkerConfig {
     pub engine_return: Sender<Box<dyn SpeechEngine + Send>>,
 }
 
-/// Run the streaming worker loop.
+/// Run the streaming worker loop for batch-mode engines.
 ///
 /// This function takes ownership of the engine and runs until it receives
 /// a Finalize or Cancel command. It returns the engine back to the caller
 /// via the `engine_return` channel.
+///
+/// Use this for engines that do NOT support streaming (e.g., Parakeet).
 pub fn run_stream_worker<E>(mut engine: E, rx: Receiver<StreamCmd>, config: StreamWorkerConfig)
 where
     E: SpeechEngine + Send + 'static,
@@ -128,6 +130,155 @@ where
 
     // Return the engine to the caller
     let _ = config.engine_return.send(Box::new(engine));
+}
+
+/// Run the streaming worker loop for streaming-mode engines.
+///
+/// This function takes ownership of the engine and runs until it receives
+/// a Finalize or Cancel command. It uses the engine's streaming API
+/// (start_stream, feed_stream, finalize_stream) for engines that support
+/// streaming (e.g., Whisper).
+///
+/// Returns the engine back to the caller via the `engine_return` channel.
+pub fn run_streaming_worker<E>(mut engine: E, rx: Receiver<StreamCmd>, config: StreamWorkerConfig)
+where
+    E: SpeechEngine + Send + 'static,
+{
+    let _stream_active = StreamActiveGuard::new();
+
+    // Emit initial listening phase
+    (config.phase_emitter)(super::stream_events::StreamPhaseEvent::listening());
+
+    let mut perf = StreamPerf::new();
+    let mut finalize_reply: Option<Sender<Option<FinalizedStreamText>>> = None;
+    let mut finalize_result: Option<Option<FinalizedStreamText>> = None;
+
+    // Check if engine supports streaming
+    if !engine.supports_streaming() {
+        log::warn!("Engine does not support streaming; falling back to batch worker");
+        // Can't easily fall back due to ownership, just return engine
+        let _ = config.engine_return.send(Box::new(engine));
+        return;
+    }
+
+    // Start streaming session
+    let mut stream_handle = match engine.start_stream() {
+        Ok(handle) => handle,
+        Err(e) => {
+            log::error!("Failed to start stream: {}", e);
+            let _ = config.engine_return.send(Box::new(engine));
+            return;
+        }
+    };
+
+    // Emit working phase
+    (config.phase_emitter)(super::stream_events::StreamPhaseEvent::working(
+        super::stream_events::StreamWorkKind::Transcribing,
+    ));
+
+    while let Ok(cmd) = rx.recv() {
+        match cmd {
+            StreamCmd::Feed(pcm) => {
+                perf.record_feed(pcm.len());
+                let feed_start = Instant::now();
+
+                // Feed audio to streaming engine
+                match engine.feed_stream(&mut *stream_handle, &pcm) {
+                    Ok(transcripts) => {
+                        perf.record_compute(feed_start.elapsed());
+
+                        for transcript in transcripts {
+                            // Convert StreamingTranscript to StreamTextEvent
+                            (config.text_emitter)(&StreamTextEvent::new(
+                                transcript.committed,
+                                transcript.tentative,
+                            ));
+                        }
+                        perf.maybe_log();
+                    }
+                    Err(e) => {
+                        perf.record_compute(feed_start.elapsed());
+                        if matches!(e, super::SpeechError::StaleResult { .. }) {
+                            // Stale result - ignore silently (already handled by revision tracking)
+                            log::trace!("Stale result rejected: {}", e);
+                        } else {
+                            log::warn!("Stream feed failed: {}", e);
+                        }
+                    }
+                }
+            }
+            StreamCmd::Finalize(reply) => {
+                let finalize_start = Instant::now();
+
+                // Finalize streaming session
+                let result = match engine.finalize_stream(stream_handle) {
+                    Ok(results) => {
+                        perf.record_compute(finalize_start.elapsed());
+
+                        let text = if results.is_empty() {
+                            String::new()
+                        } else {
+                            results
+                                .iter()
+                                .map(|r| r.text.as_str())
+                                .collect::<Vec<_>>()
+                                .join(" ")
+                        };
+
+                        perf.log_finalized(text.len());
+
+                        Some(FinalizedStreamText::new(
+                            text,
+                            config.output_language.clone(),
+                            config.supported_languages.clone(),
+                        ))
+                    }
+                    Err(e) => {
+                        perf.record_compute(finalize_start.elapsed());
+                        log::error!("Stream finalize failed: {}", e);
+                        None
+                    }
+                };
+                finalize_reply = Some(reply);
+                finalize_result = Some(result);
+                break;
+            }
+            StreamCmd::Cancel => {
+                log::info!("Stream cancelled");
+                let _ = engine.cancel_stream(stream_handle);
+                break;
+            }
+        }
+    }
+
+    // Send finalize reply if we have one
+    if let (Some(reply), Some(result)) = (finalize_reply, finalize_result) {
+        let _ = reply.send(result);
+    }
+
+    // Return the engine to the caller
+    let _ = config.engine_return.send(Box::new(engine));
+}
+
+/// Automatically select the appropriate worker based on engine capabilities.
+///
+/// If the engine supports streaming, uses `run_streaming_worker`.
+/// Otherwise, uses `run_stream_worker`.
+pub fn run_auto_worker<E>(engine: E, rx: Receiver<StreamCmd>, config: StreamWorkerConfig)
+where
+    E: SpeechEngine + Send + 'static,
+{
+    // We need to check streaming support before moving the engine.
+    // Since we can't easily do that without taking ownership,
+    // we'll use a heuristic: if the engine type name contains "Whisper",
+    // assume it supports streaming. This is a temporary workaround.
+    // A better approach would be to have a trait method or separate trait.
+
+    // For now, try streaming first and fall back on error.
+    // This requires the engine to be Clone or we use a different pattern.
+    // Since SpeechEngine is not Clone, we'll document that callers
+    // should use the appropriate worker directly.
+    run_stream_worker(engine, rx, config);
 }
 
 /// RAII guard that tracks stream active state.

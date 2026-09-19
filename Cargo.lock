@@ -4262,6 +4262,7 @@ dependencies = [
  "anyhow",
  "crossbeam-channel",
  "earshot",
+ "hound",
  "log",
  "serde",
  "soravo-audio",

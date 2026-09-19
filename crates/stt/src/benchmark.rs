@@ -109,6 +109,12 @@ impl From<std::io::Error> for BenchmarkError {
     }
 }
 
+impl From<super::SpeechError> for BenchmarkError {
+    fn from(e: super::SpeechError) -> Self {
+        BenchmarkError::ParseError(e.to_string())
+    }
+}
+
 /// Benchmark harness for measuring STT engine performance
 pub struct BenchmarkHarness {
     config: BenchmarkConfig,
@@ -342,6 +348,233 @@ impl BenchmarkHarness {
                 }
             })
             .collect()
+    }
+
+    /// Run benchmark for a SpeechEngine implementation (batch mode).
+    ///
+    /// This function initializes the engine, runs warmup, then benchmarks
+    /// transcription of a single audio file.
+    pub fn benchmark_engine_batch<E, F>(
+        &self,
+        engine_name: &str,
+        file_id: &str,
+        mut engine_factory: F,
+    ) -> Result<BenchmarkRun, BenchmarkError>
+    where
+        E: super::SpeechEngine + Send + 'static,
+        F: FnMut() -> Result<E, super::SpeechError>,
+    {
+        let audio_path =
+            std::path::Path::new(&self.config.audio_dir).join(format!("{}.wav", file_id));
+        if !audio_path.exists() {
+            return Err(BenchmarkError::MissingFile(
+                audio_path.to_string_lossy().to_string(),
+            ));
+        }
+
+        // Load audio file
+        let mut reader = hound::WavReader::open(&audio_path)
+            .map_err(|e| BenchmarkError::ParseError(format!("Failed to open WAV: {}", e)))?;
+        let spec = reader.spec();
+        let samples: Vec<f32> = reader
+            .samples::<i16>()
+            .map(|s| s.map(|v| v as f32 / 32768.0))
+            .collect::<Result<_, _>>()
+            .map_err(|e| BenchmarkError::ParseError(format!("Failed to read samples: {}", e)))?;
+
+        let audio_duration_ms = (samples.len() as f64 / spec.sample_rate as f64 * 1000.0) as u64;
+
+        // Get ground truth
+        let ground_truth = self.get_ground_truth(file_id).cloned().unwrap_or_default();
+
+        // Create engine
+        let mut engine = engine_factory()?;
+
+        // Initialize engine
+        let config = super::TranscriptionConfig {
+            language: "en".to_string(),
+            streaming: false,
+            hotwords: vec![],
+        };
+        engine
+            .initialize("dummy", &config) // Will be overridden by actual model path in factory
+            .map_err(|e| BenchmarkError::ParseError(format!("Engine init failed: {}", e)))?;
+
+        // Warmup runs
+        for _ in 0..self.config.warmup_runs {
+            let _ = engine.process_audio(&samples);
+        }
+
+        // Benchmark runs - measure multiple times and take median
+        let mut run_times = Vec::new();
+        let mut transcriptions = Vec::new();
+
+        for _ in 0..self.config.benchmark_runs {
+            let start = Instant::now();
+            let results = engine
+                .process_audio(&samples)
+                .map_err(|e| BenchmarkError::ParseError(format!("Inference failed: {}", e)))?;
+            let elapsed = start.elapsed();
+
+            run_times.push(elapsed);
+            if !results.is_empty() {
+                transcriptions.push(results[0].text.clone());
+            }
+        }
+
+        // Use median time
+        run_times.sort();
+        let median_time = run_times[run_times.len() / 2];
+        let hypothesis = transcriptions.first().cloned().unwrap_or_default();
+
+        let first_partial_ms = median_time.as_millis() as u64; // For batch, first = final
+        let finalization_ms = median_time.as_millis() as u64;
+
+        let rtf = if audio_duration_ms > 0 {
+            median_time.as_secs_f64() / (audio_duration_ms as f64 / 1000.0)
+        } else {
+            0.0
+        };
+
+        let wer = Self::calculate_wer(&ground_truth, &hypothesis);
+        let cer = Self::calculate_cer(&ground_truth, &hypothesis);
+
+        Ok(BenchmarkRun {
+            engine: engine_name.to_string(),
+            file_id: file_id.to_string(),
+            first_partial_ms,
+            finalization_ms,
+            audio_duration_ms,
+            rtf,
+            wer,
+            cer,
+            memory_mb: 0,     // Would need memory profiling
+            cpu_percent: 0.0, // Would need CPU profiling
+        })
+    }
+
+    /// Run benchmark for a SpeechEngine implementation (streaming mode).
+    ///
+    /// This function tests streaming transcription with partial results.
+    pub fn benchmark_engine_streaming<E, F>(
+        &self,
+        engine_name: &str,
+        file_id: &str,
+        mut engine_factory: F,
+    ) -> Result<BenchmarkRun, BenchmarkError>
+    where
+        E: super::SpeechEngine + Send + 'static,
+        F: FnMut() -> Result<E, super::SpeechError>,
+    {
+        let audio_path =
+            std::path::Path::new(&self.config.audio_dir).join(format!("{}.wav", file_id));
+        if !audio_path.exists() {
+            return Err(BenchmarkError::MissingFile(
+                audio_path.to_string_lossy().to_string(),
+            ));
+        }
+
+        // Load audio file
+        let mut reader = hound::WavReader::open(&audio_path)
+            .map_err(|e| BenchmarkError::ParseError(format!("Failed to open WAV: {}", e)))?;
+        let spec = reader.spec();
+        let samples: Vec<f32> = reader
+            .samples::<i16>()
+            .map(|s| s.map(|v| v as f32 / 32768.0))
+            .collect::<Result<_, _>>()
+            .map_err(|e| BenchmarkError::ParseError(format!("Failed to read samples: {}", e)))?;
+
+        let audio_duration_ms = (samples.len() as f64 / spec.sample_rate as f64 * 1000.0) as u64;
+        let ground_truth = self.get_ground_truth(file_id).cloned().unwrap_or_default();
+
+        // Create engine
+        let mut engine = engine_factory()?;
+
+        // Initialize engine for streaming
+        let config = super::TranscriptionConfig {
+            language: "en".to_string(),
+            streaming: true,
+            hotwords: vec![],
+        };
+        engine
+            .initialize("dummy", &config)
+            .map_err(|e| BenchmarkError::ParseError(format!("Engine init failed: {}", e)))?;
+
+        if !engine.supports_streaming() {
+            return Err(BenchmarkError::ParseError(
+                "Engine does not support streaming".to_string(),
+            ));
+        }
+
+        engine
+            .warmup()
+            .map_err(|e| BenchmarkError::ParseError(format!("Warmup failed: {}", e)))?;
+
+        // Start streaming
+        let mut handle = engine
+            .start_stream()
+            .map_err(|e| BenchmarkError::ParseError(format!("Start stream failed: {}", e)))?;
+
+        // Feed audio in chunks (100ms chunks at 16kHz = 1600 samples)
+        const CHUNK_SIZE: usize = 1600;
+        let mut first_partial_time: Option<Duration> = None;
+        let mut finalization_time: Option<Duration> = None;
+        let mut final_text = String::new();
+        let start = Instant::now();
+
+        for chunk in samples.chunks(CHUNK_SIZE) {
+            let chunk_start = Instant::now();
+            let transcripts = engine
+                .feed_stream(&mut *handle, chunk)
+                .map_err(|e| BenchmarkError::ParseError(format!("Feed failed: {}", e)))?;
+
+            if first_partial_time.is_none() && !transcripts.is_empty() {
+                first_partial_time = Some(chunk_start.elapsed());
+            }
+
+            // Accumulate final text from committed parts
+            for t in transcripts {
+                if t.is_final {
+                    final_text = t.full_text();
+                    finalization_time = Some(start.elapsed());
+                }
+            }
+        }
+
+        // Finalize
+        let results = engine
+            .finalize_stream(handle)
+            .map_err(|e| BenchmarkError::ParseError(format!("Finalize failed: {}", e)))?;
+
+        if !results.is_empty() {
+            final_text = results[0].text.clone();
+            finalization_time = Some(start.elapsed());
+        }
+
+        let first_partial_ms = first_partial_time.unwrap_or(start.elapsed()).as_millis() as u64;
+        let finalization_ms = finalization_time.unwrap_or(start.elapsed()).as_millis() as u64;
+
+        let rtf = if audio_duration_ms > 0 {
+            finalization_ms as f64 / 1000.0 / (audio_duration_ms as f64 / 1000.0)
+        } else {
+            0.0
+        };
+
+        let wer = Self::calculate_wer(&ground_truth, &final_text);
+        let cer = Self::calculate_cer(&ground_truth, &final_text);
+
+        Ok(BenchmarkRun {
+            engine: engine_name.to_string(),
+            file_id: file_id.to_string(),
+            first_partial_ms,
+            finalization_ms,
+            audio_duration_ms,
+            rtf,
+            wer,
+            cer,
+            memory_mb: 0,
+            cpu_percent: 0.0,
+        })
     }
 }
 
