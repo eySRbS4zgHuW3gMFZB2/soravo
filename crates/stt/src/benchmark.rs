@@ -364,7 +364,6 @@ impl BenchmarkHarness {
         E: super::SpeechEngine + Send + 'static,
         F: FnMut() -> Result<E, super::SpeechError>,
     {
-
         let audio_path =
             std::path::Path::new(&self.config.audio_dir).join(format!("{}.wav", file_id));
         if !audio_path.exists() {
@@ -449,7 +448,7 @@ impl BenchmarkHarness {
             rtf,
             wer,
             cer,
-            memory_mb: 0, // Would need memory profiling
+            memory_mb: 0,     // Would need memory profiling
             cpu_percent: 0.0, // Would need CPU profiling
         })
     }
@@ -507,7 +506,9 @@ impl BenchmarkHarness {
             ));
         }
 
-        engine.warmup().map_err(|e| BenchmarkError::ParseError(format!("Warmup failed: {}", e)))?;
+        engine
+            .warmup()
+            .map_err(|e| BenchmarkError::ParseError(format!("Warmup failed: {}", e)))?;
 
         // Start streaming
         let mut handle = engine

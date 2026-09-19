@@ -10,13 +10,11 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use anyhow::Result;
-use transcribe_cpp::{
-    Backend, Model, ModelOptions, RunOptions, Session, StreamOptions, Task,
-};
+use transcribe_cpp::{Backend, Model, ModelOptions, RunOptions, Session, StreamOptions, Task};
 
 use super::super::{
-    EngineState, SpeechEngine, SpeechError, StreamHandle, StreamingTranscript,
-    TranscriptionConfig, TranscriptionResult, VadConfig,
+    EngineState, SpeechEngine, SpeechError, StreamHandle, StreamingTranscript, TranscriptionConfig,
+    TranscriptionResult, VadConfig,
 };
 
 /// Commands sent to the streaming worker thread.
@@ -87,9 +85,9 @@ fn streaming_worker_loop(
             }
             StreamWorkerCmd::Finalize(reply_tx) => {
                 let result = (|| -> Result<Vec<TranscriptionResult>, SpeechError> {
-                    let _update = stream
-                        .finalize()
-                        .map_err(|e| SpeechError::Inference(format!("Stream finalize failed: {}", e)))?;
+                    let _update = stream.finalize().map_err(|e| {
+                        SpeechError::Inference(format!("Stream finalize failed: {}", e))
+                    })?;
 
                     let revision = stream.revision();
                     revision_shared.store(revision, Ordering::Release);
@@ -399,7 +397,8 @@ impl SpeechEngine for WhisperEngine {
 
         // Check capabilities
         let caps = model.capabilities();
-        self.supports_streaming.store(caps.supports_streaming, Ordering::Release);
+        self.supports_streaming
+            .store(caps.supports_streaming, Ordering::Release);
         self.supported_languages = caps.languages.clone();
 
         log::info!(
@@ -502,9 +501,7 @@ impl SpeechEngine for WhisperEngine {
             return Err(SpeechError::StreamingNotSupported);
         }
         if self.engine_state() == EngineState::Streaming {
-            return Err(SpeechError::Inference(
-                "Stream already active".to_string(),
-            ));
+            return Err(SpeechError::Inference("Stream already active".to_string()));
         }
 
         self.start_stream_worker()?;
@@ -533,7 +530,8 @@ impl SpeechEngine for WhisperEngine {
                 last_revision,
             });
         }
-        self.last_revision.store(current_revision, Ordering::Release);
+        self.last_revision
+            .store(current_revision, Ordering::Release);
 
         let cmd_tx = self.stream_cmd_tx.lock().unwrap().clone();
         let Some(cmd_tx) = cmd_tx else {
