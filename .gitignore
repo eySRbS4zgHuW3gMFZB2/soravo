@@ -20,5 +20,6 @@ playwright-report/
 .DS_Store
 Thumbs.db
 *.log
-models/
+/models/
+!crates/models/
 progress/*.local.md

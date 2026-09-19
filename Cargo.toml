@@ -1,8 +1,10 @@
 [workspace]
 members = [
   "apps/desktop/src-tauri",
+  "crates/audio",
   "crates/config",
   "crates/hotkeys",
+  "crates/models",
   "crates/transcript",
   "crates/typing"
 ]
@@ -10,7 +12,7 @@ resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 license = "Proprietary"
 authors = ["Soravo Engineering"]
 

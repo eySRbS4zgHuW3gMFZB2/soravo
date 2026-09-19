@@ -10,7 +10,7 @@ use std::sync::Mutex;
 use tauri::State;
 
 /// Hotkey state managed by the Tauri runtime.
-#[derive(Debug, Default)]
+#[derive(Default, Debug)]
 pub struct HotkeyState {
     config: HotkeyConfig,
     is_listening: bool,
@@ -144,7 +144,7 @@ pub fn hotkey_recording(state: State<'_, Mutex<HotkeyState>>) -> bool {
 pub fn hotkey_check_conflicts(binding: Option<HotkeyBinding>) -> HotkeyResult {
     // This is a placeholder for platform-specific conflict detection
     // In a real implementation, this would query OS-level hotkey registry
-    if binding.is_some() {
+    if let Some(_b) = binding {
         // Simulated conflict check - always returns success for now
         HotkeyResult::Success {
             message: String::from("No conflicts detected"),

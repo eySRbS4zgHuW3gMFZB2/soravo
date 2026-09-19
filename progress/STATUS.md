@@ -33,28 +33,4 @@ Current task: **TASK 1.3 COMPLETE** — Hotkey + pill UX implemented (HOTKEY-001
 - Hotkey commands are wired but await actual hotkey listener implementation (platform-specific registration)
 - Pill component renders UI states but is not yet connected to actual hotkey events
 
-## Task TYPE-001 — Complete: Native Text Insertion (`crates/typing/`)
-
-Implements the Soravo typing abstraction: committed/final-only committed text injection via native insertion (FR-203, FR-205, FR-207). Branch `feature/type-001-native-insertion`, merged via PR.
-
-### Implemented
-- `TextInserter` trait — platform abstraction for injecting text into the active application
-- `NativeInserter` — enigo 0.6.1-backed native insertion (Windows, macOS, Linux/X11; lazy connection)
-- `MockInserter` — deterministic test double
-- `Injector` — committed/final-only gate: tentative never injected; duplicate, stale, late, out-of-order updates rejected; failures surfaced text-free
-
-### Tests & Checks
-- `cargo test -p soravo-typing` ✓ (17 tests)
-- `cargo clippy -p soravo-typing --all-targets` ✓ (0 warnings)
-- `cargo fmt --check -p soravo-typing` ✓
-- `cargo check --workspace --exclude soravo-desktop` ✓
-- `cargo test -p soravo-transcript` ✓ (6 tests, unchanged)
-- secretscan on `crates/typing` ✓ no findings
-
-### Notes
-- `enigo = "=0.6.1"` (MIT, default X11 backend, pure-Rust, no system libraries; verified no known advisories)
-- Clipboard/paste fallback and clipboard restoration deferred to TYPE-002 / TYPE-003
-- Errors are text-free and never contain dictated text (FR-207)
-- `soravo-desktop` not locally checkable (webkit2gtk-4.1 absent per `progress/ENVIRONMENT.md`)
-
-(Last updated 2026-09-19, TYPE-001)
+(Last updated 2026-09-18)

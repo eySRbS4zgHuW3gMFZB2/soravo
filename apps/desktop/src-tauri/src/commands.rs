@@ -9,8 +9,10 @@ use serde::Serialize;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::events::{PingPayload, SESSION_CHANGED_EVENT, SessionChangedPayload};
+use crate::events::{PingPayload, SessionChangedPayload, SESSION_CHANGED_EVENT};
 use crate::session::{SessionMachine, SessionPhase, SessionTransition};
+
+use soravo_typing::{TypingConfig, TypingEngine, TypingResult};
 
 /// Snapshot of the desk runtime handed to the frontend on request.
 #[derive(Clone, Debug, Serialize)]
@@ -121,4 +123,20 @@ pub fn emit_ping(app: AppHandle, machine: State<'_, Mutex<SessionMachine>>) -> P
         PingPayload::new(reply.sequence, reply.timestamp_ms),
     );
     reply
+}
+
+/// Inject committed text into the active application.
+/// This is a typed IPC command callable from the frontend.
+#[tauri::command]
+pub fn inject_text(app: AppHandle, text: String) -> TypingResult {
+    let engine = TypingEngine::new(TypingConfig::default());
+    let result = engine.inject(&text);
+
+    // Log injection result for diagnostics
+    let _ = app.emit(
+        "typing://result",
+        serde_json::to_value(&result).unwrap_or_default(),
+    );
+
+    result
 }
