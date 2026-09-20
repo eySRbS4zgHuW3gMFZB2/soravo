@@ -1,0 +1,100 @@
+{
+  "benchmark_version": "STT-008-v1.0.0",
+  "last_updated": "2026-09-21",
+  "dataset": {
+    "name": "LibriSpeech",
+    "version": "1.0",
+    "subset": "test-clean",
+    "source": "https://www.openslr.org/12",
+    "license": "Public Domain",
+    "format": {
+      "container": "WAV",
+      "sample_rate": 16000,
+      "bits_per_sample": 16,
+      "channels": 1
+    },
+    "language": "en",
+    "utterances": 2620,
+    "total_duration_hours": 5.5,
+    "selected_samples": {
+      "count": 50,
+      "selection_criteria": "Deterministic subset spanning short commands, normal dictation, and long-form speech",
+      "speaker_diversity": true
+    },
+    "transcript_format": "UTF-8 text files matching audio sample IDs",
+    "redistribution_allowed": true,
+    "local_storage_required": true
+  },
+  "models": {
+    "parakeet": {
+      "id": "parakeet-rnnt-1.1b-v2",
+      "display_name": "NVIDIA Parakeet RNNT 1.1B v2",
+      "backend": "Parakeet",
+      "version": "v2",
+      "source": "NVIDIA NeMo",
+      "repository_url": "https://github.com/NVIDIA/NeMo",
+      "download_url": "https://huggingface.co/nvidia/parakeet-rnnt-1.1b-v2",
+      "format": "ONNX",
+      "size_bytes": 4400000000,
+      "checksum_sha256": "TBD - NVIDIA model weights to be verified",
+      "license": "Apache-2.0",
+      "languages": ["en"],
+      "streaming": true,
+      "hardware": {
+        "min_ram_mb": 8192,
+        "requires_gpu": false,
+        "recommended_gpu": true,
+        "supported_platforms": ["macOS", "Windows", "Linux"]
+      },
+      "min_app_version": "0.1.0"
+    },
+    "whisper": {
+      "id": "whisper-1.5b",
+      "display_name": "OpenAI Whisper 1.5B",
+      "backend": "Whisper",
+      "version": "official",
+      "source": "OpenAI",
+      "repository_url": "https://github.com/openai/whisper",
+      "download_url": "https://huggingface.co/openai/whisper-1.5b",
+      "format": "Binary weights",
+      "size_bytes": 3000000000,
+      "checksum_sha256": "TBD - OpenAI model weights to be verified",
+      "license": "MIT",
+      "languages": ["en", "auto"],
+      "streaming": true,
+      "hardware": {
+        "min_ram_mb": 6144,
+        "requires_gpu": false,
+        "recommended_gpu": true,
+        "supported_platforms": ["macOS", "Windows", "Linux"]
+      },
+      "min_app_version": "0.1.0"
+    }
+  },
+  "benchmark_config": {
+    "audio_dir": "/tmp/soravo-benchmark/audio",
+    "ground_truth_dir": "/tmp/soravo-benchmark/ground_truth",
+    "warmup_runs": 3,
+    "benchmark_runs": 5,
+    "sample_rate": 16000,
+    "measurements": ["latency", "wer", "cer", "memory", "cpu"]
+  },
+  "storage_requirements": {
+    "audio_dataset_mb": 350,
+    "whisper_model_mb": 3000,
+    "parakeet_model_mb": 4400,
+    "total_mb": 7750,
+    "recommended_free_mb": 10000
+  },
+  "verification": {
+    "checksums_file": "checksums/manifest.tsv",
+    "script": "scripts/verify_checksums.py",
+    "requirements": [
+      "All audio files must have valid checksums",
+      "All model files must have valid checksums",
+      "Audio must be decodable at 16kHz",
+      "Transcripts must correspond to audio IDs",
+      "Models must load with current engines"
+    ]
+  }
+}

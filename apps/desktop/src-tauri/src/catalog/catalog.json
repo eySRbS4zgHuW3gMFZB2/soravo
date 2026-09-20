@@ -1,0 +1,4 @@
+{"models":
+    {"id": "parakeet-1.1b", "name": "Parakeet 1.1B", "backend": "onnx", "description": "Fast local speech recognition", "source": "https://huggingface.co/cjpais/parakeet-1.1b-onnx", "license": "See model card"},
+    {"id": "whisper-tiny", "name": "Whisper Tiny", "backend": "gguf", "description": "Compact Whisper model", "source": "See documentation for GGUF sources", "license": "See model card"}
+]}

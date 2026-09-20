@@ -1,19 +1,42 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Least-privilege capability set for the Soravo main window.",
-  "windows": ["main"],
+  "platforms": ["macos", "windows"],
   "permissions": [
-    "core:default",
-    "core:app:allow-version",
-    "core:app:allow-name",
-    "core:window:allow-show",
-    "core:window:allow-close",
-    "core:window:allow-set-focus",
-    "core:window:allow-title",
-    "core:window:allow-internal-toggle-maximize",
-    "core:event:allow-emit",
-    "core:event:allow-listen",
-    "core:event:allow-unlisten"
+    {
+      "identifier": "core:default",
+      "allow": ["emit", "listen"]
+    },
+    {
+      "identifier": "core:app",
+      "allow": ["get-app-name", "get-app-version", "show-about-window", "hide-about-window"]
+    },
+    {
+      "identifier": "shell:default",
+      "allow": ["execute"]
+    },
+    {
+      "identifier": "fs:default",
+      "allow": ["read-dir", "read-file", "rename-file", "remove-file", "remove-dir", "exists", "read-file-content", "write-file", "create-dir"]
+    },
+    {
+      "identifier": "fs:scope",
+      "allow": ["*"]
+    },
+    {
+      "identifier": "clipboard-manager:default",
+      "allow": ["clear", "read-text", "write-text", "read-image", "write-image"]
+    },
+    {
+      "identifier": "dialog:default",
+      "allow": ["open", "save", "message", "ask", "confirm"]
+    },
+    {
+      "identifier": "os:default",
+      "allow": ["arch", "os-name", "os-version", "locale", "uptime", "current-exe"]
+    },
+    {
+      "identifier": "global-shortcut:default",
+      "allow": ["register", "unregister", "is-registered", "all"]
+    }
   ]
 }

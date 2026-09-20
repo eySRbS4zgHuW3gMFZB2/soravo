@@ -1,70 +1,33 @@
-#![forbid(unsafe_code)]
-//! Soravo desktop shell — Tauri v2 runtime bootstrap.
+//! Soravo Desktop Core Library
 //!
-//! Ported from Handy (`ba10ce1943ef34e93c09494027fc0b9ced2e8a44`) build
-//! plumbing, rebranded and stripped to the Phase 1 surface: window lifecycle,
-//! logging, single-instance, the authoritative session state machine, IPC
-//! commands, and the typed event bus. See `decisions/ADR-026`.
+//! This module integrates:
+//! - Handy's audio, model, typing, settings infrastructure
+//! - Soravo's session state machine (authoritative)
 
-mod commands;
-mod events;
-mod hotkey;
-mod session;
+pub mod session;
+pub mod events;
 
-use std::sync::Mutex;
+// Handy integration modules
+pub mod audio_toolkit;
+pub mod clipboard;
+pub mod input;
+pub mod settings;
+pub mod tray;
+pub mod overlay;
+pub mod paste_tx;
+pub mod catalog;
+pub mod audio_feedback;
+pub mod autostart;
+pub mod utils;
 
-use tauri::Manager;
+// Commands
+pub mod commands;
 
-use hotkey::HotkeyState;
-use session::SessionMachine;
+// Managers
+pub mod managers;
 
-/// Tauri app entry point, invoked by `main.rs`.
-pub fn run() {
-    let builder = tauri::Builder::default()
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                .level(log::LevelFilter::Info)
-                .targets([
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
-                        file_name: None,
-                    }),
-                ])
-                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
-                .build(),
-        )
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
-        }))
-        .manage(Mutex::new(SessionMachine::default()))
-        .manage(Mutex::new(HotkeyState::default()))
-        .invoke_handler(tauri::generate_handler![
-            commands::runtime_status,
-            commands::ping,
-            commands::session_snapshot,
-            commands::session_transition,
-            commands::session_reset,
-            commands::emit_ping,
-            commands::inject_text,
-            commands::load_settings,
-            commands::save_settings,
-            commands::update_microphone_settings,
-            commands::update_hotkey_settings,
-            commands::update_model_settings,
-            hotkey::hotkey_config,
-            hotkey::set_hotkey_config,
-            hotkey::hotkey_start,
-            hotkey::hotkey_stop,
-            hotkey::hotkey_toggle,
-            hotkey::hotkey_recording,
-            hotkey::hotkey_check_conflicts,
-        ]);
+// Shortcut/hotkey integration
+pub mod shortcut;
 
-    builder
-        .run(tauri::generate_context!())
-        .expect("error while running Soravo desktop runtime");
-}
+// Session state accessors
+pub use session::{SessionMachine, SessionPhase, SessionTransition};
