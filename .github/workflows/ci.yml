@@ -56,7 +56,7 @@ jobs:
       - run: cargo test --workspace
       - name: Install cargo-audit
         uses: taiki-e/install-action@cargo-audit
-      - run: cargo audit --deny warnings --ignore GHSA-q83h-524g-xf6h --ignore RUSTSEC-2024-0370 --ignore RUSTSEC-2025-0081 --ignore RUSTSEC-2025-0075 --ignore RUSTSEC-2025-0080 --ignore RUSTSEC-2025-0100 --ignore RUSTSEC-2025-0098 --ignore RUSTSEC-2024-0429
+      - run: cargo audit --deny warnings --ignore GHSA-q83h-524g-xf6h
       - name: Install cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
