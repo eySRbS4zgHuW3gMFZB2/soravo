@@ -12,6 +12,7 @@ use tauri::{AppHandle, Emitter, State};
 use crate::events::{PingPayload, SessionChangedPayload, SESSION_CHANGED_EVENT};
 use crate::session::{SessionMachine, SessionPhase, SessionTransition};
 
+use soravo_config::{HotkeySettings, MicrophoneSettings, ModelSettings, Settings};
 use soravo_typing::{TypingConfig, TypingEngine, TypingResult};
 
 /// Account response for sign-in/sign-out operations.
@@ -141,11 +142,129 @@ pub fn inject_text(app: AppHandle, text: String) -> TypingResult {
     let engine = TypingEngine::new(TypingConfig::default());
     let result = engine.inject(&text);
 
-    // Log injection result for diagnostics
     let _ = app.emit(
         "typing://result",
         serde_json::to_value(&result).unwrap_or_default(),
     );
 
     result
+}
+
+/// IPC settings response
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsResponse {
+    pub success: bool,
+    pub message: String,
+    pub data: Option<Settings>,
+}
+
+#[tauri::command]
+pub fn load_settings() -> SettingsResponse {
+    match Settings::load() {
+        Ok(settings) => SettingsResponse {
+            success: true,
+            message: "Settings loaded".to_string(),
+            data: Some(settings),
+        },
+        Err(e) => SettingsResponse {
+            success: false,
+            message: format!("Failed to load settings: {}", e),
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+pub fn save_settings(settings: Settings) -> SettingsResponse {
+    match settings.save() {
+        Ok(()) => SettingsResponse {
+            success: true,
+            message: "Settings saved".to_string(),
+            data: None,
+        },
+        Err(e) => SettingsResponse {
+            success: false,
+            message: format!("Failed to save settings: {}", e),
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+pub fn update_microphone_settings(settings: MicrophoneSettings) -> SettingsResponse {
+    match Settings::load() {
+        Ok(mut current) => {
+            current.microphone = settings;
+            match current.save() {
+                Ok(()) => SettingsResponse {
+                    success: true,
+                    message: "Microphone settings updated".to_string(),
+                    data: Some(current),
+                },
+                Err(e) => SettingsResponse {
+                    success: false,
+                    message: format!("Failed to save settings: {}", e),
+                    data: None,
+                },
+            }
+        }
+        Err(e) => SettingsResponse {
+            success: false,
+            message: format!("Failed to load settings: {}", e),
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+pub fn update_hotkey_settings(settings: HotkeySettings) -> SettingsResponse {
+    match Settings::load() {
+        Ok(mut current) => {
+            current.hotkey = settings;
+            match current.save() {
+                Ok(()) => SettingsResponse {
+                    success: true,
+                    message: "Hotkey settings updated".to_string(),
+                    data: Some(current),
+                },
+                Err(e) => SettingsResponse {
+                    success: false,
+                    message: format!("Failed to save settings: {}", e),
+                    data: None,
+                },
+            }
+        }
+        Err(e) => SettingsResponse {
+            success: false,
+            message: format!("Failed to load settings: {}", e),
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+pub fn update_model_settings(settings: ModelSettings) -> SettingsResponse {
+    match Settings::load() {
+        Ok(mut current) => {
+            current.model = settings;
+            match current.save() {
+                Ok(()) => SettingsResponse {
+                    success: true,
+                    message: "Model settings updated".to_string(),
+                    data: Some(current),
+                },
+                Err(e) => SettingsResponse {
+                    success: false,
+                    message: format!("Failed to save settings: {}", e),
+                    data: None,
+                },
+            }
+        }
+        Err(e) => SettingsResponse {
+            success: false,
+            message: format!("Failed to load settings: {}", e),
+            data: None,
+        },
+    }
 }
