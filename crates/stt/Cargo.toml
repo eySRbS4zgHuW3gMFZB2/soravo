@@ -2,7 +2,7 @@
 name = "soravo-stt"
 version = "0.1.0"
 edition = "2021"
-license = "Proprietary"
+license = "MIT"
 authors = ["Soravo Engineering"]
 
 [dependencies]
