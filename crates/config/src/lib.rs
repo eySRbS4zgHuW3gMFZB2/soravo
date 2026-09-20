@@ -200,4 +200,21 @@ mod tests {
         assert_eq!(settings.hotkey.mode, InteractionMode::HoldToTalk);
         assert!(settings.hotkey.enabled);
     }
+
+    #[test]
+    fn test_invalid_shortcut() {
+        assert_eq!(Shortcut::parse("invalid"), Err(ConfigError::InvalidShortcut));
+        assert_eq!(Shortcut::parse(""), Err(ConfigError::InvalidShortcut));
+        assert_eq!(
+            Shortcut::parse(&"a".repeat(81)),
+            Err(ConfigError::InvalidShortcut)
+        );
+    }
+
+    #[test]
+    fn test_valid_shortcuts() {
+        assert!(Shortcut::parse("Ctrl+Shift+S").is_ok());
+        assert!(Shortcut::parse("Cmd+Space").is_ok());
+        assert!(Shortcut::parse("Alt+Shift+Space").is_ok());
+    }
 }

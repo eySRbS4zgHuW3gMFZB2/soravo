@@ -4230,6 +4230,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "soravo-config",
  "soravo-hotkeys",
  "soravo-typing",
  "tauri",
