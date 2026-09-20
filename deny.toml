@@ -1,3 +1,13 @@
+[advisories]
+ignore = [
+  { id = "RUSTSEC-2024-0370", reason = "proc-macro-error is unmaintained. Transitive dependency via glib -> gtk -> tauri. No safe upgrade available. Build-time macro helper with no runtime security impact." },
+  { id = "RUSTSEC-2025-0081", reason = "unic-char-property is unmaintained. Transitive via urlpattern -> tauri-utils -> tauri. Character property lookup with no security-critical functionality." },
+  { id = "RUSTSEC-2025-0075", reason = "unic-char-range is unmaintained. Transitive via urlpattern -> tauri-utils -> tauri. No security impact." },
+  { id = "RUSTSEC-2025-0080", reason = "unic-common is unmaintained. Transitive via urlpattern -> tauri-utils -> tauri. No security impact." },
+  { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident is unmaintained. Transitive via urlpattern -> tauri-utils -> tauri. Identifier parsing with no security-sensitive operations." },
+  { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version is unmaintained. Transitive via urlpattern -> tauri-utils -> tauri. No security impact." },
+]
+
 [licenses]
 version = 2
 allow = [

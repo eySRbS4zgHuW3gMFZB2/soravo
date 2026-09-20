@@ -18,7 +18,7 @@
       },
       "nsis": {
         "installerIcon": "./icons/icon.ico",
-        "language": "1033"
+        "languages": ["English"]
       }
     }
   }
