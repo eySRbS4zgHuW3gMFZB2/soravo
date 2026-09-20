@@ -5,15 +5,18 @@
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use anyhow::Result;
 use transcribe_rs::onnx::parakeet::{ParakeetModel, ParakeetParams, TimestampGranularity};
 use transcribe_rs::onnx::Quantization;
 use transcribe_rs::{SpeechModel, TranscribeOptions};
 
-use super::super::{SpeechEngine, SpeechError, TranscriptionConfig, TranscriptionResult};
+use super::super::{
+    EngineState, SpeechEngine, SpeechError, TranscriptionConfig, TranscriptionResult,
+};
 
-/// Parakeet streaming engine.
+/// Parakeet streaming engine with lifecycle management.
 ///
 /// Uses transcribe-rs ONNX runtime for local inference.
 /// Supports both batch and streaming transcription.
@@ -25,6 +28,7 @@ pub struct ParakeetEngine {
     #[allow(dead_code)]
     params: ParakeetParams,
     quantization: Quantization,
+    state: Mutex<EngineState>,
 }
 
 impl Default for ParakeetEngine {
@@ -39,6 +43,7 @@ impl Default for ParakeetEngine {
                 ..Default::default()
             },
             quantization: Quantization::Int8,
+            state: Mutex::new(EngineState::Unloaded),
         }
     }
 }
@@ -53,6 +58,11 @@ impl ParakeetEngine {
         }
     }
 
+    /// Get the current engine state.
+    pub fn engine_state(&self) -> EngineState {
+        *self.state.lock().unwrap()
+    }
+
     /// Get the current session ID.
     pub fn session_id(&self) -> Option<&str> {
         self.session_id.as_deref()
@@ -65,13 +75,14 @@ impl ParakeetEngine {
 }
 
 impl SpeechEngine for ParakeetEngine {
-    fn initialize(
-        &mut self,
-        model_path: &str,
-        config: &TranscriptionConfig,
-    ) -> Result<(), SpeechError> {
+    fn load(&mut self, model_path: &str, config: &TranscriptionConfig) -> Result<(), SpeechError> {
+        // State: UNLOADED → LOADING
+        *self.state.lock().unwrap() = EngineState::Loading;
+
         let path = Path::new(model_path);
         if !path.exists() {
+            // Revert state on failure
+            *self.state.lock().unwrap() = EngineState::Unloaded;
             return Err(SpeechError::ModelLoad(format!(
                 "Model not found at {}",
                 model_path
@@ -79,8 +90,11 @@ impl SpeechEngine for ParakeetEngine {
         }
 
         // Load the Parakeet model
-        let model = ParakeetModel::load(path, &self.quantization)
-            .map_err(|e| SpeechError::ModelLoad(format!("Failed to load Parakeet model: {}", e)))?;
+        let model = ParakeetModel::load(path, &self.quantization).map_err(|e| {
+            // Revert state on failure
+            *self.state.lock().unwrap() = EngineState::Unloaded;
+            SpeechError::ModelLoad(format!("Failed to load Parakeet model: {}", e))
+        })?;
 
         self.model = Some(model);
         self.session_id = Some(format!(
@@ -92,13 +106,37 @@ impl SpeechEngine for ParakeetEngine {
         ));
         self.config = Some(config.clone());
         self.initialized.store(true, Ordering::Release);
+        *self.state.lock().unwrap() = EngineState::Ready;
 
         log::info!(
-            "Parakeet engine initialized: model={}, session={:?}",
+            "Parakeet engine loaded: model={}, session={:?}",
             model_path,
             self.session_id
         );
         Ok(())
+    }
+
+    fn unload(&mut self) -> Result<(), SpeechError> {
+        // State: READY → UNLOADING → UNLOADED
+        if self.engine_state() != EngineState::Ready {
+            return Err(SpeechError::NotAvailable(
+                "Engine not in READY state".to_string(),
+            ));
+        }
+
+        *self.state.lock().unwrap() = EngineState::Unloading;
+        self.reset();
+        *self.state.lock().unwrap() = EngineState::Unloaded;
+        Ok(())
+    }
+
+    fn initialize(
+        &mut self,
+        model_path: &str,
+        config: &TranscriptionConfig,
+    ) -> Result<(), SpeechError> {
+        // DEPRECATED: use load() instead
+        self.load(model_path, config)
     }
 
     fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
@@ -167,6 +205,11 @@ impl SpeechEngine for ParakeetEngine {
         self.session_id = None;
         self.config = None;
         self.initialized.store(false, Ordering::Release);
+        *self.state.lock().unwrap() = EngineState::Unloaded;
+    }
+
+    fn state(&self) -> EngineState {
+        self.engine_state()
     }
 }
 
@@ -179,6 +222,7 @@ mod tests {
         let engine = ParakeetEngine::default();
         assert!(!engine.is_initialized());
         assert!(engine.session_id().is_none());
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
     }
 
     #[test]
@@ -186,6 +230,7 @@ mod tests {
         let params = ParakeetParams::default();
         let engine = ParakeetEngine::with_params(params, Quantization::Int8);
         assert!(!engine.is_initialized());
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
     }
 
     #[test]
@@ -202,5 +247,22 @@ mod tests {
             SpeechError::ModelLoad(_) => {}
             _ => panic!("Expected ModelLoad error"),
         }
+    }
+
+    #[test]
+    fn parakeet_lifecycle_state_transitions() {
+        let mut engine = ParakeetEngine::default();
+        // Start: UNLOADED
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
+
+        // load() with non-existent model should fail and revert to UNLOADED
+        let config = TranscriptionConfig {
+            language: "en".to_string(),
+            streaming: true,
+            hotwords: vec![],
+        };
+        let result = engine.load("/nonexistent/model.onnx", &config);
+        assert!(result.is_err());
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
     }
 }

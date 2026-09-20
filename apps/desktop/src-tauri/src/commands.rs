@@ -14,6 +14,14 @@ use crate::session::{SessionMachine, SessionPhase, SessionTransition};
 
 use soravo_typing::{TypingConfig, TypingEngine, TypingResult};
 
+/// Account response for sign-in/sign-out operations.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountResult {
+    pub success: bool,
+    pub message: String,
+}
+
 /// Snapshot of the desk runtime handed to the frontend on request.
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -10,6 +10,7 @@ import {
   type SessionPhase,
   type SessionTransition,
 } from "./ipc";
+import { AccountPanel } from "./components/account-panel";
 import { Pill } from "./components/pill";
 
 export const PHASE_LABEL: Record<SessionPhase, string> = {
@@ -126,6 +127,8 @@ export function App() {
             <i /> {message}
           </span>
         </header>
+
+        <AccountPanel />
 
         <article className="primary">
           <div>

@@ -161,3 +161,31 @@ export function hotkeyRecording(): Promise<boolean> {
 export function hotkeyCheckConflicts(binding: HotkeyBinding | null): Promise<HotkeyResult> {
   return invoke<HotkeyResult>("hotkey_check_conflicts", { binding });
 }
+
+// Account types and commands
+
+export type AccountState = "SignedOut" | "SignedIn" | "NeedsRefresh" | "Unavailable";
+
+export type AccountSnapshot = {
+  state: AccountState;
+  user_id: string | null;
+  entitlement_active: boolean;
+  is_offline: boolean;
+};
+
+export type AccountResult = {
+  success: boolean;
+  message: string;
+};
+
+export function getAccountSnapshot(): Promise<AccountSnapshot> {
+  return invoke<AccountSnapshot>("get_account_snapshot");
+}
+
+export function accountSignIn(): Promise<AccountResult> {
+  return invoke<AccountResult>("account_sign_in");
+}
+
+export function accountSignOut(): Promise<AccountResult> {
+  return invoke<AccountResult>("account_sign_out");
+}

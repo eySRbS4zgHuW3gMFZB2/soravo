@@ -109,35 +109,64 @@ pub struct VadConfig {
     pub threshold: f32,
 }
 
-/// Engine lifecycle state.
+/// Engine lifecycle state (state machine).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EngineState {
-    /// Engine created but not initialized.
-    Uninitialized,
-    /// Model loaded, ready for inference.
+    /// Engine created but no model loaded.
+    Unloaded,
+    /// Model loading in progress.
+    Loading,
+    /// Model loaded, warming up (pre-loading compute graph, running warmup inference).
+    Warming,
+    /// Model ready for inference.
     Ready,
-    /// Engine warming up (pre-loading compute graph).
-    WarmingUp,
     /// Active streaming session in progress.
     Streaming,
-    /// Engine shutting down.
+    /// Finalizing active streaming session.
+    Finalizing,
+    /// Unloading model (releasing inference resources).
+    Unloading,
+    /// Engine shutting down completely.
     ShuttingDown,
-    /// Engine shut down, can be reinitialized.
+    /// Engine completely shut down.
     Shutdown,
 }
 
-/// Core speech engine trait.
+/// Core speech engine trait with full lifecycle management.
 ///
 /// Implementations must provide model initialization, audio processing,
 /// finalization, and reset. For streaming-capable engines, the
 /// `process_audio` method should return partial results with `is_final=false`
 /// and the final result with `is_final=true`.
 ///
+/// State machine: UNLOADED → LOADING → WARMING → READY ↔ STREAMING ↔ FINALIZING → READY → UNLOADING → UNLOADED
+///
 /// Note: The trait only requires `Send` (not `Sync`) because engines may
 /// contain non-thread-safe native handles. Thread safety is achieved by
 /// wrapping engines in `Arc<Mutex<...>>` at the manager level.
 pub trait SpeechEngine: Send {
+    /// Load model with explicit lifecycle state transitions.
+    /// State: UNLOADED → LOADING → WARMING → READY
+    ///
+    /// Must NOT be called from real-time audio callback.
+    /// Must NOT block UI - should be async or in background thread.
+    fn load(&mut self, model_path: &str, config: &TranscriptionConfig) -> Result<(), SpeechError> {
+        // Default implementation for backward compatibility
+        self.initialize(model_path, config)?;
+        self.warmup()
+    }
+
+    /// Unload model (release inference resources).
+    /// State: READY → UNLOADING → UNLOADED
+    ///
+    /// Must NOT be called while streaming is active.
+    fn unload(&mut self) -> Result<(), SpeechError> {
+        self.reset();
+        Ok(())
+    }
+
     /// Initialize the engine with a model path and configuration.
+    /// DEPRECATED: use load() instead for full lifecycle management.
     fn initialize(
         &mut self,
         model_path: &str,
@@ -178,7 +207,7 @@ pub trait SpeechEngine: Send {
 
     /// Get the current engine lifecycle state.
     fn state(&self) -> EngineState {
-        EngineState::Uninitialized
+        EngineState::Unloaded
     }
 
     /// Warm up the engine (load model, initialize compute graph, run dummy inference).
