@@ -2,12 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Mutex;
-use tauri::{Manager, generate_handler};
+use tauri::{generate_handler, Manager};
 
-use soravo_desktop_lib::{
-    session::SessionMachine,
-    commands::*,
-};
+use soravo_desktop_lib::{commands::*, session::SessionMachine};
 
 fn main() {
     // Initialize session state machine (Soravo's authoritative state)

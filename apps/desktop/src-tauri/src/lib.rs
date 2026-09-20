@@ -4,28 +4,28 @@
 //! - Handy's audio, model, typing, settings infrastructure  
 //! - Soravo's session state machine (authoritative)
 
-pub mod session;
 pub mod events;
+pub mod session;
 
 // Handy integration modules
+pub mod actions;
+pub mod audio_feedback;
 pub mod audio_toolkit;
+pub mod autostart;
+pub mod catalog;
 pub mod clipboard;
 pub mod input;
+pub mod overlay;
+pub mod portable;
+pub mod secure_input;
 pub mod settings;
 pub mod tray;
-pub mod overlay;
-pub mod catalog;
-pub mod audio_feedback;
-pub mod autostart;
 pub mod utils;
-pub mod portable;
-pub mod actions;
-pub mod secure_input;
 
 // Commands
 pub mod commands;
 
-// Managers  
+// Managers
 pub mod managers;
 
 // Shortcut/hotkey integration
