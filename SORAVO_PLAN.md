@@ -40,31 +40,40 @@ Soravo is a professional **local-first, FOSS speech-to-text desktop application*
 
 ## 3. Architecture: Handy-Derived Desktop Foundation
 
-**Handy (MIT) is the implementation foundation for generic desktop functionality.**
+**SORAVO USES HANDY AS THE DESKTOP FOUNDATION, DERIVES/FORKS IT, REBRANDS IT AS SORAVO, AND MODIFIES/REPLACES/EXTENDS IT WHERE SORAVO REQUIREMENTS DIFFER.**
 
-Handy-derived systems (where compatible):
+**Handy-Derived Foundation** (where compatible and useful):
 - Tauri desktop shell
-- React/TypeScript desktop foundation
-- Rust desktop foundation
-- Audio capture & toolkit
+- Rust application structure
+- React/TypeScript UI foundation
+- Audio capture and toolkit
 - VAD (Voice Activity Detection)
-- Shortcuts/hotkeys
-- Typing/input
-- Clipboard
-- Overlay/pill
-- Model management
+- Global shortcuts/hotkeys
+- Typing/input integration
+- Clipboard operations
+- Overlay/pill UI
+- Model management infrastructure
 - Transcription infrastructure
-- Settings
-- History
-- Tray
+- Settings storage
+- History management
+- System tray
 - Related desktop plumbing
 
-**Rule:** Soravo does NOT automatically preserve old independently-built implementations of these systems. If Handy provides a compatible mature implementation:
-1. Inspect it
-2. Reuse/adapt it
-3. Migrate consumers
-4. Test it
-5. Delete redundant Soravo implementation
+**Rule:** Handy implementation is retained wherever compatible and useful. Redundant Soravo implementations should be removed rather than maintaining duplicate stacks.
+
+**Derivation means:**
+1. Handy provides the proven desktop foundation
+2. Soravo becomes the product and architectural authority
+3. Soravo-owned contracts override Handy behavior where required
+4. Future Handy upstream changes are not automatically pulled
+5. All branding must be Soravo throughout
+6. Security, privacy, and licensing requirements take precedence
+
+**Soravo is NOT:**
+- Blindly preserving all Handy code
+- Maintaining parallel implementations without documented ADR
+- Assuming Handy's product decisions apply to Soravo
+- Automatically pulling upstream Handy updates
 
 ---
 
