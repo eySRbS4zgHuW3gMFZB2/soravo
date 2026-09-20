@@ -1,8 +1,8 @@
 # 16 — Handy Migration Status
 
-**Version:** 3.0.0  
+**Version:** 3.1.0  
 **Date:** 2026-09-21  
-**Status:** IMPLEMENTED ON FEATURE BRANCH / NOT YET MERGED
+**Status:** DOCUMENTATION UPDATED / MIGRATION IN PROGRESS
 
 ---
 
@@ -10,18 +10,17 @@
 
 | Item | Value |
 |---|---|
-| **Origin/main SHA** | 216cf23a7959840a3f830e187445968f6fc57dc7 |
-| **Current branch** | feature/HANDY-MIGRATION-001 |
-| **Current HEAD** | d58e46b25f11fcad2f2e63852056daf421c3142d |
-| **Migration commit** | 842acdf96c77df3ec0c5a27dfe0a740196c915c9 |
+| **Main SHA** | 79c72bf374b5d4ad6ff29c856e20de6a784e65b8 |
+| **Latest PR** | #58 (merged) |
+| **Migration PR** | #55 (OPEN - implementation work) |
 
 ---
 
-## 2. Migration Architecture
+## 2. Strategy Summary
 
-**Status:** VERIFIED
+**SORAVO USES HANDY AS THE DESKTOP FOUNDATION, DERIVES/FORKS IT, REBRANDS IT AS SORAVO, AND MODIFIES/REPLACES/EXTENDS IT WHERE SORAVO REQUIREMENTS DIFFER.**
 
-Soravo now uses Handy as the desktop implementation foundation while retaining its authoritative session and event contracts.
+Migration architecture is verified and correct. Remaining work is implementation integration, build infrastructure, licensing documentation, and branding cleanup.
 
 ---
 
@@ -161,41 +160,35 @@ No CI runs observed on migration branch. Desktop builds require GTK dependencies
 
 | Criteria | Status |
 |---|---|
+| Documentation updated to reflect fork/derive/rebrand strategy | ✅ |
 | Main SHA verified | ✅ |
-| Migration branch verified | ✅ |
-| Handy-derived architecture confirmed | ✅ |
-| Duplicate Soravo systems removed | ✅ |
+| Handy-derived architecture documented | ✅ |
 | Soravo session state authoritative | ✅ |
 | Soravo IPC semantics correct | ✅ |
-| Security baseline satisfied | ✅ |
-| CSP explicit | ✅ |
-| Capabilities least-privilege | ✅ |
-| No desktop telemetry | ✅ |
-| No cloud STT | ✅ |
-| Model licensing investigated | ⚠️ BLOCKED |
-| Handy branding removed except attribution | ⚠️ Partial |
-| Soravo branding correct | ✅ |
-| Rust checks pass | ⚠️ BLOCKED (GTK required) |
-| Tauri checks/build pass | ⚠️ BLOCKED (GTK required) |
+| Security baseline documented | ✅ |
+| Model licensing investigation | ⚠️ BLOCKED |
+| Branding cleanup | ⚠️ Partial |
+| Rust checks on migration branch | ⚠️ PENDING (PR #55) |
+| Tauri checks on migration branch | ⚠️ PENDING (PR #55) |
 
 ---
 
 ## 14. Next Actions
 
-1. Install GTK system dependencies for Linux builds
-2. Populate model catalog with verified metadata
-3. Obtain license terms from Handy/CJPais
-4. Fix remaining branding references
-5. Run Rust/Tauri checks after dependencies installed
-6. Create PR (if gh CLI issue resolved)
-7. Verify CI runs
+1. Complete PR #55 migration implementation
+2. Install GTK system dependencies for Linux builds
+3. Populate model catalog with verified metadata
+4. Obtain license terms from upstream
+5. Fix remaining branding references
+6. Run Rust/Tauri checks after PR #55 merge
+7. Verify CI passes on migration branch
 
 ---
 
 ## 15. Migration Verdict
 
-**HANDY-MIGRATION-001:** COMPLETE
+**DOCUMENTATION STATUS:** COMPLETE (policy and authority documents updated)
 
-**HANDY-MIGRATION-002:** PARTIALLY COMPLETE
+**IMPLEMENTATION STATUS:** IN PROGRESS (PR #55 pending merge)
 
-Migration architecture is verified and correct. Remaining work is build infrastructure, licensing documentation, and PR creation.
+Migration architecture is verified and correct. Remaining work is build infrastructure, licensing documentation, and branding cleanup.
