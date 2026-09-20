@@ -1,33 +1,6 @@
 import { useEffect, useState } from "react";
 import { loadSettings, updateHotkeySettings, HotkeySettings } from "../../ipc";
 
-type KeyCode =
-  | "F1"
-  | "F2"
-  | "F3"
-  | "F4"
-  | "F5"
-  | "F6"
-  | "F7"
-  | "F8"
-  | "F9"
-  | "F10"
-  | "F11"
-  | "F12"
-  | "A"
-  | "B"
-  | "C"
-  | "D"
-  | "E"
-  | "Space";
-
-const functionKEYS: KeyCode[] = [
-  "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-  "A", "B", "C", "D", "E", "Space"
-];
-
-const MODIFIERS = ["Ctrl", "Shift", "Alt", "Meta"];
-
 export function ShortcutSettings() {
   const [settings, setSettings] = useState<HotkeySettings | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,14 +46,6 @@ export function ShortcutSettings() {
     setRecording(true);
     if (settings) {
       const updated: HotkeySettings = { ...settings, recordingInProgress: true };
-      updateHotkeySettings(updated).catch(console.error);
-    }
-  };
-
-  const stopRecording = () => {
-    setRecording(false);
-    if (settings) {
-      const updated: HotkeySettings = { ...settings, recordingInProgress: false };
       updateHotkeySettings(updated).catch(console.error);
     }
   };

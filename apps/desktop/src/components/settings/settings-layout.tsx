@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { useState } from "react";
 import { GeneralSettings } from "./general-settings";
 import { MicrophoneSettings } from "./microphone-settings";
 import { ShortcutSettings } from "./shortcut-settings";
