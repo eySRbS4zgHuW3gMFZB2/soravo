@@ -12,8 +12,8 @@ use tauri::{AppHandle, Emitter, State};
 use crate::events::{PingPayload, SessionChangedPayload, SESSION_CHANGED_EVENT};
 use crate::session::{SessionMachine, SessionPhase, SessionTransition};
 
+use soravo_config::{HotkeySettings, MicrophoneSettings, ModelSettings, ModelStatus, Settings};
 use soravo_typing::{TypingConfig, TypingEngine, TypingResult};
-use soravo_config::{ModelSettings, MicrophoneSettings, ModelStatus, Settings, HotkeySettings};
 
 /// Account response for sign-in/sign-out operations.
 #[derive(Clone, Debug, Serialize)]

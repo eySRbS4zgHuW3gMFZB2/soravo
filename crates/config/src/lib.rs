@@ -124,10 +124,9 @@ impl Settings {
     pub fn load() -> Result<Self, ConfigError> {
         let path = Self::config_path();
         if path.exists() {
-            let contents = fs::read_to_string(&path)
-                .map_err(|_| ConfigError::IoError)?;
-            let mut settings: Settings = serde_json::from_str(&contents)
-                .map_err(|_| ConfigError::ParseError)?;
+            let contents = fs::read_to_string(&path).map_err(|_| ConfigError::IoError)?;
+            let mut settings: Settings =
+                serde_json::from_str(&contents).map_err(|_| ConfigError::ParseError)?;
             Self::migrate(&mut settings)?;
             Ok(settings)
         } else {
@@ -141,7 +140,8 @@ impl Settings {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|_| ConfigError::IoError)?;
         }
-        let contents = serde_json::to_string_pretty(self).map_err(|_| ConfigError::SerializeError)?;
+        let contents =
+            serde_json::to_string_pretty(self).map_err(|_| ConfigError::SerializeError)?;
         fs::write(&path, contents).map_err(|_| ConfigError::IoError)?;
         Ok(())
     }
