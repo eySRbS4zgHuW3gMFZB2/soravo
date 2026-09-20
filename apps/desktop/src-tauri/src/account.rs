@@ -13,6 +13,8 @@
 //! - Device ID is a local, non-secret identifier for tracking only
 //! - No payment/entitlement secrets stored locally
 
+use std::sync::Mutex;
+use tauri::{AppHandle, State};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -75,4 +77,46 @@ pub struct SessionRecord {
     pub created_at: String,
     pub last_seen_at: String,
     pub revoked: bool,
+}
+
+#[derive(Default)]
+pub struct AccountMachine {
+    snapshot: Mutex<AccountSnapshot>,
+}
+
+impl AccountMachine {
+    pub fn new() -> Self {
+        Self {
+            snapshot: Mutex::new(AccountSnapshot::default()),
+        }
+    }
+
+    pub fn get_snapshot(&self) -> AccountSnapshot {
+        self.snapshot.lock().map(|m| m.clone()).unwrap_or_default()
+    }
+
+    pub fn request_sign_in(&self) -> Result<String, String> {
+        let mut snapshot = self.snapshot.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        snapshot.state = AccountState::SignedIn;
+        snapshot.user_id = Some("user-123".to_string());
+        snapshot.session_id = Some("session-456".to_string());
+        snapshot.entitlement_active = true;
+        snapshot.is_offline = false;
+        Ok("Sign in initiated".to_string())
+    }
+
+    pub fn sign_out(&self) -> Result<String, String> {
+        let mut snapshot = self.snapshot.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        snapshot.state = AccountState::SignedOut;
+        snapshot.user_id = None;
+        snapshot.session_id = None;
+        snapshot.entitlement_active = false;
+        Ok("Signed out successfully".to_string())
+    }
+
+    pub fn set_offline(&self) {
+        let mut snapshot = self.snapshot.lock().unwrap();
+        snapshot.is_offline = true;
+        snapshot.state = AccountState::Unavailable;
+    }
 }

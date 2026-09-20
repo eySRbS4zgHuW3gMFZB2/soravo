@@ -3,14 +3,13 @@
 //!
 //! Adapted from Handy's transcribe-cpp Session integration with streaming support.
 
-use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use anyhow::Result;
-use transcribe_cpp::{Backend, Model, ModelOptions, RunOptions, Session, StreamOptions, Task};
+use transcribe_cpp::{Backend, ModelOptions, RunOptions, Session, StreamOptions, Task};
 
 use super::super::{
     EngineState, SpeechEngine, SpeechError, StreamHandle, StreamingTranscript, TranscriptionConfig,
@@ -186,7 +185,7 @@ impl Default for WhisperEngine {
             supported_languages: Vec::new(),
             supports_streaming: AtomicBool::new(false),
             model_options: ModelOptions::default(),
-            state: Mutex::new(EngineState::Uninitialized),
+            state: Mutex::new(EngineState::Unloaded),
             vad_config: Mutex::new(VadConfig::default()),
             sequence_counter: AtomicI32::new(0),
             last_revision: AtomicI32::new(-1),
@@ -235,6 +234,11 @@ impl WhisperEngine {
     /// Get the current engine state.
     pub fn engine_state(&self) -> EngineState {
         *self.state.lock().unwrap()
+    }
+
+    /// Get the current engine state (public getter).
+    pub fn state(&self) -> EngineState {
+        self.engine_state()
     }
 
     /// Build run options from transcription config.
@@ -295,17 +299,6 @@ impl WhisperEngine {
                 .as_millis() as u64,
             revision: 0,
         }])
-    }
-
-    /// Warm up the engine with a dummy inference.
-    fn do_warmup(&mut self) -> Result<(), SpeechError> {
-        if !self.initialized.load(Ordering::Acquire) {
-            return Err(SpeechError::NotInitialized);
-        }
-
-        let dummy_audio = vec![0.0f32; 1600];
-        let _ = self.run_batch(&dummy_audio);
-        Ok(())
     }
 
     fn start_stream_worker(&mut self) -> Result<(), SpeechError> {
@@ -376,29 +369,33 @@ impl WhisperEngine {
 }
 
 impl SpeechEngine for WhisperEngine {
-    fn initialize(
-        &mut self,
-        model_path: &str,
-        config: &TranscriptionConfig,
-    ) -> Result<(), SpeechError> {
-        let path = Path::new(model_path);
+    fn load(&mut self, model_path: &str, config: &TranscriptionConfig) -> Result<(), SpeechError> {
+        // State: UNLOADED → LOADING
+        *self.state.lock().unwrap() = EngineState::Loading;
+
+        let path = std::path::Path::new(model_path);
         if !path.exists() {
+            // Revert state on failure
+            *self.state.lock().unwrap() = EngineState::Unloaded;
             return Err(SpeechError::ModelLoad(format!(
                 "Model not found at {}",
                 model_path
             )));
         }
 
-        *self.state.lock().unwrap() = EngineState::Ready;
-
         // Load the model
-        let model = Model::load_with(path, &self.model_options)
-            .map_err(|e| SpeechError::ModelLoad(format!("Failed to load Whisper model: {}", e)))?;
+        let model = transcribe_cpp::Model::load_with(path, &self.model_options).map_err(|e| {
+            // Revert state on failure
+            *self.state.lock().unwrap() = EngineState::Unloaded;
+            SpeechError::ModelLoad(format!("Failed to load Whisper model: {}", e))
+        })?;
 
         // Check capabilities
         let caps = model.capabilities();
-        self.supports_streaming
-            .store(caps.supports_streaming, Ordering::Release);
+        self.supports_streaming.store(
+            caps.supports_streaming,
+            std::sync::atomic::Ordering::Release,
+        );
         self.supported_languages = caps.languages.clone();
 
         log::info!(
@@ -411,6 +408,8 @@ impl SpeechEngine for WhisperEngine {
 
         // Create session
         let session = model.session().map_err(|e| {
+            // Revert state on failure
+            *self.state.lock().unwrap() = EngineState::Unloaded;
             SpeechError::ModelLoad(format!("Failed to create Whisper session: {}", e))
         })?;
 
@@ -425,11 +424,16 @@ impl SpeechEngine for WhisperEngine {
                 .as_millis()
         ));
         *self.config.lock().unwrap() = Some(config.clone());
-        self.initialized.store(true, Ordering::Release);
-        self.sequence_counter.store(0, Ordering::Release);
-        self.last_revision.store(-1, Ordering::Release);
+        self.initialized
+            .store(true, std::sync::atomic::Ordering::Release);
+        self.sequence_counter
+            .store(0, std::sync::atomic::Ordering::Release);
+        self.last_revision
+            .store(-1, std::sync::atomic::Ordering::Release);
 
-        log::info!("Whisper engine initialized: session={:?}", self.session_id);
+        log::info!("Whisper engine loaded: session={:?}", self.session_id);
+
+        // State: LOADING → WARMING (will complete in warmup)
         Ok(())
     }
 
@@ -473,11 +477,23 @@ impl SpeechEngine for WhisperEngine {
         self.session_id = None;
         *self.config.lock().unwrap() = None;
         self.supported_languages.clear();
-        self.supports_streaming.store(false, Ordering::Release);
-        self.initialized.store(false, Ordering::Release);
-        *self.state.lock().unwrap() = EngineState::Uninitialized;
-        self.sequence_counter.store(0, Ordering::Release);
-        self.last_revision.store(-1, Ordering::Release);
+        self.supports_streaming
+            .store(false, std::sync::atomic::Ordering::Release);
+        self.initialized
+            .store(false, std::sync::atomic::Ordering::Release);
+        *self.state.lock().unwrap() = EngineState::Unloaded;
+        self.sequence_counter
+            .store(0, std::sync::atomic::Ordering::Release);
+        self.last_revision
+            .store(-1, std::sync::atomic::Ordering::Release);
+    }
+
+    fn shutdown(&mut self) {
+        // State: any → SHUTTING_DOWN → SHUTDOWN
+        *self.state.lock().unwrap() = EngineState::ShuttingDown;
+        let _ = self.stop_stream_worker();
+        self.reset();
+        *self.state.lock().unwrap() = EngineState::Shutdown;
     }
 
     fn state(&self) -> EngineState {
@@ -485,12 +501,43 @@ impl SpeechEngine for WhisperEngine {
     }
 
     fn warmup(&mut self) -> Result<(), SpeechError> {
-        *self.state.lock().unwrap() = EngineState::WarmingUp;
-        let result = self.do_warmup();
-        if result.is_ok() {
-            *self.state.lock().unwrap() = EngineState::Ready;
+        // State: READY (or LOADING) → WARMING → READY
+        let current_state = self.engine_state();
+        if current_state != EngineState::Ready && current_state != EngineState::Loading {
+            return Err(SpeechError::NotInitialized);
         }
-        result
+
+        *self.state.lock().unwrap() = EngineState::Warming;
+
+        let dummy_audio = vec![0.0f32; 1600];
+        let _ = self.run_batch(&dummy_audio);
+
+        *self.state.lock().unwrap() = EngineState::Ready;
+        Ok(())
+    }
+
+    fn unload(&mut self) -> Result<(), SpeechError> {
+        // State: READY → UNLOADING → UNLOADED
+        if self.engine_state() != EngineState::Ready && self.engine_state() != EngineState::Warming
+        {
+            return Err(SpeechError::NotAvailable(
+                "Engine not in READY state".to_string(),
+            ));
+        }
+
+        *self.state.lock().unwrap() = EngineState::Unloading;
+        self.reset();
+        *self.state.lock().unwrap() = EngineState::Unloaded;
+        Ok(())
+    }
+
+    fn initialize(
+        &mut self,
+        model_path: &str,
+        config: &TranscriptionConfig,
+    ) -> Result<(), SpeechError> {
+        // DEPRECATED: use load() instead
+        self.load(model_path, config)
     }
 
     fn start_stream(&mut self) -> Result<Box<dyn StreamHandle>, SpeechError> {
@@ -609,13 +656,6 @@ impl SpeechEngine for WhisperEngine {
     fn set_vad_config(&mut self, config: VadConfig) {
         *self.vad_config.lock().unwrap() = config;
     }
-
-    fn shutdown(&mut self) {
-        *self.state.lock().unwrap() = EngineState::ShuttingDown;
-        let _ = self.stop_stream_worker();
-        self.reset();
-        *self.state.lock().unwrap() = EngineState::Shutdown;
-    }
 }
 
 #[cfg(test)]
@@ -629,7 +669,7 @@ mod tests {
         assert!(!engine.supports_streaming());
         assert!(engine.session_id().is_none());
         assert!(engine.supported_languages().is_empty());
-        assert_eq!(engine.engine_state(), EngineState::Uninitialized);
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
     }
 
     #[test]
@@ -637,7 +677,7 @@ mod tests {
         let options = ModelOptions::default();
         let engine = WhisperEngine::with_model_options(options);
         assert!(!engine.is_initialized());
-        assert_eq!(engine.engine_state(), EngineState::Uninitialized);
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
     }
 
     #[test]
@@ -665,7 +705,7 @@ mod tests {
     #[test]
     fn whisper_engine_state_transitions() {
         let engine = WhisperEngine::default();
-        assert_eq!(engine.engine_state(), EngineState::Uninitialized);
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
     }
 
     #[test]
@@ -678,5 +718,22 @@ mod tests {
             threshold: 0.5,
         };
         engine.set_vad_config(vad_config);
+    }
+
+    #[test]
+    fn whisper_lifecycle_state_transitions() {
+        let mut engine = WhisperEngine::default();
+        // Start: UNLOADED
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
+
+        // load() with non-existent model should fail and revert to UNLOADED
+        let config = TranscriptionConfig {
+            language: "en".to_string(),
+            streaming: true,
+            hotwords: vec![],
+        };
+        let result = engine.load("/nonexistent/model.bin", &config);
+        assert!(result.is_err());
+        assert_eq!(engine.engine_state(), EngineState::Unloaded);
     }
 }
