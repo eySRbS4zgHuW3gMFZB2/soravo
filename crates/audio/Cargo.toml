@@ -11,7 +11,7 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 anyhow = "1.0"
 
-cpal = "0.16"
+cpal = "0.18"
 rtrb = "0.4"
 rubato = "0.16"
 earshot = "1.2"
