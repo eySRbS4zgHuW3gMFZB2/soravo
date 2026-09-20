@@ -13,7 +13,7 @@ anyhow = "1.0"
 
 cpal = "0.16"
 rtrb = "0.4"
-rubato = "0.16"
+rubato = "5.0"
 earshot = "1.2"
 vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 
