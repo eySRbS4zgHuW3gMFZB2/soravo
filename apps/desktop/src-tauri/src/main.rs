@@ -1,12 +1,48 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!
+//! Prevents additional console window on Windows in release, DO NOT REMOVE!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-// NOTE: Upstream Handy sets WEBKIT_DISABLE_DMABUF_RENDERER=1 on Linux to avoid
-// GPU/display-server WebKit crashes (tauri#9394). That is an `unsafe` env
-// mutation in edition 2024 and the Soravo workspace forbids unsafe code, so
-// the workaround is intentionally NOT ported. If Linux WebKit rendering
-// regresses, revisit via ADR review rather than introducing unsafe.
+use std::sync::Mutex;
+use tauri::{Manager, generate_handler};
+
+use soravo_desktop_lib::{
+    session::SessionMachine,
+    commands::*,
+};
 
 fn main() {
-    soravo_desktop_lib::run()
+    // Initialize session state machine (Soravo's authoritative state)
+    let session_machine = Mutex::new(SessionMachine::default());
+
+    tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::AppleScript,
+            None,
+        ))
+        .plugin(tauri_plugin_single_instance::init(|_, args, _| {
+            println!("Launched with args: {args:?}");
+        }))
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(session_machine)
+        .invoke_handler(generate_handler![
+            runtime_status,
+            ping,
+            session_snapshot,
+            session_transition,
+            session_reset,
+            inject_text,
+            load_settings,
+            save_settings,
+            update_microphone_settings,
+            update_hotkey_settings,
+            update_model_settings,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running soravo desktop");
 }
