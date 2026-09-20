@@ -1,0 +1,162 @@
+{
+  "spec_version": "3.0.0",
+  "working_product_name": "Soravo",
+  "generated_date": "2026-09-21",
+  "authority_order": [
+    "security/safety",
+    "03_AI_INSTRUCTIONS.md",
+    "10_ADR_INDEX.md",
+    "02_ARCHITECTURE.md",
+    "01_PRD.md",
+    "04_IMPLEMENTATION_PLAN.md",
+    "05_TASK_BREAKDOWN.md",
+    "06_DOD_QA.md",
+    "code",
+    "agent_preference"
+  ],
+  "documents": [
+    {
+      "file": "00_README.md",
+      "title": "README",
+      "description": "Authoritative entry point for V3"
+    },
+    {
+      "file": "01_PRD.md",
+      "title": "Product Requirements Document",
+      "description": "Product requirements and scope"
+    },
+    {
+      "file": "02_ARCHITECTURE.md",
+      "title": "Architecture",
+      "description": "Actual implementation architecture (Handy-derived)"
+    },
+    {
+      "file": "03_AI_INSTRUCTIONS.md",
+      "title": "AI Instructions",
+      "description": "Deterministic rules for AI coding agents"
+    },
+    {
+      "file": "04_IMPLEMENTATION_PLAN.md",
+      "title": "Implementation Plan",
+      "description": "Phased build order and dependencies"
+    },
+    {
+      "file": "05_TASK_BREAKDOWN.md",
+      "title": "Task Breakdown",
+      "description": "Atomic implementation tasks"
+    },
+    {
+      "file": "06_DOD_QA.md",
+      "title": "Definition of Done / QA",
+      "description": "Definition of done, testing and release gates"
+    },
+    {
+      "file": "07_AI_SKILLS.md",
+      "title": "AI Skills",
+      "description": "Exact skills and usage policy"
+    },
+    {
+      "file": "08_MCP_AND_AGENT_TOOLING.md",
+      "title": "MCP and Agent Tooling",
+      "description": "MCP and CLI policy"
+    },
+    {
+      "file": "09_SECURITY_BASELINE.md",
+      "title": "Security Baseline",
+      "description": "Security requirements"
+    },
+    {
+      "file": "10_ADR_INDEX.md",
+      "title": "ADR Index",
+      "description": "Architecture-decision records"
+    },
+    {
+      "file": "11_INTERRUPTION_HANDOFF.md",
+      "title": "Interruption Handoff",
+      "description": "Deterministic recovery protocol"
+    },
+    {
+      "file": "12_BENCHMARK_PROTOCOL.md",
+      "title": "Benchmark Protocol",
+      "description": "STT performance/quality benchmark protocol"
+    },
+    {
+      "file": "13_RELEASE_RUNBOOK.md",
+      "title": "Release Runbook",
+      "description": "Build, signing, release and rollback procedure"
+    },
+    {
+      "file": "14_ENVIRONMENT_AND_SECRETS.md",
+      "title": "Environment and Secrets",
+      "description": "Development environment and secret handling"
+    },
+    {
+      "file": "15_HANDY_REUSE_POLICY.md",
+      "title": "Handy Reuse Policy",
+      "description": "Detailed Handy reuse policy"
+    },
+    {
+      "file": "16_HANDY_MIGRATION_STATUS.md",
+      "title": "Handy Migration Status",
+      "description": "Current migration status"
+    },
+    {
+      "file": "17_MODEL_LICENSE_AND_PROVENANCE.md",
+      "title": "Model License and Provenance",
+      "description": "Model license verification policy"
+    },
+    {
+      "file": "18_DESKTOP_ARCHITECTURE.md",
+      "title": "Desktop Architecture",
+      "description": "Desktop component matrix"
+    },
+    {
+      "file": "19_DOCUMENT_GOVERNANCE.md",
+      "title": "Document Governance",
+      "description": "Document governance rules"
+    }
+  ],
+  "superseded_documents": {
+    "v2": "docs/spec-v2-archive/"
+  },
+  "required_reading": [
+    "00_README.md",
+    "01_PRD.md",
+    "02_ARCHITECTURE.md",
+    "03_AI_INSTRUCTIONS.md",
+    "15_HANDY_REUSE_POLICY.md",
+    "16_HANDY_MIGRATION_STATUS.md"
+  ],
+  "current_architecture": {
+    "foundation": "Handy (MIT) desktop implementation",
+    "desktop_shell": "Tauri v2",
+    "frontend": "React + TypeScript",
+    "core": "Rust",
+    "backend": "Supabase",
+    "payments": "Razorpay",
+    "website_hosting": "Cloudflare Pages",
+    "analytics": "Umami",
+    "stt_primary": "Parakeet (pending verification)",
+    "stt_fallback": "Whisper (pending verification)",
+    "binary_distribution": "GitHub Releases"
+  },
+  "handy_commit": {
+    "repository": "https://github.com/cjpais/Handy",
+    "license": "MIT",
+    "status": "Pinned during migration, exact SHA to be verified"
+  },
+  "migration_status": {
+    "branch": "feature/HANDY-MIGRATION-001",
+    "status": "IMPLEMENTED ON FEATURE BRANCH / NOT YET MERGED",
+    "blockers": [
+      "GTK system dependencies required for Linux builds",
+      "Model license verification incomplete",
+      "PR not created (gh CLI timeout)"
+    ]
+  },
+  "platforms": [
+    "macOS",
+    "Windows"
+  ],
+  "linux_status": "deferred (per ADR-021)"
+}
