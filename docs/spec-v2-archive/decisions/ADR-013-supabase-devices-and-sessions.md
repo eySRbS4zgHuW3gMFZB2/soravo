@@ -1,0 +1,44 @@
+# ADR-013 — Supabase devices and sessions authorization model
+
+Status: Accepted
+Date: 2026-09-15
+
+Context: Soravo needs a per-user device and session ledger — which installs the desktop app is authorized (device registration), and which of those runs are currently active (session state) — to support entitlement scoping, per-license device caps, one-time revocation, and the future CLOUD-012 license-validity checks (`valid_device AND valid_session` on the client and, where needed, server-side). The records are security-adjacent: a device bind must never be forgeable across users, a session must never be bound to another user's device, and revocation must be one-way (terminal) so a revoked device or session cannot silently re-activate. Following ADR-010, `public` is default-deny; new tables are introduced with explicit least-privilege grants and RLS enabled in the same migration. No audio, transcript, keystroke, clipboard, or history data ever touches these tables.
+
+Decision: Establish `public.devices` and `public.sessions` as user-owned, RLS-scoped tables. Both are plain tables with `id uuid` PK; `user_id` FK → `auth.users(id)` `ON DELETE CASCADE`. Cryptographic internal ids (`id`) are never exposed; each row carries a `device_public_id` / `session_public_id` — a friendly, opaque, non-secret PUBLIC identifier (8–200 chars, UNIQUE) used for client-side addressing. `devices` records `platform` (CHECK-enumerated), `app_version` (≤32), `first_seen_at`, `last_seen_at`, and `revoked_at` (nullable; CHECK `revoked_at >= first_seen_at`). `sessions` records `device_id` FK → `public.devices(id)` `ON DELETE CASCADE`, `last_seen_at`, `revoked_at` (nullable; CHECK `revoked_at >= created_at`). Every column except the server-owned timestamps and `revoked_at` is modeled with our standard CHECK invariants. `revoked_at` is a one-way (terminal) latch:
+
+- RLS UPDATE USING is `user_id = auth.uid() AND revoked_at IS NULL`, so an already-revoked row cannot be reached for mutation by its owner.
+- The one-time transition to revoked still succeeds because USING evaluates the pre-update row.
+- A `guard_revocation` SECURITY INVOKER trigger (search_path = pg_catalog) rejects any attempt to clear `revoked_at` back to NULL (applies to postgres too, so no row ever un-revokes).
+
+RLS is enabled in the same migration as the grants. Policies are `select_own`, `insert_own`, `update_own` for `authenticated`, all bound to `user_id = (select auth.uid())` (USING + WITH CHECK). No DELETE policy/grant — rows are never physically removed by clients. `sessions` INSERT and UPDATE additionally require `exists (select 1 from public.devices d where d.id = device_id and d.user_id = auth.uid() and d.revoked_at is null)` in WITH CHECK: a session can only be created/bound to a live, owned device, and never to a revoked one. `authenticated` holds table-level `select, insert, update` on both tables; `anon` and `service_role` hold no privileges and have no RLS bypass. All trigger functions are SECURITY INVOKER, `search_path = pg_catalog` (per supabase advisory 0011), with EXECUTE revoked from every app role (CLOUD-003). Identity-safety triggers (`guard_identity`) enforce "never mutate identity via UPDATE": `user_id`, `device_public_id`/`session_public_id`, and `first_seen_at`/`created_at` cannot be changed.
+
+Alternatives:
+- UUID-only identifiers without a friendly public id (rejected: opaque ids are hostile to support/diagnosis and the spec's UX requires a user-facing device name; the public id is explicitly non-secret, so it is safe to display).
+- Soft-delete via `deleted_at` instead of `revoked_at` (rejected: deletion semantics imply reclaim-over-revoke; a revoked device is a security state, not a tombstone, and must remain visibly revoked and non-rebindable).
+- Reversible revocation with re-activation (rejected: violates one-way terminal-revocation requirement; a revoked device must never silently become valid again).
+- Binding `sessions.device_id` purely by RLS ownership of devices at read time (rejected: INSERT WITH CHECK must prevent the bind at write time — a cross-user or revoked-device bind is an authorization violation, not a data-quality issue).
+- A single `devices` table with sessions as lifecycle flags (rejected: a device can have multiple concurrent sessions; `sessions` is a distinct entity with its own revocation latch, matching the spec's `active_session` concept).
+- Storing any audio/transcript/keystroke/clipboard/history near these auth records (rejected: prohibited by 01_PRD §10 and ADR-010).
+
+Security impact:
+- Cross-user isolation is structural: every policy is `auth.uid()`-bound, so a user can never SELECT, INSERT (as another owner), or UPDATE another user's device/session rows (verified behaviorally D1–D5/S1–S5).
+- Sessions cannot be bound to another user's device (WITH CHECK), and bind to a revoked device is rejected (S4, S8).
+- Revocation is terminal at every layer: RLS USING filters reachable rows; `guard_revocation` rejects clearing `revoked_at` even with full privileges; revoked sessions on a revoked device cannot be revived. A revoked device remains readable (the user must see its marked state) but immutable (D7). A revoked session remains visible but immutable (S6/S7). The WITH CHECK device-latch also makes a revoked device's sessions dead for ALL writes — even the owner's own "revoke session" update on such a session is rejected (S10), so a revoked device never yields a writable session.
+- `user_id`, `device_public_id`/`session_public_id`, `first_seen_at`/`created_at` are immutable via UPDATE at every privilege level (D9 guard, verified as postgres); ownership-transfer and identity-spoofing rows are impossible.
+- No DELETE grant or policy on either table; rows are never removed by authenticated users (CASCADE handles account deletion).
+- `anon` and `service_role` hold no privileges (verified D8/S9, E-series pattern); `service_role` remains excluded from all client paths (ADR-010).
+- Public identifiers are display-only and never used as secrets; server-owned columns (`created_at`, `updated_at`, `first_seen_at`, `last_seen_at`, `revoked_at`) are managed only by SECURITY INVOKER triggers.
+
+Performance impact: Negligible. Two small tables, 4 indexes (`devices_pkey`, `devices_user_id_idx`, `sessions_pkey`, `sessions_device_id_idx`) sized for per-user row counts; `device_public_id`/`session_public_id` get UNIQUE constraints (implicit indexes). `sessions_device_id_idx` is unused at creation time (0 rows) and is an expected INFO-level advisor notice until the FK join is exercised.
+
+Operational impact: The migration applies both tables, constraints, RLS policies, triggers (timestamps, identity guard, revocation guard) and table-level grants to `authenticated` in a single transaction. It is additive; no existing table is altered. Verified via:
+- `db_assertions.sql` checks 31–48 (DDL state: RLS, FKs, CHECK/UNIQUE constraints, exact grant sets, policy expressions incl. the non-revoked-device EXISTS and `revoked_at is null` USING, trigger attachment/ownership/EXECUTE deny).
+- `rls_assertions.sql` scenarios D1–D9 + S1–S10 (behavioral: self-scope proofs, terminal-revocation proofs at RLS, trigger, and `postgres` privilege levels, cross-user and anon denial, revoked-device write/revocation lockout).
+- `migration-guard.test.mjs` 12/12 (incl. the read-grant ⇄ `auth.uid()`-SELECT-policy pairing guard).
+
+Testing impact: 48 structural DB assertion checks, 12 migration-guard tests, and the full RLS behavioral suite (A/B/E + D1–D9 + S1–S10 + anon/service_role) all pass against dev project `zbzhlhoxblguepplqppw` post-migration. Security advisors: 0 lints. Performance advisor: 1 INFO (`sessions_device_id_idx`, expected for a fresh 0-row index). No fixture residue — the behavioral suite rolls itself back.
+
+Rollback: The migration is additive and reversible. Rollback is manual (human-authorized `DROP TABLE public.sessions CASCADE; DROP TABLE public.devices CASCADE;`); the previous state was a `public` schema with only `profiles` and `entitlements`.
+
+Consequences: `devices`/`sessions` are now the canonical per-user device/session ledger. Clients create/read/update own rows directly via the PostgREST surface and may self-revoke (one-time). Nothing else in the auth stack is changed by this ADR. CLOUD-006 (admin roles) and CLOUD-012 (server-side license validity) will read these tables; CLOUD-012's validity predicate adds `device not revoked AND session not revoked` onto ADR-012's entitlement predicate. Storing audio, transcripts, keystrokes, clipboard contents, or history in Supabase remains prohibited (ADR-010, 01_PRD.md §10).
