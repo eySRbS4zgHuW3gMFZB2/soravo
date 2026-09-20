@@ -34,7 +34,7 @@ export function AccountPanel() {
       } else {
         setState("idle");
       }
-    } catch (error) {
+    } catch {
       setState("error");
       setMessage("Failed to load account");
     }
@@ -49,7 +49,7 @@ export function AccountPanel() {
       } else {
         setMessage(result.message);
       }
-    } catch (error) {
+    } catch {
       setMessage("Sign in failed");
     }
   }
@@ -63,7 +63,7 @@ export function AccountPanel() {
       } else {
         setMessage(result.message);
       }
-    } catch (error) {
+    } catch {
       setMessage("Sign out failed");
     }
   }

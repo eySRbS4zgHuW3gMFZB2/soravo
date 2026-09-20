@@ -17,6 +17,7 @@ use soravo_typing::{TypingConfig, TypingEngine, TypingResult};
 /// Account response for sign-in/sign-out operations.
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct AccountResult {
     pub success: bool,
     pub message: String,
