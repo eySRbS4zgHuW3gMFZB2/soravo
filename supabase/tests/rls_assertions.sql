@@ -464,14 +464,14 @@ begin
   end;
   begin
     insert into public.entitlements (user_id, product, plan, status, provider, provider_customer_ref, provider_payment_ref, expires_at)
-    values ('00000000-0000-0000-0000-00000000000c', 'soravo', 'monthly', 'active', 'stripe', 'c', 'p', now() + interval '30 days');
-    raise exception 'FAIL E12: provider ''stripe'' accepted';
+    values ('00000000-0000-0000-0000-00000000000c', 'soravo', 'monthly', 'weird', 'stripe', 'c', 'p', now() + interval '30 days');
+    raise exception 'FAIL E12: status ''weird'' accepted';
   exception when check_violation then null;
   end;
   begin
     insert into public.entitlements (user_id, product, plan, status, provider, provider_customer_ref, provider_payment_ref, expires_at)
-    values ('00000000-0000-0000-0000-00000000000c', 'soravo', 'monthly', 'weird', 'razorpay', 'c', 'p', now() + interval '30 days');
-    raise exception 'FAIL E12: status ''weird'' accepted';
+    values ('00000000-0000-0000-0000-00000000000c', 'soravo', 'monthly', 'active', '', 'c', 'p', now() + interval '30 days');
+    raise exception 'FAIL E12: empty provider accepted';
   exception when check_violation then null;
   end;
 end $$;
