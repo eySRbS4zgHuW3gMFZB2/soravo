@@ -30,6 +30,7 @@ Required ADRs:
 - ADR-024 — payment service skeleton
 - ADR-025 — admin user directory query surface
 - ADR-026 — Handy foundation for V1 desktop application
+- ADR-027 — Handy-derived desktop foundation
 
 Each ADR:
 ```text
