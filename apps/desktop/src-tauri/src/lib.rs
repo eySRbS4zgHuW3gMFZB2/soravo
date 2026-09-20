@@ -14,7 +14,6 @@ pub mod input;
 pub mod settings;
 pub mod tray;
 pub mod overlay;
-pub mod paste_tx;
 pub mod catalog;
 pub mod audio_feedback;
 pub mod autostart;
