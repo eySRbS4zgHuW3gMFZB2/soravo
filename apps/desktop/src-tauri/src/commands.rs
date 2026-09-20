@@ -1,4 +1,9 @@
 //! Typed IPC commands for the Soravo desktop shell.
+//!
+//! Commands are request/response; streaming or push updates travel through the
+//! typed event bus (`crate::events`). All session mutations are validated by
+//! the authoritative `SessionMachine` — the frontend can never drive the
+//! session into an invalid state.
 
 use serde::Serialize;
 use std::sync::Mutex;
@@ -10,6 +15,16 @@ use crate::session::{SessionMachine, SessionPhase, SessionTransition};
 use soravo_config::{HotkeySettings, MicrophoneSettings, ModelSettings, Settings};
 use soravo_typing::{TypingConfig, TypingEngine, TypingResult};
 
+/// Account response for sign-in/sign-out operations.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
+pub struct AccountResult {
+    pub success: bool,
+    pub message: String,
+}
+
+/// Snapshot of the desk runtime handed to the frontend on request.
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeStatus {
@@ -34,6 +49,7 @@ pub fn runtime_status(machine: State<'_, Mutex<SessionMachine>>) -> RuntimeStatu
     }
 }
 
+/// Monotonic sequence + timestamp pair for measuring IPC round-trips.
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PingReply {
@@ -50,6 +66,7 @@ pub fn ping(machine: State<'_, Mutex<SessionMachine>>) -> PingReply {
     }
 }
 
+/// Current session snapshot for rendering and diagnostics.
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSnapshot {
@@ -68,6 +85,8 @@ pub fn session_snapshot(machine: State<'_, Mutex<SessionMachine>>) -> SessionSna
     }
 }
 
+/// Validate and apply a transition. On success broadcasts the resulting
+/// transition record on the typed event bus.
 #[tauri::command]
 pub fn session_transition(
     app: AppHandle,
@@ -85,6 +104,8 @@ pub fn session_transition(
     Ok(transition)
 }
 
+/// Imperative reset back to IDLE (used by hold/toggle orchestration entry
+/// points): clears any in-flight session without validating a path.
 #[tauri::command]
 pub fn session_reset(
     app: AppHandle,
@@ -99,6 +120,23 @@ pub fn session_reset(
     transition
 }
 
+/// Demo of the runtime ping event (kept for parity with `runtime://ping`).
+#[tauri::command]
+pub fn emit_ping(app: AppHandle, machine: State<'_, Mutex<SessionMachine>>) -> PingReply {
+    let machine = machine.lock().expect("session machine poisoned");
+    let reply = PingReply {
+        sequence: machine.sequence(),
+        timestamp_ms: machine.now_ms(),
+    };
+    let _ = app.emit(
+        "runtime://ping",
+        PingPayload::new(reply.sequence, reply.timestamp_ms),
+    );
+    reply
+}
+
+/// Inject committed text into the active application.
+/// This is a typed IPC command callable from the frontend.
 #[tauri::command]
 pub fn inject_text(app: AppHandle, text: String) -> TypingResult {
     let engine = TypingEngine::new(TypingConfig::default());
@@ -112,6 +150,7 @@ pub fn inject_text(app: AppHandle, text: String) -> TypingResult {
     result
 }
 
+/// IPC settings response
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsResponse {
