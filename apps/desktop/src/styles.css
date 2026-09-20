@@ -30,3 +30,96 @@
   border-color: #fca5a5;
 }
 
+.settings-section {
+  margin-top: 2rem;
+  padding: 2rem;
+  border: 1px solid #365240;
+  border-radius: 16px;
+  background: radial-gradient(circle at right top, #294d3a, #1b2b21);
+}
+
+.settings-section h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #2d4335;
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row label {
+  color: #e9efe9;
+  font-size: 0.95rem;
+}
+
+.settings-row span {
+  color: #b3c4b6;
+  font-size: 0.95rem;
+}
+
+.settings-row select {
+  background: #17251c;
+  color: #e9efe9;
+  border: 1px solid #365240;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.settings-row input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.settings-row button {
+  background: #93a99a;
+  color: #304237;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.settings-row button:hover:not(:disabled) {
+  background: #a9b9ad;
+}
+
+.settings-row button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-error {
+  color: #fca5a5;
+  padding: 1rem;
+  background: #450a0a;
+  border-radius: 8px;
+}
+
+.settings-loading {
+  color: #b3c4b6;
+  padding: 1rem;
+}
+
+.status-ok {
+  color: #69cf8a;
+}
+
+.status-error {
+  color: #fca5a5;
+}
+
