@@ -161,3 +161,17 @@ export function hotkeyRecording(): Promise<boolean> {
 export function hotkeyCheckConflicts(binding: HotkeyBinding | null): Promise<HotkeyResult> {
   return invoke<HotkeyResult>("hotkey_check_conflicts", { binding });
 }
+
+/** Account snapshot (non-sensitive summary only; never exposes tokens/secrets). */
+export type AccountSnapshot = {
+  state: "signed_out" | "signed_in" | "needs_refresh" | "unavailable";
+  userId: string | null;
+  sessionId: string | null;
+  entitlementActive: boolean;
+  deviceId: string;
+  isOffline: boolean;
+};
+
+export function accountSnapshot(): Promise<AccountSnapshot> {
+  return invoke<AccountSnapshot>("account_snapshot");
+}

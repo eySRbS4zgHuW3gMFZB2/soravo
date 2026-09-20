@@ -4,11 +4,15 @@
 //! typed event bus (`crate::events`). All session mutations are validated by
 //! the authoritative `SessionMachine` — the frontend can never drive the
 //! session into an invalid state.
+//!
+//! Account state is exposed only as non-sensitive summaries. Access tokens and
+//! secrets never cross the IPC boundary and are never logged.
 
 use serde::Serialize;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::account::AccountSnapshot;
 use crate::events::{PingPayload, SessionChangedPayload, SESSION_CHANGED_EVENT};
 use crate::session::{SessionMachine, SessionPhase, SessionTransition};
 
@@ -139,4 +143,11 @@ pub fn inject_text(app: AppHandle, text: String) -> TypingResult {
     );
 
     result
+}
+
+/// Account snapshot for rendering (non-sensitive summary only).
+/// Never exposes tokens, secrets, or full entitlement data.
+#[tauri::command]
+pub fn account_snapshot() -> AccountSnapshot {
+    AccountSnapshot::default()
 }

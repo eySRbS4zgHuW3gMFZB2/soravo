@@ -6,6 +6,7 @@
 //! logging, single-instance, the authoritative session state machine, IPC
 //! commands, and the typed event bus. See `decisions/ADR-026`.
 
+mod account;
 mod commands;
 mod events;
 mod hotkey;
@@ -50,6 +51,7 @@ pub fn run() {
             commands::session_reset,
             commands::emit_ping,
             commands::inject_text,
+            commands::account_snapshot,
             hotkey::hotkey_config,
             hotkey::set_hotkey_config,
             hotkey::hotkey_start,
