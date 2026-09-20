@@ -12,6 +12,7 @@ import {
 } from "./ipc";
 import { AccountPanel } from "./components/account-panel";
 import { Pill } from "./components/pill";
+import { SettingsLayout } from "./components/settings/settings-layout";
 
 export const PHASE_LABEL: Record<SessionPhase, string> = {
   IDLE: "Ready",
@@ -31,6 +32,7 @@ export function App() {
   const [lastTransition, setLastTransition] = useState<SessionTransition | null>(null);
   const [pingReply, setPingReply] = useState<PingReply | null>(null);
   const [connected, setConnected] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     let unsubSession: (() => void) | undefined;
@@ -106,29 +108,39 @@ export function App() {
           <span>◉</span> Soravo
         </div>
         <nav aria-label="Settings sections">
-          <button className="active" type="button">Overview</button>
-          <button type="button">General</button>
-          <button type="button">Microphone</button>
-          <button type="button">Shortcut</button>
-          <button type="button">Models</button>
-          <button type="button">Privacy</button>
-          <button type="button">Diagnostics</button>
+          <button
+            type="button"
+            className={!showSettings ? "active" : ""}
+            onClick={() => setShowSettings(false)}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            className={showSettings ? "active" : ""}
+            onClick={() => setShowSettings(true)}
+          >
+            Settings
+          </button>
         </nav>
         <small>Local-first dictation</small>
       </aside>
 
-      <section className="content">
-        <header>
-          <div>
-            <p className="eyebrow">DESKTOP SHELL</p>
-            <h1>Ready when you are.</h1>
-          </div>
-          <span className="status">
-            <i /> {message}
-          </span>
-        </header>
+      {showSettings ? (
+        <SettingsLayout />
+      ) : (
+        <section className="content">
+          <header>
+            <div>
+              <p className="eyebrow">DESKTOP SHELL</p>
+              <h1>Ready when you are.</h1>
+            </div>
+            <span className="status">
+              <i /> {message}
+            </span>
+          </header>
 
-        <AccountPanel />
+          <AccountPanel />
 
         <article className="primary">
           <div>
@@ -186,7 +198,8 @@ export function App() {
             {pingReply ? ` seq ${pingReply.sequence} @ ${pingReply.timestampMs}ms` : ""}
           </p>
         </article>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

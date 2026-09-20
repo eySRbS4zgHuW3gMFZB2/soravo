@@ -162,6 +162,66 @@ export function hotkeyCheckConflicts(binding: HotkeyBinding | null): Promise<Hot
   return invoke<HotkeyResult>("hotkey_check_conflicts", { binding });
 }
 
+// Settings types
+export type SchemaInfo = {
+  version: number;
+  lastMigrated: number | null;
+};
+
+export type MicrophoneSettings = {
+  selectedDeviceIndex: string | null;
+  selectedDeviceName: string | null;
+  deviceAvailable: boolean;
+  autoFallback: boolean;
+};
+
+export type HotkeySettings = {
+  binding: string | null;
+  mode: "hold_to_talk" | "toggle_to_talk";
+  enabled: boolean;
+  recordingInProgress: boolean;
+};
+
+export type ModelSettings = {
+  selectedEngine: string | null;
+  selectedModel: string | null;
+  available: boolean;
+  status: "not_installed" | "downloading" | "verifying" | "ready" | "error";
+};
+
+export type Settings = {
+  schema: SchemaInfo;
+  microphone: MicrophoneSettings;
+  hotkey: HotkeySettings;
+  model: ModelSettings;
+};
+
+export type SettingsResponse = {
+  success: boolean;
+  message: string;
+  data: Settings | null;
+};
+
+export function loadSettings(): Promise<SettingsResponse> {
+  return invoke<SettingsResponse>("load_settings");
+}
+
+export function saveSettings(settings: Settings): Promise<SettingsResponse> {
+  return invoke<SettingsResponse>("save_settings", { settings });
+}
+
+export function updateMicrophoneSettings(settings: MicrophoneSettings): Promise<SettingsResponse> {
+  return invoke<SettingsResponse>("update_microphone_settings", { settings });
+}
+
+export function updateHotkeySettings(settings: HotkeySettings): Promise<SettingsResponse> {
+  return invoke<SettingsResponse>("update_hotkey_settings", { settings });
+}
+
+export function updateModelSettings(settings: ModelSettings): Promise<SettingsResponse> {
+  return invoke<SettingsResponse>("update_model_settings", { settings });
+}
+
 // Account types and commands
 
 export type AccountState = "SignedOut" | "SignedIn" | "NeedsRefresh" | "Unavailable";
