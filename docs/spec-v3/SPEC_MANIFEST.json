@@ -2,6 +2,7 @@
   "spec_version": "3.0.0",
   "working_product_name": "Soravo",
   "generated_date": "2026-09-21",
+  "root_authority_document": "SORAVO_PLAN.md",
   "authority_order": [
     "security/safety",
     "03_AI_INSTRUCTIONS.md",
@@ -120,6 +121,7 @@
     "v2": "docs/spec-v2-archive/"
   },
   "required_reading": [
+    "SORAVO_PLAN.md",
     "00_README.md",
     "01_PRD.md",
     "02_ARCHITECTURE.md",
@@ -129,6 +131,10 @@
   ],
   "current_architecture": {
     "foundation": "Handy (MIT) desktop implementation",
+    "handy_derived": true,
+    "adr_authority": "10_ADR_INDEX.md",
+    "adr_027": "Handy-derived desktop foundation"
+  },
     "desktop_shell": "Tauri v2",
     "frontend": "React + TypeScript",
     "core": "Rust",
@@ -146,14 +152,18 @@
     "status": "Pinned during migration, exact SHA to be verified"
   },
   "migration_status": {
-    "branch": "feature/HANDY-MIGRATION-001",
-    "status": "IMPLEMENTED ON FEATURE BRANCH / NOT YET MERGED",
+    "pr": "55",
+    "branch": "docs/SPEC-V3-HANDY-FOUNDATION",
+    "status": "OPEN / NOT MERGED",
     "blockers": [
       "GTK system dependencies required for Linux builds",
       "Model license verification incomplete",
-      "PR not created (gh CLI timeout)"
-    ]
+      "PR contains mixed documentation + implementation changes"
+    ],
+    "note": "PR #55 contains unique migration work. Do NOT close until verified safe."
   },
+  "current_main_sha": "2fa7f9bf8dca505e450bf16a63f20e4a2e5ffe64",
+  "v3_pr_merged": "56",
   "platforms": [
     "macOS",
     "Windows"
