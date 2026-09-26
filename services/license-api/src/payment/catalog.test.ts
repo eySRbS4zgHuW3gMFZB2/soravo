@@ -67,20 +67,46 @@ describe("product catalog", () => {
   });
 
   it("rejects catalogs with unsupported currencies", () => {
-    expectCatalogError(
-      () =>
-        new ProductCatalog({
-          ...PRODUCT_CATALOG,
-          soravo_monthly: {
-            ...PRODUCT_CATALOG.soravo_monthly,
-            price: {
-              ...LIVING_PRICE,
-              currency: "INR",
-            } as unknown as Product["price"],
-          },
-        }),
-      "invalid_configuration"
-    );
+    // "INR" was the original fixture here, back when USD was the only
+    // supported currency. Milestone 021 (RAZORPAY-PAYMENT-ARCHITECTURE)
+    // established that Razorpay settles in INR and accepts non-USD orders, and
+    // widened SUPPORTED_CURRENCIES to USD/INR/CAD/EUR/AUD. INR is therefore
+    // now a *supported* currency, so it no longer proves anything. GBP stays
+    // outside the supported set, which is what this test is actually asserting.
+    for (const currency of ["GBP", "JPY", ""]) {
+      expectCatalogError(
+        () =>
+          new ProductCatalog({
+            ...PRODUCT_CATALOG,
+            soravo_monthly: {
+              ...PRODUCT_CATALOG.soravo_monthly,
+              price: {
+                ...LIVING_PRICE,
+                currency,
+              } as unknown as Product["price"],
+            },
+          }),
+        "invalid_configuration"
+      );
+    }
+  });
+
+  it("accepts every currency milestone 021 added to the supported set", () => {
+    for (const currency of ["USD", "INR", "CAD", "EUR", "AUD"] as const) {
+      expect(
+        () =>
+          new ProductCatalog({
+            ...PRODUCT_CATALOG,
+            soravo_monthly: {
+              ...PRODUCT_CATALOG.soravo_monthly,
+              price: {
+                ...LIVING_PRICE,
+                currency,
+              } as unknown as Product["price"],
+            },
+          })
+      ).not.toThrow();
+    }
   });
 
   it("rejects catalogs whose plan mismatches the product id", () => {

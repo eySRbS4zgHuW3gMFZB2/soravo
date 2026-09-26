@@ -1,0 +1,27 @@
+# Supabase project configuration for Soravo.
+#
+# Scope note: Soravo has no local `supabase start` stack. Every schema change is
+# applied to the linked project through the Supabase MCP server, and
+# supabase/migrations/ stays the authoritative, reviewable source of truth
+# (ADR-010). This file exists for one load-bearing reason and nothing else:
+# declaring how the Razorpay webhook function is exposed.
+
+project_id = "soravo"
+
+# RAZORPAY-LIVE-CONFIG-VERIFICATION-024
+#
+# Razorpay delivers webhooks server-to-server. It sends no Supabase Auth JWT,
+# so the platform's default JWT gate would reject every delivery with 401
+# before the handler could run. Razorpay's own HMAC-SHA256 signature over the
+# raw body (x-razorpay-signature, verified in functions/razorpay-webhook/verify.ts
+# against the RAZORPAY_WEBHOOK_SECRET function secret) is the authentication.
+#
+# This MUST stay declared here. Without it, `supabase functions deploy
+# razorpay-webhook` re-enables the JWT gate and silently breaks all payment
+# webhooks, and `supabase functions serve` cannot reproduce the deployed
+# contract locally. The deployed function was confirmed JWT-free by
+# behavioural probe (unsigned POST returns 400 "missing signature", not 401).
+#
+# Regression-guarded by supabase/tests/webhook-hardening.test.mjs section N.
+[functions.razorpay-webhook]
+verify_jwt = false

@@ -2,7 +2,7 @@ export type ProductId = "soravo_monthly" | "soravo_lifetime";
 
 export type EntitlementPlan = "monthly" | "lifetime";
 
-export type Currency = "USD";
+export type Currency = "USD" | "INR" | "CAD" | "EUR" | "AUD";
 
 export type ProviderKind = "dev" | "razorpay";
 
@@ -14,11 +14,18 @@ export interface ProductPrice {
   status: ProductPricingStatus;
 }
 
+export interface RegionalPrice {
+  amountMinor: number;
+  currency: Currency;
+  status: ProductPricingStatus;
+}
+
 export interface Product {
   id: ProductId;
   plan: EntitlementPlan;
   displayName: string;
   price: ProductPrice;
+  regionalPrices: Readonly<Record<Currency, RegionalPrice>>;
 }
 
 export interface CreateOrderRequest {
@@ -26,6 +33,7 @@ export interface CreateOrderRequest {
   productId: ProductId;
   amountMinor: number;
   currency: Currency;
+  userId: string;
 }
 
 export interface ProviderOrder {

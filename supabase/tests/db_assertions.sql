@@ -386,26 +386,59 @@ begin
     raise exception 'FAIL 25: expected at least 6 CHECK constraints on entitlements, found %', _count;
   end if;
 
-  -- 26. Privileges on entitlements are COLUMN-LEVEL only: the table's own ACL
-  --     (relacl) is empty while column (attacl) privileges exist, and ONLY
-  --     authenticated holds them, each exactly SELECT on the safe projection.
-  --     (information_schema.role_table_grants cannot be used for the
-  --     table-vs-column distinction: it also reports column grants, via
-  --     has_table_privilege().)
+  -- 26. Privilege model on entitlements (RAZORPAY-WEBHOOK-HARDENING-022):
+  --     client access stays COLUMN-LEVEL SELECT-only for authenticated (no
+  --     table-level grant at all), anon holds nothing, and the single
+  --     table-level grant is service_role's least-privilege server write path
+  --     (INSERT/UPDATE/SELECT, no DELETE/TRUNCATE, no grant option) — the
+  --     ADR-012 CLOUD-004 note. (information_schema.column_privileges expands
+  --     table-level grants over every column, so grantee filtering must name
+  --     service_role explicitly.)
   select count(*) into _count
-  from pg_class c
-  where c.oid = 'public.entitlements'::regclass and c.relacl is not null;
+  from information_schema.table_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee in ('anon', 'authenticated');
   if _count > 0 then
-    raise exception 'FAIL 26: entitlements has table-level ACL entries (must be column-level only)';
+    raise exception 'FAIL 26: anon/authenticated hold a table-level privilege on entitlements (must be column-level only)';
+  end if;
+
+  select count(*) into _count
+  from information_schema.table_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee = 'service_role'
+    and (privilege_type not in ('INSERT', 'UPDATE', 'SELECT') or is_grantable <> 'NO');
+  if _count > 0 then
+    raise exception 'FAIL 26: service_role holds a table privilege outside the least-privilege set (insert/update/select, no grant option)';
+  end if;
+
+  select count(*) into _count
+  from information_schema.table_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee = 'service_role';
+  if _count <> 3 then
+    raise exception 'FAIL 26: expected exactly 3 service_role table privileges on entitlements, found %', _count;
+  end if;
+
+  if has_table_privilege('service_role', 'public.entitlements', 'delete')
+     or has_table_privilege('service_role', 'public.entitlements', 'truncate') then
+    raise exception 'FAIL 26: service_role must not hold DELETE or TRUNCATE on entitlements';
+  end if;
+
+  if has_table_privilege('authenticated', 'public.entitlements', 'select')
+     or has_table_privilege('authenticated', 'public.entitlements', 'insert')
+     or has_table_privilege('authenticated', 'public.entitlements', 'update')
+     or has_table_privilege('authenticated', 'public.entitlements', 'delete')
+     or has_table_privilege('anon', 'public.entitlements', 'select') then
+    raise exception 'FAIL 26: a client role holds a table-level privilege on entitlements';
   end if;
 
   select count(*) into _count
   from information_schema.column_privileges
   where table_schema = 'public' and table_name = 'entitlements'
     and grantee <> current_user
-    and grantee not in ('authenticated');
+    and grantee not in ('authenticated', 'service_role');
   if _count > 0 then
-    raise exception 'FAIL 26: non-owner, non-authenticated grantee holds a column privilege on entitlements';
+    raise exception 'FAIL 26: unexpected grantee holds a column privilege on entitlements';
   end if;
 
   select count(*) into _count
@@ -424,15 +457,26 @@ begin
     raise exception 'FAIL 26: expected exactly 6 column grants for authenticated, found %', _count;
   end if;
 
-  -- 27. The granted projection is exactly the closed safe set; identity and
-  --     provider/payment columns are granted to no one (owner excluded).
+  -- 27. For the CLIENT projection (authenticated) the granted set is exactly
+  --     the closed safe list; identity, provider and payment columns are
+  --     granted to no client role (owner excluded). service_role's whole-table
+  --     server projection is asserted by check 26 instead — it is the only
+  --     role allowed to see provider_payment_ref, and it is not a client.
   select count(*) into _count
   from information_schema.column_privileges
   where table_schema = 'public' and table_name = 'entitlements'
-    and grantee <> current_user
+    and grantee = 'authenticated'
     and column_name not in ('product', 'plan', 'status', 'starts_at', 'expires_at', 'updated_at');
   if _count > 0 then
     raise exception 'FAIL 27: privilege granted on an unexpected entitlements column';
+  end if;
+
+  select count(*) into _count
+  from information_schema.column_privileges
+  where table_schema = 'public' and table_name = 'entitlements'
+    and grantee = 'anon';
+  if _count > 0 then
+    raise exception 'FAIL 27: anon holds a column privilege on entitlements';
   end if;
 
   -- 28. Exactly one policy on entitlements: a self-owned SELECT for
@@ -1153,6 +1197,125 @@ begin
     and coalesce(p.proconfig::text, '') ~ 'search_path';
   if _count <> 1 then
     raise exception 'FAIL 60: profiles_guard_public_user_id_immutable must pin search_path';
+  end if;
+
+  -- ------------------------------------------------------------------ --
+  -- RAZORPAY-WEBHOOK-HARDENING-022: idempotency ledger + write path      --
+  -- ------------------------------------------------------------------ --
+
+  -- 61. webhook_events is a service-role-only claim ledger: RLS on, zero
+  --     policies, no client grants, UPDATE available to service_role so a
+  --     failure can be reclaimed, and the processing/completed/failed state
+  --     machine columns are physically present.
+  if to_regclass('public.webhook_events') is null then
+    raise exception 'FAIL 61: public.webhook_events missing';
+  end if;
+
+  select count(*) into _count
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'webhook_events' and c.relkind <> 'r';
+  if _count > 0 then
+    raise exception 'FAIL 61: webhook_events is not a plain table';
+  end if;
+
+  select count(*) into _count
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'webhook_events'
+    and c.relkind = 'r' and not c.relrowsecurity;
+  if _count > 0 then
+    raise exception 'FAIL 61: webhook_events has RLS disabled';
+  end if;
+
+  select count(*) into _count
+  from pg_policies
+  where schemaname = 'public' and tablename = 'webhook_events';
+  if _count <> 0 then
+    raise exception 'FAIL 61: webhook_events must have zero RLS policies, found %', _count;
+  end if;
+
+  select count(*) into _count
+  from information_schema.table_privileges
+  where table_schema = 'public' and table_name = 'webhook_events'
+    and grantee in ('anon', 'authenticated');
+  if _count > 0 then
+    raise exception 'FAIL 61: a client role holds a privilege on webhook_events';
+  end if;
+
+  if not has_table_privilege('service_role', 'public.webhook_events', 'update')
+     or not has_table_privilege('service_role', 'public.webhook_events', 'insert')
+     or not has_table_privilege('service_role', 'public.webhook_events', 'select')
+     or has_table_privilege('service_role', 'public.webhook_events', 'delete') then
+    raise exception 'FAIL 61: service_role ledger grant must be select/insert/update without delete';
+  end if;
+
+  select count(*) into _count
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'webhook_events'
+    and ((column_name = 'status'      and data_type = 'text' and is_nullable = 'NO'
+          and column_default is not null)
+      or (column_name = 'claimed_at'  and data_type = 'timestamp with time zone' and is_nullable = 'NO')
+      or (column_name = 'processed_at' and data_type = 'timestamp with time zone' and is_nullable = 'YES')
+      or (column_name = 'attempts'    and data_type = 'integer' and is_nullable = 'NO')
+      or (column_name = 'event_id'    and data_type = 'text' and is_nullable = 'NO'));
+  if _count <> 5 then
+    raise exception 'FAIL 61: webhook_events state machine columns missing or mis-typed';
+  end if;
+
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.webhook_events'::regclass
+    and contype = 'c' and conname = 'webhook_events_status_check';
+  if _count <> 1 then
+    raise exception 'FAIL 61: webhook_events_status_check CHECK missing';
+  end if;
+
+  select count(*) into _count
+  from pg_constraint
+  where conrelid = 'public.webhook_events'::regclass and contype = 'u';
+  if _count <> 1 then
+    raise exception 'FAIL 61: webhook_events missing its event_id UNIQUE dedup key';
+  end if;
+
+  -- 62. Entitlement write-path hardening: no legacy product default, no
+  --     legacy product value survives, the refund lookup index exists, and
+  --     admin_users reads the catalogue products instead of product='soravo'.
+  select count(*) into _count
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'entitlements'
+    and column_name = 'product' and column_default is not null;
+  if _count > 0 then
+    raise exception 'FAIL 62: entitlements.product must have no default';
+  end if;
+
+  select count(*) into _count from public.entitlements where product = 'soravo';
+  if _count > 0 then
+    raise exception 'FAIL 62: % legacy product=''soravo'' row(s) remain', _count;
+  end if;
+
+  select count(*) into _count
+  from pg_indexes
+  where schemaname = 'public' and tablename = 'entitlements'
+    and indexname = 'entitlements_provider_payment_ref_idx';
+  if _count <> 1 then
+    raise exception 'FAIL 62: entitlements_provider_payment_ref_idx missing';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'admin_users'
+    and pg_get_functiondef(p.oid) like '%product in (''soravo_monthly'', ''soravo_lifetime'')%';
+  if _count <> 1 then
+    raise exception 'FAIL 62: admin_users must select the catalogue products';
+  end if;
+
+  select count(*) into _count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'admin_users'
+    and pg_get_functiondef(p.oid) like '%e.product = ''soravo''%';
+  if _count > 0 then
+    raise exception 'FAIL 62: admin_users still queries the removed product=''soravo'' value';
   end if;
 
   raise notice 'PASS: all CLOUD-001..CLOUD-013 database assertions held';

@@ -1,9 +1,11 @@
 import type { PaymentProvider, ProviderKind } from "./types";
 import { PaymentError } from "./errors";
 import { DevPaymentProvider } from "./dev-provider";
+import { RazorpayProvider, type RazorpayConfig } from "./razorpay-provider";
 
 export interface PaymentProviderConfig {
   kind: ProviderKind;
+  razorpay?: RazorpayConfig;
 }
 
 export function createPaymentProvider(
@@ -11,11 +13,14 @@ export function createPaymentProvider(
   nodeEnv: string
 ): PaymentProvider {
   if (config.kind === "razorpay") {
-    throw new PaymentError({
-      code: "provider_not_implemented",
-      message: "The Razorpay provider is not available yet.",
-      detail: "razorpay provider reserved for CLOUD-010",
-    });
+    if (!config.razorpay?.keyId || !config.razorpay?.keySecret) {
+      throw new PaymentError({
+        code: "invalid_configuration",
+        message: "Razorpay credentials are required.",
+        detail: "missing razorpay key_id or key_secret in config",
+      });
+    }
+    return new RazorpayProvider(config.razorpay);
   }
   if (config.kind === "dev") {
     if (nodeEnv === "production") {

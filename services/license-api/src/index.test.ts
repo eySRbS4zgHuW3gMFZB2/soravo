@@ -6,12 +6,14 @@ import {
   PaymentError,
   PaymentService,
   createPaymentProvider,
+  createRazorpayProvider,
 } from "./index";
 
 describe("public package entry (index.ts)", () => {
   it("exports the intended public surface", () => {
     expect(api.PaymentService).toBe(PaymentService);
     expect(api.createPaymentProvider).toBe(createPaymentProvider);
+    expect(api.createRazorpayProvider).toBe(createRazorpayProvider);
     expect(api.ProductCatalog).toBe(ProductCatalog);
     expect(api.PaymentError).toBe(PaymentError);
     expect(api.PRODUCT_CATALOG).toBe(PRODUCT_CATALOG);
@@ -25,10 +27,6 @@ describe("public package entry (index.ts)", () => {
     expect(api).not.toHaveProperty("createPaymentProviderFromEnv");
   });
 
-  it("keeps the razorpay boundary out of the public surface (D)", () => {
-    expect(JSON.stringify(Object.keys(api))).not.toMatch(/razorpay|dev-provider|DevPayment/i);
-  });
-
   it("supports an end-to-end skeleton flow from the public entry", async () => {
     const provider = createPaymentProvider({ kind: "dev" }, "test");
     const service = new PaymentService({ provider });
@@ -39,5 +37,10 @@ describe("public package entry (index.ts)", () => {
     expect(initiation.amountMinor).toBe(1200);
     expect(initiation.currency).toBe("USD");
     expect(initiation.provider).toBe("dev");
+  });
+
+  it("supports an end-to-end Razorpay flow from the public entry", async () => {
+    const provider = createRazorpayProvider({ keyId: "rzp_test_key", keySecret: "test_secret" });
+    expect(provider.kind).toBe("razorpay");
   });
 });

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createPaymentProvider } from "./provider-factory";
 import { DevPaymentProvider } from "./dev-provider";
+import { RazorpayProvider } from "./razorpay-provider";
 import { PaymentError } from "./errors";
 import type { PaymentErrorCode } from "./errors";
 
@@ -32,13 +33,42 @@ describe("createPaymentProvider", () => {
     );
   });
 
-  it("never constructs a Razorpay provider during CLOUD-009 (gate)", () => {
-    for (const env of ["development", "test", "production", "staging"]) {
-      expectConfigError(
-        () => createPaymentProvider({ kind: "razorpay" }, env),
-        "provider_not_implemented"
-      );
-    }
+  it("constructs a Razorpay provider with valid credentials", () => {
+    const provider = createPaymentProvider(
+      { kind: "razorpay", razorpay: { keyId: "rzp_test_key", keySecret: "secret" } },
+      "development"
+    );
+    expect(provider).toBeInstanceOf(RazorpayProvider);
+    expect(provider.kind).toBe("razorpay");
+  });
+
+  it("rejects Razorpay provider without keyId", () => {
+    expectConfigError(
+      () =>
+        createPaymentProvider(
+          { kind: "razorpay", razorpay: { keyId: "", keySecret: "secret" } },
+          "development"
+        ),
+      "invalid_configuration"
+    );
+  });
+
+  it("rejects Razorpay provider without keySecret", () => {
+    expectConfigError(
+      () =>
+        createPaymentProvider(
+          { kind: "razorpay", razorpay: { keyId: "rzp_test_key", keySecret: "" } },
+          "development"
+        ),
+      "invalid_configuration"
+    );
+  });
+
+  it("rejects Razorpay provider with missing razorpay config", () => {
+    expectConfigError(
+      () => createPaymentProvider({ kind: "razorpay" }, "development"),
+      "invalid_configuration"
+    );
   });
 
   it("rejects an unknown provider kind", () => {

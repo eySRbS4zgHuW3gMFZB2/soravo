@@ -415,17 +415,46 @@ begin
 end $$;
 set role postgres;
 
--- E11. service_role has no entitlements privileges (no client path).
+-- E11. service_role is the sanctioned SERVER write path for entitlements
+--      (RAZORPAY-WEBHOOK-HARDENING-022, the ADR-012 CLOUD-004 note): the
+--      grant is explicit SELECT/INSERT/UPDATE with NO DELETE and NO grant
+--      option, RLS stays enabled (service_role bypasses it by role attribute,
+--      never by a policy), and the client path stays closed (E5/E10 + the
+--      column-level projection). An actual service_role INSERT proves the
+--      webhook can write; it is removed immediately.
 set role service_role;
 do $$
 begin
   begin
     execute 'select count(*) from public.entitlements';
-    raise exception 'FAIL E11: service_role accessed entitlements';
+  exception when insufficient_privilege then
+    raise exception 'FAIL E11: service_role SELECT denied (server read path broken)';
+  end;
+
+  begin
+    execute 'delete from public.entitlements';
+    raise exception 'FAIL E11: service_role DELETE on entitlements allowed';
   exception when insufficient_privilege then null;
   end;
+
+  -- Negative assertion (effect-based): even if the GRANT statement itself
+  -- does not surface an error for this role/table combination, it must NEVER
+  -- take effect — service_role holds arw with no grant option, so the client
+  -- role must gain no privilege and the table ACL must stay unchanged.
+  begin
+    execute 'grant insert on public.entitlements to authenticated';
+  exception when insufficient_privilege then null;
+  end;
+  if has_table_privilege('authenticated', 'public.entitlements', 'INSERT')
+     or has_table_privilege('authenticated', 'public.entitlements', 'SELECT')
+     or has_table_privilege('authenticated', 'public.entitlements', 'UPDATE') then
+    raise exception 'FAIL E11: service_role re-granted entitlements to a client role';
+  end if;
 end $$;
+insert into public.entitlements (user_id, product, plan, status, provider, provider_customer_ref, provider_payment_ref, expires_at)
+values ('00000000-0000-0000-0000-00000000000d', 'soravo_lifetime', 'lifetime', 'active', 'razorpay', 'e11_probe', 'e11_probe', null);
 set role postgres;
+delete from public.entitlements where provider_customer_ref = 'e11_probe';
 
 -- E12. CHECK constraints reject impossible (plan, status, expires_at) states
 --      even for the server role — the DB, not the payment client, is the
@@ -1371,8 +1400,10 @@ values ('00000000-0000-0000-0000-000000000021', 'authenticated', 'authenticated'
 insert into public.profiles (id, display_name)
 values ('00000000-0000-0000-0000-000000000021', 'Ulrich');
 
+-- Catalogue product id: admin_users() summaries read the catalogue rows
+-- (soravo_monthly / soravo_lifetime), never the pre-catalogue 'soravo'.
 insert into public.entitlements (user_id, product, plan, status, provider, provider_customer_ref, provider_payment_ref, starts_at, expires_at)
-values ('00000000-0000-0000-0000-000000000021', 'soravo', 'monthly', 'active', 'razorpay', 'cus_ulrich_clo13', 'pay_ulrich_clo13', now() - interval '2 days', now() + interval '28 days');
+values ('00000000-0000-0000-0000-000000000021', 'soravo_monthly', 'monthly', 'active', 'razorpay', 'cus_ulrich_clo13', 'pay_ulrich_clo13', now() - interval '2 days', now() + interval '28 days');
 
 insert into public.devices (id, user_id, device_public_id, platform, app_version)
 values ('10000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000021', 'dev-ulrich-0001', 'linux', '1.0.0');

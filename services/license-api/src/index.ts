@@ -11,6 +11,8 @@ export type { PaymentErrorCode, PaymentErrorOptions } from "./payment/errors";
 export { ProductCatalog, DEFAULT_PRODUCT_CATALOG, PRODUCT_CATALOG } from "./payment/catalog";
 export { createPaymentProvider } from "./payment/provider-factory";
 export type { PaymentProviderConfig } from "./payment/provider-factory";
+export { createRazorpayProvider } from "./payment/razorpay-provider";
+export type { RazorpayConfig } from "./payment/razorpay-provider";
 export type {
   ProductId,
   EntitlementPlan,

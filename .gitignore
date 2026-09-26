@@ -16,6 +16,10 @@ playwright-report/
 *.pem
 *.key
 
+# Supabase CLI local state (project topology, pooler DSN, function metadata).
+# Added 2026-09-27 by task RAZORPAY-LIVE-CONFIG-RECONCILIATION-025 (F25-3).
+supabase/.temp/
+
 # Local application data and operating-system files
 .DS_Store
 Thumbs.db

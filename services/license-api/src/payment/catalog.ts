@@ -1,35 +1,47 @@
-import type { Currency, Product, ProductId } from "./types";
+import type { Currency, Product, ProductId, RegionalPrice } from "./types";
 import { PaymentError } from "./errors";
 
 const PRODUCT_IDS = new Set<string>(["soravo_monthly", "soravo_lifetime"]);
 const PLANS = new Set<string>(["monthly", "lifetime"]);
 const PRICING_STATUSES = new Set<string>(["evaluated_target", "confirmed"]);
+const SUPPORTED_CURRENCIES = new Set<Currency>(["USD", "INR", "CAD", "EUR", "AUD"]);
 const PLAN_BY_PRODUCT: Record<string, string> = {
   soravo_monthly: "monthly",
   soravo_lifetime: "lifetime",
 };
 const MAX_DISPLAY_NAME_LENGTH = 200;
 
+const REGIONAL_PRICING: Readonly<Record<ProductId, Readonly<Record<Currency, RegionalPrice>>>> = {
+  soravo_monthly: {
+    USD: { amountMinor: 1200, currency: "USD", status: "evaluated_target" },
+    INR: { amountMinor: 9900, currency: "INR", status: "evaluated_target" },
+    CAD: { amountMinor: 1600, currency: "CAD", status: "evaluated_target" },
+    EUR: { amountMinor: 1100, currency: "EUR", status: "evaluated_target" },
+    AUD: { amountMinor: 1800, currency: "AUD", status: "evaluated_target" },
+  },
+  soravo_lifetime: {
+    USD: { amountMinor: 5000, currency: "USD", status: "evaluated_target" },
+    INR: { amountMinor: 41500, currency: "INR", status: "evaluated_target" },
+    CAD: { amountMinor: 6700, currency: "CAD", status: "evaluated_target" },
+    EUR: { amountMinor: 4600, currency: "EUR", status: "evaluated_target" },
+    AUD: { amountMinor: 7500, currency: "AUD", status: "evaluated_target" },
+  },
+};
+
 export const PRODUCT_CATALOG: Readonly<Record<ProductId, Product>> = {
   soravo_monthly: {
     id: "soravo_monthly",
     plan: "monthly",
     displayName: "Soravo Monthly",
-    price: {
-      amountMinor: 1200,
-      currency: "USD",
-      status: "evaluated_target",
-    },
+    price: REGIONAL_PRICING.soravo_monthly.USD,
+    regionalPrices: REGIONAL_PRICING.soravo_monthly,
   },
   soravo_lifetime: {
     id: "soravo_lifetime",
     plan: "lifetime",
     displayName: "Soravo Lifetime",
-    price: {
-      amountMinor: 5000,
-      currency: "USD",
-      status: "evaluated_target",
-    },
+    price: REGIONAL_PRICING.soravo_lifetime.USD,
+    regionalPrices: REGIONAL_PRICING.soravo_lifetime,
   },
 };
 
@@ -92,6 +104,28 @@ export function assertCatalogValid(products: Readonly<Record<ProductId, Product>
       !PRICING_STATUSES.has(product.price.status),
       "catalog entry has an invalid pricing status"
     );
+    invalidConfigurationIf(
+      typeof product.regionalPrices !== "object" || product.regionalPrices === null,
+      "catalog entry has no regional prices"
+    );
+    for (const [currency, regionalPrice] of Object.entries(product.regionalPrices)) {
+      invalidConfigurationIf(
+        !isValidCurrency(currency),
+        `catalog entry has an invalid regional currency: ${currency}`
+      );
+      invalidConfigurationIf(
+        !Number.isSafeInteger(regionalPrice.amountMinor) || regionalPrice.amountMinor <= 0,
+        `catalog entry has an invalid regional price amount for ${currency}`
+      );
+      invalidConfigurationIf(
+        regionalPrice.currency !== currency,
+        `catalog entry regional price currency mismatch for ${currency}`
+      );
+      invalidConfigurationIf(
+        !PRICING_STATUSES.has(regionalPrice.status),
+        `catalog entry has an invalid regional pricing status for ${currency}`
+      );
+    }
   }
 }
 
@@ -110,5 +144,5 @@ function catalogError(detail: string): PaymentError {
 }
 
 function isValidCurrency(value: unknown): value is Currency {
-  return value === "USD";
+  return SUPPORTED_CURRENCIES.has(value as Currency);
 }

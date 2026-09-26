@@ -75,7 +75,13 @@ export class PaymentService {
     const userId = assertCallerIdentity(caller);
     const product = resolveProductFromCatalog(this.catalog, input);
     const reference = this.generateReference();
-    const providerOrder = await createProviderOrder(this.provider, this.logger, product, reference);
+    const providerOrder = await createProviderOrder(
+      this.provider,
+      this.logger,
+      product,
+      reference,
+      userId
+    );
     this.logger.info("payment.initiated", {
       event: "payment.initiated",
       userId,
@@ -92,7 +98,8 @@ async function createProviderOrder(
   provider: PaymentProvider,
   logger: PaymentLogger,
   product: Product,
-  reference: string
+  reference: string,
+  userId: string
 ): Promise<ProviderOrder> {
   try {
     return await provider.createOrder({
@@ -100,6 +107,7 @@ async function createProviderOrder(
       productId: product.id,
       amountMinor: product.price.amountMinor,
       currency: product.price.currency,
+      userId,
     });
   } catch (cause) {
     logger.error("payment.provider_failed", {
