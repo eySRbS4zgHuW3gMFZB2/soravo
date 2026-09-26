@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PaymentService } from "./service";
 import type { CreatePaymentInput, PaymentCaller, PaymentLogger } from "./service";
 import { DevPaymentProvider } from "./dev-provider";
-import type { PaymentProvider } from "./types";
+import type { PaymentProvider, ProviderSubscription } from "./types";
 import { PaymentError } from "./errors";
 import type { PaymentErrorCode } from "./errors";
 
@@ -182,6 +182,7 @@ describe("PaymentService.createOrder", () => {
     expect(Object.getOwnPropertyNames(PaymentService.prototype).sort()).toEqual([
       "constructor",
       "createOrder",
+      "createSubscription",
     ]);
   });
 
@@ -301,6 +302,151 @@ describe("PaymentService.createOrder", () => {
     );
     const serialized = logger.info.mock.calls.map((call) => JSON.stringify(call)).join("");
     expect(serialized).not.toMatch(/secret|key|token|password|razorpay/i);
+  });
+});
+
+describe("PaymentService.createSubscription", () => {
+  it("rejects anonymous or malformed identities before touching the provider", async () => {
+    const createSubscription = vi.fn(async () => ({
+      provider: "dev" as const,
+      subscriptionId: "dev_sub_x",
+    }));
+    const provider: PaymentProvider & { createSubscription: (req: unknown) => Promise<ProviderSubscription> } = { 
+      kind: "dev", 
+      createOrder: vi.fn(),
+      createSubscription 
+    };
+    const { service, logger } = makeService(provider);
+
+    const badCallers: unknown[] = [
+      undefined,
+      null,
+      {},
+      { userId: undefined },
+      { userId: null },
+      { userId: "" },
+      { userId: "   " },
+      { userId: "not-a-uuid" },
+    ];
+    for (const caller of badCallers) {
+      await expectPaymentError(
+        service.createSubscription(caller as PaymentCaller, { productId: "soravo_monthly", currency: "USD" }),
+        "invalid_identity",
+        "A valid authenticated identity is required."
+      );
+    }
+
+    expect(createSubscription).not.toHaveBeenCalled();
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it("initiates subscription for an authenticated user at catalog prices", async () => {
+    const createSubscription = vi.fn(async () => ({
+      provider: "dev" as const,
+      subscriptionId: "dev_sub_ref-test-0001",
+    }));
+    const provider: PaymentProvider & { createSubscription: (req: unknown) => Promise<ProviderSubscription> } = { 
+      kind: "dev", 
+      createOrder: vi.fn(),
+      createSubscription 
+    };
+    const { service, logger } = makeService(provider);
+
+    const init = await service.createSubscription(
+      { userId: USER_A }, 
+      { productId: "soravo_monthly", currency: "USD" }
+    );
+    
+    expect(init).toEqual({
+      subscriptionId: "dev_sub_ref-test-0001",
+      productId: "soravo_monthly",
+      plan: "monthly",
+      currency: "USD",
+      provider: "dev",
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      "subscription.initiated",
+      expect.objectContaining({
+        productId: "soravo_monthly",
+        plan: "monthly",
+      })
+    );
+  });
+
+  it("rejects lifetime product for subscription (only monthly supported)", async () => {
+    const { service } = makeService();
+    await expectPaymentError(
+      service.createSubscription({ userId: USER_A }, { productId: "soravo_lifetime", currency: "USD" }),
+      "invalid_product",
+      "Subscriptions are only available for monthly products."
+    );
+  });
+
+  it("rejects unsupported currencies for subscription", async () => {
+    const { service } = makeService();
+    await expectPaymentError(
+      service.createSubscription({ userId: USER_A }, { productId: "soravo_monthly", currency: "GBP" as any }),
+      "invalid_product"
+    );
+  });
+
+  it("resolves INR monthly subscription at 9900 paise", async () => {
+    const createSubscription = vi.fn(async () => ({
+      provider: "dev" as const,
+      subscriptionId: "dev_sub_ref-test-0001",
+    }));
+    const provider: PaymentProvider & { createSubscription: (req: unknown) => Promise<ProviderSubscription> } = { 
+      kind: "dev", 
+      createOrder: vi.fn(),
+      createSubscription 
+    };
+    const { service } = makeService(provider);
+
+    const init = await service.createSubscription(
+      { userId: USER_A }, 
+      { productId: "soravo_monthly", currency: "INR" }
+    );
+    
+    expect(init.currency).toBe("INR");
+    expect(createSubscription).toHaveBeenCalled();
+  });
+
+  it("rejects providers that do not support subscriptions", async () => {
+    const provider: PaymentProvider = { kind: "dev", createOrder: vi.fn() };
+    const { service } = makeService(provider);
+
+    await expectPaymentError(
+      service.createSubscription({ userId: USER_A }, { productId: "soravo_monthly", currency: "USD" }),
+      "provider_unavailable",
+      "The payment provider does not support subscriptions."
+    );
+  });
+
+  it("maps provider subscription failure to safe error", async () => {
+    const createSubscription = vi.fn().mockRejectedValue(new Error("subscription failed"));
+    const provider: PaymentProvider & { createSubscription: (req: unknown) => Promise<ProviderSubscription> } = { 
+      kind: "dev", 
+      createOrder: vi.fn(),
+      createSubscription 
+    };
+    const { service, logger } = makeService(provider);
+
+    await expectPaymentError(
+      service.createSubscription({ userId: USER_A }, { productId: "soravo_monthly", currency: "USD" }),
+      "provider_unavailable",
+      "The payment provider is temporarily unavailable."
+    );
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "subscription.provider_failed",
+      expect.objectContaining({
+        provider: "dev",
+      })
+    );
+  });
+
+  it("exposes subscription method on PaymentService", () => {
+    expect(Object.getOwnPropertyNames(PaymentService.prototype).sort()).toContain("createSubscription");
   });
 });
 

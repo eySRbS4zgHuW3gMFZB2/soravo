@@ -1627,6 +1627,53 @@ The `createOrder()` path in `PaymentService` was using `product.price.amountMino
 **CODE-COMPLETE** for regional pricing fix. All 61 license-api tests pass, all 178 supabase tests pass, typecheck passes.
 
 **Live Order Creation Verified (All 5 Currencies):**
+
+---
+
+## RAZORPAY-SUBSCRIPTIONS-029 Progress (2026-09-27)
+
+### Summary
+Implemented monthly subscription flow using Razorpay Subscriptions (Option A) with full lifecycle support:
+
+- ✅ Extended PaymentProvider interface with createSubscription method
+- ✅ Server-side price resolution for all 5 currencies
+- ✅ Subscription lifecycle webhook handlers verified (charged, cancelled, halted, paused, resumed)
+- ✅ All tests pass (71/71 license-api, 178/178 supabase)
+- ✅ Typecheck passes
+
+### Files Changed
+- `services/license-api/src/payment/types.ts` — Added CreateSubscriptionRequest, ProviderSubscription types
+- `services/license-api/src/payment/razorpay-provider.ts` — Added createSubscription API implementation
+- `services/license-api/src/payment/service.ts` — Added createSubscription service method with price validation
+- `services/license-api/src/payment/service.test.ts` — Added 8 subscription tests
+- `services/license-api/src/payment/razorpay-provider.test.ts` — Added 2 subscription tests
+
+### Tests Run
+- **71 tests passed** (0 failed) in `services/license-api`
+  - All existing order tests pass
+  - 8 new subscription tests: identity validation, monthly-only, currency validation, provider support, error mapping
+- **178 tests passed** (0 failed) in `supabase`
+  - Webhook tests already cover subscription lifecycle events
+
+### Verified Items
+- Monthly subscription initiation via `PaymentService.createSubscription()`
+- Lifetime products rejected for subscription flow (only monthly supported)
+- All 5 currencies validated against catalogue prices (INR, USD, CAD, EUR, AUD)
+- Providers without createSubscription support rejected gracefully
+- Webhook event handlers verified (from 022-026):
+  - subscription.charged → grant/renew entitlement with provider_subscription_ref
+  - subscription.cancelled/halted → revoke entitlement
+  - subscription.paused/resumed → lifecycle state only (no payment fabricated)
+- Idempotency maintained via webhook_events table
+- Security maintained via HMAC-SHA256 signature verification
+
+### Remaining Before Commit
+- Razorpay TEST Plans creation (5 plans, one per currency) — manual CLI/API action required
+- Razorpay TEST subscription flow verification — requires Plans + checkout test
+
+### Milestone Status
+**CODE-COMPLETE** — Implementation verified via unit tests. External Razorpay TEST verification required before final commit.
+
 - INR: order_TgpyqWEDB8k81r (41500 paise) ✅
 - USD: order_Tgpyqiot4yhRT7 (5000 cents) ✅
 - CAD: order_TgpyqplAOZth1Q (6700 cents) ✅
@@ -1635,8 +1682,18 @@ The `createOrder()` path in `PaymentService` was using `product.price.amountMino
 
 **Live Checkout Status:** Razorpay TEST account configuration prevents INR payment completion. Error: "International cards are not supported." This is an external account limitation, not a code issue.
 
-**Remaining Before Commit:** None required for code verification. The implementation is complete and verified via order creation. Webhook/entitlement verification already tested via synthetic webhook delivery in unit tests (178 supabase tests pass).
+**Account Enablement Issue:** Razorpay TEST account lacks International Payments setting, blocking INR checkout despite successful order creation. Distinguish:
+- **Order Creation Verified:** ✅ All 5 live TEST orders created correctly via `PaymentService.createOrder()` with regional pricing
+- **Full Checkout/Webhook E2E Verified:** ❌ Not yet verified due to TEST account configuration issue
 
-See `docs/spec-v3/RAZORPAY-REGIONAL-PRICING-028.md` for full verification evidence.
+**Implementation complete but not deployable to production due to Razorpay TEST account enablement requirement.**
 
 
+
+---
+
+## RAZORPAY-SUBSCRIPTIONS-029 Progress (2026-09-27)
+
+See: docs/spec-v3/RAZORPAY-SUBSCRIPTIONS-029.md
+
+Status: CODE-COMPLETE, Razorpay TEST API Limited (Items created; Plans via API BLOCKED)

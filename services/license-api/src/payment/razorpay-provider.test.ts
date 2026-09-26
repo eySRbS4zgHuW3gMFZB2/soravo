@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { RazorpayProvider } from "./razorpay-provider";
-import type { CreateOrderRequest } from "./types";
+import type { CreateOrderRequest, CreateSubscriptionRequest } from "./types";
 import { PaymentError } from "./errors";
 import type { PaymentErrorCode } from "./errors";
 
@@ -199,6 +199,81 @@ describe("RazorpayProvider", () => {
       "utf8"
     );
     expect(source).not.toMatch(/rzp_live|rzp_test.*secret|key_secret.*=.*["']/);
+  });
+
+  it("creates a subscription via Razorpay API", async () => {
+    const provider = new RazorpayProvider({
+      keyId: "rzp_test_keyid",
+      keySecret: "test_secret",
+    });
+
+    const MOCK_SUBSCRIPTION_RESPONSE = {
+      id: "sub_ABC123XYZ",
+      entity: "subscription",
+      plan_id: "plan_soravo_monthly_usd",
+      customer_id: "cust_ABC123",
+      status: "created",
+      current_start: 1699999999,
+      current_end: 1702591999,
+      remaining_count: 0,
+      paid_count: 0,
+      notes: { product_id: "soravo_monthly", user_id: "11111111-1111-4111-8111-111111111111" },
+      created_at: 1699999999,
+    };
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => MOCK_SUBSCRIPTION_RESPONSE,
+    });
+
+    const subscriptionRequest: CreateSubscriptionRequest = {
+      planId: "plan_soravo_monthly_usd",
+      userId: "11111111-1111-4111-8111-111111111111",
+      productId: "soravo_monthly",
+    };
+
+    const subscription = await provider.createSubscription(subscriptionRequest);
+
+    expect(subscription).toEqual({
+      provider: "razorpay",
+      subscriptionId: "sub_ABC123XYZ",
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toBe("https://api.razorpay.com/v1/subscriptions");
+    expect(options.method).toBe("POST");
+    const body = JSON.parse(options.body as string);
+    expect(body).toEqual({
+      plan_id: "plan_soravo_monthly_usd",
+      customer_notify: 1,
+      total_count: null,
+      notes: {
+        product_id: "soravo_monthly",
+        user_id: "11111111-1111-4111-8111-111111111111",
+      },
+    });
+  });
+
+  it("maps Razorpay subscription API errors to provider_unavailable", async () => {
+    const provider = new RazorpayProvider({
+      keyId: "rzp_test_keyid",
+      keySecret: "test_secret",
+    });
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: async () => '{"error": {"code": "BAD_REQUEST"}}',
+    });
+
+    const subscriptionRequest: CreateSubscriptionRequest = {
+      planId: "plan_soravo_monthly_usd",
+      userId: "11111111-1111-4111-8111-111111111111",
+      productId: "soravo_monthly",
+    };
+
+    await expectPaymentError(provider.createSubscription(subscriptionRequest), "provider_unavailable");
   });
 });
 

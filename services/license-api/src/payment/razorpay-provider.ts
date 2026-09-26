@@ -1,4 +1,10 @@
-import type { CreateOrderRequest, PaymentProvider, ProviderOrder } from "./types";
+import type {
+  CreateOrderRequest,
+  CreateSubscriptionRequest,
+  PaymentProvider,
+  ProviderOrder,
+  ProviderSubscription,
+} from "./types";
 import { PaymentError } from "./errors";
 
 const RAZORPAY_API_VERSION = "2024-11-01";
@@ -19,6 +25,20 @@ interface RazorpayOrderResponse {
   offer_id: string | null;
   status: string;
   attempts: number;
+  notes: Record<string, unknown>;
+  created_at: number;
+}
+
+interface RazorpaySubscriptionResponse {
+  id: string;
+  entity: string;
+  plan_id: string;
+  customer_id: string;
+  status: string;
+  current_start: number;
+  current_end: number;
+  remaining_count: number;
+  paid_count: number;
   notes: Record<string, unknown>;
   created_at: number;
 }
@@ -87,6 +107,55 @@ export class RazorpayProvider implements PaymentProvider {
     return {
       provider: "razorpay",
       providerOrderId: data.id,
+    };
+  }
+
+  async createSubscription(request: CreateSubscriptionRequest): Promise<ProviderSubscription> {
+    const url = "https://api.razorpay.com/v1/subscriptions";
+    const auth = Buffer.from(`${this.keyId}:${this.keySecret}`).toString("base64");
+
+    const payload = {
+      plan_id: request.planId,
+      customer_notify: 1,
+      total_count: null,
+      notes: {
+        product_id: request.productId,
+        user_id: request.userId,
+      },
+    };
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/json",
+          "X-Razorpay-Version": RAZORPAY_API_VERSION,
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      throw new PaymentError({
+        code: "provider_unavailable",
+        message: "The payment provider is temporarily unavailable.",
+        detail: "razorpay network error",
+      });
+    }
+
+    if (!response.ok) {
+      await response.text().catch(() => {});
+      throw new PaymentError({
+        code: "provider_unavailable",
+        message: "The payment provider is temporarily unavailable.",
+        detail: `razorpay subscription creation failed: ${response.status}`,
+      });
+    }
+
+    const data = (await response.json()) as RazorpaySubscriptionResponse;
+    return {
+      provider: "razorpay",
+      subscriptionId: data.id,
     };
   }
 }

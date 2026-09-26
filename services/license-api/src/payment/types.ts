@@ -41,7 +41,19 @@ export interface ProviderOrder {
   provider: ProviderKind;
 }
 
+export interface CreateSubscriptionRequest {
+  planId: string;
+  userId: string;
+  productId: ProductId;
+}
+
+export interface ProviderSubscription {
+  subscriptionId: string;
+  provider: ProviderKind;
+}
+
 export interface PaymentProvider {
   readonly kind: ProviderKind;
   createOrder(request: CreateOrderRequest): Promise<ProviderOrder>;
+  createSubscription?(request: CreateSubscriptionRequest): Promise<ProviderSubscription>;
 }

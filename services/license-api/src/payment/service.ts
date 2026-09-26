@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  CreateSubscriptionRequest,
   Currency,
   EntitlementPlan,
   PaymentProvider,
@@ -7,6 +8,7 @@ import type {
   ProductId,
   ProviderKind,
   ProviderOrder,
+  ProviderSubscription,
 } from "./types";
 import { PaymentError } from "./errors";
 import { DEFAULT_PRODUCT_CATALOG, ProductCatalog } from "./catalog";
@@ -29,6 +31,14 @@ export interface OrderInitiation {
   productId: ProductId;
   plan: EntitlementPlan;
   amountMinor: number;
+  currency: Currency;
+  provider: ProviderKind;
+}
+
+export interface SubscriptionInitiation {
+  subscriptionId: string;
+  productId: ProductId;
+  plan: EntitlementPlan;
   currency: Currency;
   provider: ProviderKind;
 }
@@ -94,6 +104,38 @@ export class PaymentService {
     });
     return toOrderInitiation(product, reference, providerOrder, this.provider.kind, input.currency);
   }
+
+  async createSubscription(caller: PaymentCaller, input: CreatePaymentInput): Promise<SubscriptionInitiation> {
+    const userId = assertCallerIdentity(caller);
+    const product = resolveProductFromCatalog(this.catalog, input);
+    
+    if (product.plan !== "monthly") {
+      throw new PaymentError({
+        code: "invalid_product",
+        message: "Subscriptions are only available for monthly products.",
+        detail: `product ${product.id} has plan ${product.plan}, expected monthly`,
+      });
+    }
+
+    const providerSubscription = await createProviderSubscription(
+      this.provider,
+      this.logger,
+      product,
+      userId,
+      input.currency
+    );
+
+    this.logger.info("subscription.initiated", {
+      event: "subscription.initiated",
+      userId,
+      productId: product.id,
+      plan: product.plan,
+      subscriptionId: providerSubscription.subscriptionId,
+      provider: this.provider.kind,
+    });
+
+    return toSubscriptionInitiation(product, providerSubscription, this.provider.kind, input.currency);
+  }
 }
 
 async function createProviderOrder(
@@ -124,6 +166,50 @@ async function createProviderOrder(
     logger.error("payment.provider_failed", {
       event: "payment.provider_failed",
       reference,
+      provider: provider.kind,
+      errorName: cause instanceof Error ? cause.name : "unknown",
+    });
+    throw new PaymentError({
+      code: "provider_unavailable",
+      message: "The payment provider is temporarily unavailable.",
+      detail: "provider failed",
+    });
+  }
+}
+
+async function createProviderSubscription(
+  provider: PaymentProvider,
+  logger: PaymentLogger,
+  product: Product,
+  userId: string,
+  currency: Currency
+): Promise<ProviderSubscription> {
+  if (typeof provider.createSubscription !== "function") {
+    throw new PaymentError({
+      code: "provider_unavailable",
+      message: "The payment provider does not support subscriptions.",
+      detail: `provider ${provider.kind} has no createSubscription method`,
+    });
+  }
+
+  const regionalPrice = product.regionalPrices[currency];
+  if (regionalPrice === undefined) {
+    throw new PaymentError({
+      code: "invalid_product",
+      message: "The requested currency is not supported for this product.",
+      detail: `unsupported currency: ${currency}`,
+    });
+  }
+
+  try {
+    return await provider.createSubscription({
+      planId: `plan_${product.id}_${currency.toLowerCase()}`,
+      userId,
+      productId: product.id,
+    });
+  } catch (cause) {
+    logger.error("subscription.provider_failed", {
+      event: "subscription.provider_failed",
       provider: provider.kind,
       errorName: cause instanceof Error ? cause.name : "unknown",
     });
@@ -203,6 +289,21 @@ function toOrderInitiation(
     productId: product.id,
     plan: product.plan,
     amountMinor,
+    currency,
+    provider,
+  };
+}
+
+function toSubscriptionInitiation(
+  product: Product,
+  providerSubscription: ProviderSubscription,
+  provider: ProviderKind,
+  currency: Currency
+): SubscriptionInitiation {
+  return {
+    subscriptionId: providerSubscription.subscriptionId,
+    productId: product.id,
+    plan: product.plan,
     currency,
     provider,
   };
