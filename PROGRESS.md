@@ -1399,3 +1399,188 @@ placeholders `rzp_test_key`, `rzp_test_keyid`, `rzp_test_x`, `rzp_test_XXX`,
 test fixture `test_webhook_secret_not_a_real_credential`. No real Razorpay key,
 key secret, webhook secret, Supabase token, service-role key, or private key is
 present. Milestone 025's redactions (F25-1) remain intact.
+
+---
+
+## RAZORPAY-TEST-PAYMENT-SMOKE-027 — ✅ COMPLETE (2026-09-27)
+
+**Status: COMPLETE. A real Razorpay TEST payment of INR 415.00 for `soravo_lifetime`
+was captured, delivered by Razorpay to the deployed Edge Function, HMAC-validated,
+claimed and completed in the ledger, and produced exactly one lifetime entitlement for
+the correct dedicated TEST user. Nothing committed or pushed — held for review.**
+
+**Branch:** `feature/razorpay-payments-021-026` — **unchanged**, `0/0` vs remote
+**HEAD (identical before and after):** `804d8af2703130bad2f6c0883a0403a2e5a5de36`
+
+Report: `docs/spec-v3/RAZORPAY-TEST-PAYMENT-SMOKE-027.md`
+
+### What happened
+
+The milestone was previously blocked at STEP 1 on a 401 and was resumed once a fresh
+key pair was in place. All 13 verification points passed.
+
+| # | Verification | Result |
+|---|---|---|
+| 1 | Razorpay TEST auth (`GET /v1/payments?count=1`) | **PASS** — `200` |
+| 2 | Webhook config active, all 8 required events | **PASS** — `TgmCtZX0SxcKey`, `api-test` |
+| 3 | Real order created | **PASS** — `order_Tgp6qmHcQ9scy7`, `41500 INR`, notes verified |
+| 4 | Real payment captured | **PASS** — `pay_Tgp91ev4woNKyY`, `captured`, order `paid`, `attempts=1` |
+| 5 | Webhook delivered to deployed function | **PASS** — 3 events received |
+| 6 | HMAC signature validation | **PASS** — 3 valid accepted, 4 invalid all `400` |
+| 7 | Ledger claim → completion | **PASS** — all `completed`, `attempts=1`, no errors |
+| 8 | Lifetime entitlement, correct TEST user | **PASS** — 1 row, `active`, `expires_at=NULL` |
+| 9 | Provider references correct | **PASS** — order + payment refs match Razorpay |
+| 10 | No duplicate entitlement | **PASS** — 1 by order ref, 1 by payment ref, 0 duplicate event ids |
+| 11 | `pnpm test:supabase` | **PASS** — 178/178 |
+| 12 | `pnpm --filter @soravo/license-api test` | **PASS** — 55/55 |
+| 13 | `pnpm --filter @soravo/license-api typecheck` | **PASS** — clean |
+
+### Credential sourcing
+
+No credential was requested from the user, pasted into chat, printed, logged or
+committed. Source was `services/license-api/.env.local` (gitignored, untracked, mode
+`600`), verified by shape only: `RAZORPAY_KEY_ID` is `rzp_test_` prefixed (23 chars,
+SHA-256 prefix `8f5c6caee3e0`), secret present (24 chars, SHA-256 prefix
+`2e209ce4454c`). **Nothing was rotated**, `RAZORPAY_WEBHOOK_SECRET` was left as
+configured, and no LIVE credential or LIVE object was used.
+
+### Skill Selection Gate (loaded, not claimed)
+
+`security-guidance` ✅, `supabase` ✅, `gh-cli` ✅. Deliberately not loaded:
+`securability-engineering` / `supply-chain-risk-auditor` (no source or dependency
+change), `supabase-postgres-best-practices` (no schema change — verification was
+read-only SQL), `github` (`gh-cli` is the matrix default), `vitest` (gate attaches to
+*changing* tests; both suites were run, never modified).
+
+### Test identity
+
+A **dedicated** TEST user was created rather than reusing seeded `test@example.com`,
+which already carried lifetime + monthly fixtures and would have made "exactly one
+entitlement" unverifiable.
+
+- **TEST user UUID:** `a5a2ae69-80fd-4ba4-9256-548ba0be40e2` (email not recorded)
+- Baseline: 0 entitlements for this user, 2 seeded total, 4 `webhook_events`
+
+### ⛔ Finding C (highest severity) — the service cannot create a settleable order
+
+`PaymentService.createOrder()` always sends the catalogue **base** price
+(`soravo_lifetime` → **USD 5000**), with no currency or region override. The first order
+was created through that exact production path, and every card attempt failed:
+
+```
+BAD_REQUEST_ERROR — "Your payment could not be completed as this business accepts
+domestic (Indian) card payments only. Try another payment method."
+```
+
+Three attempts, all `failed`, `captured=false`. **This merchant account settles
+domestic Indian cards only, so a USD order can never succeed** — and no code path can
+produce a settleable order for US/EU/CA/AU customers. This is a latent production bug
+that no test suite caught, not a test artefact.
+
+**Resolution:** exactly one new order in **INR 41500** — the catalogue's own
+`regionalPrices.soravo_lifetime.INR` (`status: evaluated_target`), read from the live
+catalogue rather than invented, still created through the production
+`RazorpayProvider` with the same note shape. That is also the value the webhook
+validates, so the end-to-end assertion stayed meaningful.
+
+**Needs its own task:** `createOrder` must select a regional price and the client must
+be able to request one, or the account must enable international cards.
+
+### Finding D — hCaptcha blocks browser automation
+
+Razorpay Checkout enforces an hCaptcha bot check; automated submit was rejected in both
+headless and headed Chromium (`Payment could not be completed` beside a
+`hcaptcha.com` frame reading `Please try again`). **No attempt was made to bypass,
+solve or defeat it.** Exactly one checkout window was opened, nothing sensitive was
+pre-filled, and a human completed the payment (test card, Skip OTP). Automation stopped
+at the challenge. No card number, CVV, mobile or OTP was ever read or stored by any
+script, and none is recorded anywhere.
+
+### Finding B — Supabase CLI is still NOT authenticated
+
+The resume claimed CLI auth was in place. It is not: `~/.supabase/credentials` absent,
+`SUPABASE_ACCESS_TOKEN` unset, `supabase projects list` → `AccessTokenRequiredError`.
+The user was **not** asked to paste a token; all verification ran through the
+authenticated Supabase MCP tools instead.
+
+### Finding A — over-subscribed webhook
+
+The endpoint is subscribed to **53 events**, ~45 more than the handler supports. The
+handler logs unrecognised events rather than failing, so the extras are inert, but they
+widen attack/noise surface. **No change was made** — config left untouched; needs a
+follow-up to trim to the supported set.
+
+### Bonus real coverage — `payment.failed`
+
+The 3 failed USD attempts produced real, correctly processed `payment.failed` webhooks
+(all `completed`, `attempts=1`, no errors) and **no entitlement** — confirming the
+negative path end to end.
+
+### Negative control — HMAC gate enforced
+
+Four rejected variants sent to the deployed function, using a payload shaped like a
+real `payment.captured` for the already-processed payment: no signature → `400
+missing signature`; empty → `400 missing signature`; forged → `400 invalid signature`;
+malformed → `400 invalid signature`. Afterwards `webhook_events` stayed at 10,
+`entitlements` at 3, and `payment.captured` rows for the payment at exactly 1 — no side
+effects, no forged grant.
+
+**Limitation, stated plainly:** a *validly signed* replay was never forged, because the
+webhook secret is intentionally not available locally and rotating it was out of scope.
+Duplicate protection is therefore evidenced by the ledger's deterministic idempotency
+key plus observed single-insert behaviour — not by an injected signed duplicate.
+
+### The grant also proves the function's key pair is current
+
+A stale `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` on the deployed function would have
+failed the order lookup and returned HTTP 500 (`transient`, `index.ts:365-366`). The
+grant succeeded, so the function holds the fresh matching pair — **without rotating
+anything**.
+
+### TEST-only objects created (inventory)
+
+**Razorpay** (no delete API — retained as evidence): `order_TgofHACuiHtvUC` (USD 5000,
+`attempted`, 3 failed payments, unpayable), `order_Tgp6qmHcQ9scy7` (INR 41500, `paid`),
+failed payments `pay_Tgp0VpSW7uSx7k` / `pay_Tgp04HTlMbb11Q` / `pay_TgoyPvNFulFesN`,
+captured payment `pay_Tgp91ev4woNKyY`.
+
+**Supabase:** TEST auth user `a5a2ae69-80fd-4ba4-9256-548ba0be40e2` (confirmed, no
+profile row); 1 lifetime entitlement — **retained deliberately as this milestone's
+proof**; 6 `webhook_events` rows retained as delivery/ledger evidence. No device,
+session or profile rows created.
+
+**Local:** all scratch under gitignored `supabase/.temp/smoke-027/` (driver scripts,
+`checkout.html`, Playwright profile, captured responses) — never in `git status`;
+eligible for deletion once signed off.
+
+### Git milestone ⏸ HELD FOR REVIEW
+
+Deliberately **not** performed. Branch `0/0` vs remote, HEAD `804d8af2…`. Working tree
+is **47** entries: 45 unrelated pre-existing dirty paths plus `PROGRESS.md` (modified)
+and the new report. **Nothing staged.** No `git add -A`, no stash, no reset, no force
+operation, and no change to any of the 45 unrelated paths. On approval, stage **only**
+`docs/spec-v3/RAZORPAY-TEST-PAYMENT-SMOKE-027.md` and `PROGRESS.md`.
+
+### Carry-forward risks 027 did **not** close
+
+- **International / multi-currency settlement is still broken** (Finding C). Only the
+  INR domestic path is proven.
+- `subscription.cancelled` **contradicts ADR-012** (routes to `cancel`, expiring access
+  immediately, where ADR-012 preserves it through the paid period).
+- A resume can leave a row `active` **and** expired (lifecycle-only never touches
+  `expires_at`).
+- `subscription.activated` is `log` even in its payment-carrying variant — monthly only,
+  so `charged` as a first-charge signal is unconfirmed.
+- No validly-signed replay injected; no refund/halt/pause/resume exercised.
+- Green suites do **not** prove live behaviour — only the Razorpay API responses and the
+  database rows do.
+
+### Next OpenCode Task
+
+**Fix the currency-selection bug (Finding C)** — highest severity. Add regional price
+selection to `PaymentService.createOrder()` and let the client request a currency, or
+enable international cards on the merchant account. Until then every non-INR customer
+is unpayable. Then: restore Supabase CLI auth (Finding B) and trim the webhook
+subscription from 53 events to the supported set (Finding A).
+
+This milestone changed **zero lines of product code**. No test file was modified.
