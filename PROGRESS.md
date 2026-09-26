@@ -4,8 +4,8 @@
 > **Last audited:** 2026-09-27  
 > **Main SHA:** 549eeeec0d45364644313c45a7e5384af09df87d  
 > **Authority:** SORAVO_PLAN.md, docs/spec-v3/  
-> **Razorpay 018–026:** committed to `feature/razorpay-payments-021-026` — see
-> *MILESTONE-COMMIT-026* at the end of this file
+> **Razorpay 018–026:** committed to `feature/razorpay-payments-021-026` at
+> `746fbbd5` — see *MILESTONE-COMMIT-026* at the end of this file
 
 ---
 
@@ -1317,8 +1317,11 @@ that is now a standing requirement for every completed milestone.
 
 - **Branch:** `feature/razorpay-payments-021-026` (created off
   `feature/handy-integration-audit-008`, which contained `origin/main`)
+- **Milestone commit SHA:** `746fbbd506208211f2f75a096eb77a04e467291a`
 - **Commit subject:** `feat(payments): harden Razorpay webhook payload handling`
 - **Base:** `a156c8c9` — `feat: integrate PR #55 Handy-derived desktop foundation (audit-008)`
+- **Remote verification:** `git ls-remote origin refs/heads/feature/razorpay-payments-021-026`
+  → `746fbbd506208211f2f75a096eb77a04e467291a` (matches local HEAD; 0 ahead / 0 behind)
 
 ### Scope committed (33 files)
 
