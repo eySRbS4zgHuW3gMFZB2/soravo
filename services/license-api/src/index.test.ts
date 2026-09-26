@@ -32,7 +32,7 @@ describe("public package entry (index.ts)", () => {
     const service = new PaymentService({ provider });
     const initiation = await service.createOrder(
       { userId: "11111111-1111-4111-8111-111111111111" },
-      { productId: "soravo_monthly" }
+      { productId: "soravo_monthly", currency: "USD" }
     );
     expect(initiation.amountMinor).toBe(1200);
     expect(initiation.currency).toBe("USD");

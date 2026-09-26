@@ -20,6 +20,7 @@ export interface PaymentCaller {
 
 export interface CreatePaymentInput {
   productId: ProductId;
+  currency: Currency;
 }
 
 export interface OrderInitiation {
@@ -80,7 +81,8 @@ export class PaymentService {
       this.logger,
       product,
       reference,
-      userId
+      userId,
+      input.currency
     );
     this.logger.info("payment.initiated", {
       event: "payment.initiated",
@@ -90,7 +92,7 @@ export class PaymentService {
       reference,
       provider: this.provider.kind,
     });
-    return toOrderInitiation(product, reference, providerOrder, this.provider.kind);
+    return toOrderInitiation(product, reference, providerOrder, this.provider.kind, input.currency);
   }
 }
 
@@ -99,14 +101,23 @@ async function createProviderOrder(
   logger: PaymentLogger,
   product: Product,
   reference: string,
-  userId: string
+  userId: string,
+  currency: Currency
 ): Promise<ProviderOrder> {
+  const regionalPrice = product.regionalPrices[currency];
+  if (regionalPrice === undefined) {
+    throw new PaymentError({
+      code: "invalid_product",
+      message: "The requested currency is not supported for this product.",
+      detail: `unsupported currency: ${currency}`,
+    });
+  }
   try {
     return await provider.createOrder({
       reference,
       productId: product.id,
-      amountMinor: product.price.amountMinor,
-      currency: product.price.currency,
+      amountMinor: regionalPrice.amountMinor,
+      currency: regionalPrice.currency,
       userId,
     });
   } catch (cause) {
@@ -149,12 +160,13 @@ function resolveProductFromCatalog(
     input === null ||
     typeof input.productId !== "string" ||
     input.productId.length === 0 ||
-    input.productId.length > MAX_PRODUCT_ID_LENGTH
+    input.productId.length > MAX_PRODUCT_ID_LENGTH ||
+    typeof input.currency !== "string"
   ) {
     throw new PaymentError({
       code: "invalid_product",
-      message: "A valid product identifier is required.",
-      detail: "missing or malformed product id",
+      message: "A valid product identifier and currency are required.",
+      detail: "missing or malformed product id or currency",
     });
   }
   const product = catalog.resolve(input.productId);
@@ -165,6 +177,14 @@ function resolveProductFromCatalog(
       detail: "unknown product id",
     });
   }
+  const regionalPrice = product.regionalPrices[input.currency as Currency];
+  if (regionalPrice === undefined) {
+    throw new PaymentError({
+      code: "invalid_product",
+      message: "The requested currency is not supported for this product.",
+      detail: `unsupported currency: ${input.currency}`,
+    });
+  }
   return product;
 }
 
@@ -172,15 +192,18 @@ function toOrderInitiation(
   product: Product,
   reference: string,
   providerOrder: ProviderOrder,
-  provider: ProviderKind
+  provider: ProviderKind,
+  currency: Currency
 ): OrderInitiation {
+  const regionalPrice = product.regionalPrices[currency];
+  const amountMinor = regionalPrice?.amountMinor ?? product.price.amountMinor;
   return {
     orderId: providerOrder.providerOrderId,
     reference,
     productId: product.id,
     plan: product.plan,
-    amountMinor: product.price.amountMinor,
-    currency: product.price.currency,
+    amountMinor,
+    currency,
     provider,
   };
 }

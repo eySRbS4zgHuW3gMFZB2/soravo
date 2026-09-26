@@ -24,7 +24,7 @@ function makeService(provider: PaymentProvider = new DevPaymentProvider("success
 }
 
 function hostileInput(patch: Record<string, unknown>): CreatePaymentInput {
-  return { productId: "soravo_monthly", ...patch } as unknown as CreatePaymentInput;
+  return { productId: "soravo_monthly", currency: "USD", ...patch } as unknown as CreatePaymentInput;
 }
 
 function hostileCaller(patch: Record<string, unknown>): PaymentCaller {
@@ -84,7 +84,7 @@ describe("PaymentService.createOrder", () => {
 
   it("initiates payment for an authenticated user at catalog prices (B)", async () => {
     const { service } = makeService();
-    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly" });
+    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly", currency: "USD" });
     expect(init).toEqual({
       orderId: "dev_order_ref-test-0001",
       reference: "ref-test-0001",
@@ -98,10 +98,66 @@ describe("PaymentService.createOrder", () => {
 
   it("resolves the lifetime product to its catalog plan and price (B)", async () => {
     const { service } = makeService();
-    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime" });
+    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "USD" });
     expect(init.plan).toBe("lifetime");
     expect(init.amountMinor).toBe(5000);
     expect(init.currency).toBe("USD");
+  });
+
+  it("resolves INR lifetime at 41500 paise (028 regional pricing)", async () => {
+    const { service } = makeService();
+    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "INR" });
+    expect(init.plan).toBe("lifetime");
+    expect(init.amountMinor).toBe(41500);
+    expect(init.currency).toBe("INR");
+  });
+
+  it("resolves USD lifetime at 5000 paise (028 regional pricing)", async () => {
+    const { service } = makeService();
+    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "USD" });
+    expect(init.amountMinor).toBe(5000);
+    expect(init.currency).toBe("USD");
+  });
+
+  it("resolves CAD lifetime at 6700 paise (028 regional pricing)", async () => {
+    const { service } = makeService();
+    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "CAD" });
+    expect(init.amountMinor).toBe(6700);
+    expect(init.currency).toBe("CAD");
+  });
+
+  it("resolves EUR lifetime at 4600 paise (028 regional pricing)", async () => {
+    const { service } = makeService();
+    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "EUR" });
+    expect(init.amountMinor).toBe(4600);
+    expect(init.currency).toBe("EUR");
+  });
+
+  it("resolves AUD lifetime at 7500 paise (028 regional pricing)", async () => {
+    const { service } = makeService();
+    const init = await service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "AUD" });
+    expect(init.amountMinor).toBe(7500);
+    expect(init.currency).toBe("AUD");
+  });
+
+  it("rejects unsupported currencies (028 validation)", async () => {
+    const { service } = makeService();
+    await expectPaymentError(
+      service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "GBP" as any }),
+      "invalid_product"
+    );
+    await expectPaymentError(
+      service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "JPY" as any }),
+      "invalid_product"
+    );
+  });
+
+  it("rejects missing currency in input (028 validation)", async () => {
+    const { service } = makeService();
+    await expectPaymentError(
+      service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime" } as unknown as CreatePaymentInput),
+      "invalid_product"
+    );
   });
 
   it("never lets a client mark a payment paid, verified, or entitled (C/G)", async () => {
@@ -146,8 +202,8 @@ describe("PaymentService.createOrder", () => {
 
   it("generates a fresh unpredictable reference by default (E/D)", async () => {
     const service = new PaymentService({ provider: new DevPaymentProvider("success") });
-    const a = await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly" });
-    const b = await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly" });
+    const a = await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly", currency: "USD" });
+    const b = await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly", currency: "USD" });
     expect(a.reference).not.toBe(b.reference);
     expect(a.reference).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -157,7 +213,6 @@ describe("PaymentService.createOrder", () => {
   it.each([
     { patch: { amountMinor: 1 }, why: "amountMinor" },
     { patch: { amount: 0 }, why: "amount" },
-    { patch: { currency: "INR" }, why: "currency" },
     { patch: { price: 0 }, why: "price" },
     { patch: { plan: "lifetime" }, why: "plan" },
     { patch: { product: { price: { amountMinor: 1 } } }, why: "embedded product object" },
@@ -172,7 +227,7 @@ describe("PaymentService.createOrder", () => {
   it("maps a provider failure to a stable safe error and logs nothing sensitive (I)", async () => {
     const { service, logger } = makeService(new DevPaymentProvider("always_fail"));
     await expectPaymentError(
-      service.createOrder({ userId: USER_A }, { productId: "soravo_monthly" }),
+      service.createOrder({ userId: USER_A }, { productId: "soravo_monthly", currency: "USD" }),
       "provider_unavailable",
       "The payment provider is temporarily unavailable."
     );
@@ -225,13 +280,13 @@ describe("PaymentService.createOrder", () => {
       hostileCaller({ role: "admin", isAdmin: true, entitlements: ["everything"] }),
       hostileInput({})
     );
-    const regular = await service.createOrder({ userId: USER_B }, { productId: "soravo_monthly" });
+    const regular = await service.createOrder({ userId: USER_B }, { productId: "soravo_monthly", currency: "USD" });
     expect(admin).toEqual(regular);
   });
 
   it("logs only safe fields and never credential material (K)", async () => {
     const { service, logger } = makeService();
-    await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly" });
+    await service.createOrder({ userId: USER_A }, { productId: "soravo_monthly", currency: "USD" });
     expect(logger.info).toHaveBeenCalledTimes(1);
     expect(logger.info).toHaveBeenCalledWith(
       "payment.initiated",
