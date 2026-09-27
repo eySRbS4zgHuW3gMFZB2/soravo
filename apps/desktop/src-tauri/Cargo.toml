@@ -19,7 +19,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 chrono = "0.4"
-cpal = "0.15"
+cpal = "0.16"
 enigo = "0.2"
 gtk = { version = "0.11", package = "gtk4", optional = true }
 gtk-layer-shell = { version = "0.8", optional = true }
