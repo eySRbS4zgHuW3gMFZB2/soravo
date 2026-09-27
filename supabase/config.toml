@@ -25,3 +25,13 @@ project_id = "soravo"
 # Regression-guarded by supabase/tests/webhook-hardening.test.mjs section N.
 [functions.razorpay-webhook]
 verify_jwt = false
+
+# RAZORPAY-PAYMENT-API-032A
+#
+# Payment checkout endpoint uses Supabase Auth JWT for authentication.
+# The default JWT verification is correct - we want to validate the Supabase
+# Auth token and extract the user_id from the JWT payload (never from request body).
+#
+# CORS is handled directly in the Edge Function to allow the Soravo website
+# to make authenticated requests to the payment endpoint.
+[functions.payment-checkout]

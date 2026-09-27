@@ -9,6 +9,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit --pretty false"
   },
+  "dependencies": {
+    "@soravo/payment-domain": "workspace:*"
+  },
   "devDependencies": {
     "@eslint/js": "latest",
     "@types/node": "^26.5.1",

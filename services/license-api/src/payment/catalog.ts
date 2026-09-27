@@ -1,7 +1,25 @@
-import type { Currency, Product, ProductId, RegionalPrice } from "./types";
 import { PaymentError } from "./errors";
+import type { Currency, Product, ProductId, RegionalPrice } from "@soravo/payment-domain";
+import {
+  PRODUCT_CATALOG,
+  PRODUCT_IDS,
+  isProductId,
+  resolveProduct,
+  validateCurrency,
+  getRegionalPrice,
+} from "@soravo/payment-domain";
 
-const PRODUCT_IDS = new Set<string>(["soravo_monthly", "soravo_lifetime"]);
+// Re-export types and catalog for consumers of license-api
+export type { Currency, Product, ProductId, RegionalPrice } from "@soravo/payment-domain";
+export {
+  PRODUCT_CATALOG,
+  PRODUCT_IDS,
+  isProductId,
+  resolveProduct,
+  validateCurrency,
+  getRegionalPrice,
+} from "@soravo/payment-domain";
+
 const PLANS = new Set<string>(["monthly", "lifetime"]);
 const PRICING_STATUSES = new Set<string>(["evaluated_target", "confirmed"]);
 const SUPPORTED_CURRENCIES = new Set<Currency>(["USD", "INR", "CAD", "EUR", "AUD"]);
@@ -10,40 +28,6 @@ const PLAN_BY_PRODUCT: Record<string, string> = {
   soravo_lifetime: "lifetime",
 };
 const MAX_DISPLAY_NAME_LENGTH = 200;
-
-const REGIONAL_PRICING: Readonly<Record<ProductId, Readonly<Record<Currency, RegionalPrice>>>> = {
-  soravo_monthly: {
-    USD: { amountMinor: 1200, currency: "USD", status: "evaluated_target" },
-    INR: { amountMinor: 9900, currency: "INR", status: "evaluated_target" },
-    CAD: { amountMinor: 1600, currency: "CAD", status: "evaluated_target" },
-    EUR: { amountMinor: 1100, currency: "EUR", status: "evaluated_target" },
-    AUD: { amountMinor: 1800, currency: "AUD", status: "evaluated_target" },
-  },
-  soravo_lifetime: {
-    USD: { amountMinor: 5000, currency: "USD", status: "evaluated_target" },
-    INR: { amountMinor: 41500, currency: "INR", status: "evaluated_target" },
-    CAD: { amountMinor: 6700, currency: "CAD", status: "evaluated_target" },
-    EUR: { amountMinor: 4600, currency: "EUR", status: "evaluated_target" },
-    AUD: { amountMinor: 7500, currency: "AUD", status: "evaluated_target" },
-  },
-};
-
-export const PRODUCT_CATALOG: Readonly<Record<ProductId, Product>> = {
-  soravo_monthly: {
-    id: "soravo_monthly",
-    plan: "monthly",
-    displayName: "Soravo Monthly",
-    price: REGIONAL_PRICING.soravo_monthly.USD,
-    regionalPrices: REGIONAL_PRICING.soravo_monthly,
-  },
-  soravo_lifetime: {
-    id: "soravo_lifetime",
-    plan: "lifetime",
-    displayName: "Soravo Lifetime",
-    price: REGIONAL_PRICING.soravo_lifetime.USD,
-    regionalPrices: REGIONAL_PRICING.soravo_lifetime,
-  },
-};
 
 export class ProductCatalog {
   private readonly products: Readonly<Record<ProductId, Product>>;
