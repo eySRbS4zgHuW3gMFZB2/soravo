@@ -37,7 +37,7 @@ export const ALLOWED_VITE_KEYS = [
   "VITE_E2E_TEST_MODE",
 ];
 
-const SECRET_SUSPECT_PATTERN = /razorpay/i;
+const SECRET_SUSPECT_PATTERN = /key_secret|keySecret|RAZORPAY_KEY_SECRET|rzp_live_[a-zA-Z0-9]{20,}/i;
 
 function isHttpOrigin(value) {
   try {
@@ -166,7 +166,7 @@ export async function verifyDist(distDir) {
       if (/\b\*\b/.test(csp)) problems.push("CSP contains a wildcard source (*)");
       if (/\bhttps:\b/.test(csp)) problems.push("CSP contains a bare https: source");
       if (/\bhttp:\b/.test(csp)) problems.push("CSP contains a bare http: source");
-      if (SECRET_SUSPECT_PATTERN.test(csp)) problems.push("CSP references a Razorpay domain before Razorpay integration");
+      if (SECRET_SUSPECT_PATTERN.test(csp)) problems.push("CSP contains secret-key patterns");
     } else {
       problems.push("_headers missing Content-Security-Policy value");
     }
