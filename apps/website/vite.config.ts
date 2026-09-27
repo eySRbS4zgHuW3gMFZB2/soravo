@@ -34,7 +34,15 @@ function productionSecurityHeaders(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), productionSecurityHeaders()],
-  resolve: { alias: { "@": path.resolve(rootDir, "./src") } },
+  resolve: {
+    alias: {
+      "@": path.resolve(rootDir, "./src"),
+      "@soravo/payment-domain": path.resolve(
+        rootDir,
+        "../../packages/payment-domain/src/index.ts",
+      ),
+    },
+  },
   server: {
     headers: {
       "X-Content-Type-Options": "nosniff",

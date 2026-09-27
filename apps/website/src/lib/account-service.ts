@@ -127,3 +127,10 @@ export async function loadAccountDashboard(
     error: firstError ?? null,
   };
 }
+
+export async function refreshEntitlements(
+  client: AppSupabaseClient,
+): Promise<{ data: Entitlement[]; error: string | null }> {
+  const result = await getEntitlements(client);
+  return { data: result.data, error: result.error };
+}

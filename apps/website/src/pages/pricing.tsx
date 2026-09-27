@@ -1,8 +1,16 @@
-import { Link } from "react-router";
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router";
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card";
+import { useAuth } from "../lib/auth-context";
+import { createCheckoutOrder, type CheckoutResponse, type CheckoutError } from "../lib/payment-service";
 import { trackEvent } from "../lib/analytics";
+
+const PLAN_CURRENCIES: Record<string, string> = {
+  Monthly: "INR",
+  "One-time": "INR",
+};
 
 const plans = [
   {
@@ -31,13 +39,116 @@ const plans = [
   },
 ] as const;
 
+function CheckoutSuccess() {
+  return (
+    <div role="status" className="form-success">
+      <p>Thank you! Your entitlement is being processed.</p>
+    </div>
+  );
+}
+
 export function Pricing() {
+  const { client, user } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<CheckoutError | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleCheckout(plan: string) {
+    if (!client) {
+      navigate("/login");
+      return;
+    }
+
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const planIndex = plans.findIndex((p) => p.title === plan);
+    if (planIndex === -1) return;
+
+    const productId = planIndex === 0 ? "soravo_monthly" : "soravo_lifetime";
+    const currency = PLAN_CURRENCIES[plan] || "INR";
+
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    const result = await createCheckoutOrder(client, { productId, currency });
+
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
+    if (!result.data) {
+      setError({ code: "unknown", message: "Payment checkout failed" });
+      setLoading(false);
+      return;
+    }
+
+    const checkout: CheckoutResponse = result.data;
+
+    if ("orderId" in checkout) {
+      const rzp = (window as any).Razorpay;
+      if (rzp) {
+        rzp.open({
+        key: checkout.keyId,
+        amount: checkout.amount,
+        currency: checkout.currency,
+        name: "Soravo",
+        description: "Lifetime License",
+        order_id: checkout.orderId,
+        handler: function (_: any) {
+          setSuccess(true);
+          setLoading(false);
+        },
+          modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
+        },
+      });
+      }
+    } else if ("subscriptionId" in checkout) {
+      const rzp = (window as any).Razorpay;
+      if (rzp) {
+        rzp.open({
+        key: checkout.keyId,
+        subscription_id: checkout.subscriptionId,
+        currency: checkout.currency,
+        name: "Soravo",
+        description: "Monthly Subscription",
+        handler: function (_: any) {
+          setSuccess(true);
+          setLoading(false);
+        },
+          modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
+        },
+      });
+      }
+    }
+  }
+
   return (
     <PageIntro
       eyebrow="PRICING"
       title="Transparent pricing. No data trade."
       lede="Soravo is sold as software, not as access to your words. For every option, dictation stays local."
     >
+      {success && (
+        <div className="page-actions">
+          <Button render={<Link to="/account" />} nativeButton={false}>
+            View your account
+          </Button>
+        </div>
+      )}
+
       <div className="card-grid">
         {plans.map((plan) => (
           <Card key={plan.title}>
@@ -60,11 +171,24 @@ export function Pricing() {
               </ul>
             </CardContent>
             <CardFooter className="mt-auto">
-              <Button disabled>Coming soon</Button>
+              <Button
+                disabled={loading || !!success}
+                onClick={() => handleCheckout(plan.title)}
+              >
+                {loading ? "Processing..." : success ? "Purchase complete" : "Purchase"}
+              </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+
+      {success && <CheckoutSuccess />}
+      {error && (
+        <div role="alert" className="form-error">
+          <p>{error.message}</p>
+        </div>
+      )}
+
       <p className="plan-disclaimer">
         The prices above are evaluated targets from early planning, not an offer. Final prices, billing, and
         terms will be published when the payment flow is live — nothing is billed today.

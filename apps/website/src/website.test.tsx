@@ -149,7 +149,7 @@ describe("accessibility", () => {
 
   it("keeps disabled buttons as button semantics", async () => {
     await renderAt("/pricing");
-    const buttons = await screen.findAllByRole("button", { name: /coming soon/i });
+    const buttons = await screen.findAllByRole("button", { name: /purchase/i });
     expect(buttons.length).toBeGreaterThanOrEqual(1);
     expect(buttons[0]!.tagName).toBe("BUTTON");
   });

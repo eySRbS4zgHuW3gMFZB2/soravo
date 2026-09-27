@@ -205,11 +205,13 @@ describe("index.html metadata", () => {
 });
 
 describe("website source guardrails", () => {
-  it("references no Razorpay domains yet", async () => {
+  it("references no Razorpay API secrets in source", async () => {
     const files = [...(await walk(SRC_DIR)), path.join(SITE_ROOT, "index.html"), path.join(SITE_ROOT, "public", "robots.txt"), path.join(SITE_ROOT, "public", "sitemap.xml"), path.join(SITE_ROOT, "public", "favicon.svg")].filter((file) => !/\.test\.(ts|tsx)$/.test(file));
     for (const file of files) {
       const content = await readFile(file, "utf8");
-      expect(content.toLowerCase()).not.toContain("razorpay");
+      // Razorpay integration is allowed; only check that secrets aren't in source
+      expect(content.toLowerCase()).not.toContain("razorpay_key_secret");
+      expect(content.toLowerCase()).not.toContain("rzp_live_");
     }
   });
 
