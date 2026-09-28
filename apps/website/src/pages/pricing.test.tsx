@@ -1,9 +1,16 @@
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { MemoryRouter, useNavigate } from "react-router";
+import { MemoryRouter } from "react-router";
 import { createMockSupabaseClient } from "../test-utils/supabase-mock";
 import { AuthProvider } from "../lib/auth-context";
 import { Pricing } from "./pricing";
+
+type RazorpayTestHandle = { open: (...args: unknown[]) => void };
+type RazorpayTestWindow = Window & { Razorpay: RazorpayTestHandle };
+
+function testWindow(): RazorpayTestWindow {
+  return window as unknown as RazorpayTestWindow;
+}
 
 function createWrapper(client: ReturnType<typeof createMockSupabaseClient>) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
@@ -22,7 +29,7 @@ describe("Pricing page", () => {
   beforeEach(() => {
     originalRazorpay = window.Razorpay;
     originalFetch = globalThis.fetch;
-    (window as any).Razorpay = { open: vi.fn() };
+    testWindow().Razorpay = { open: vi.fn() };
   });
 
   afterEach(() => {
@@ -69,7 +76,7 @@ describe("Pricing page", () => {
       expect(globalThis.fetch).toHaveBeenCalled();
     });
 
-    expect((window as any).Razorpay.open).toHaveBeenCalled();
+      expect(testWindow().Razorpay.open).toHaveBeenCalled();
   });
 
   it("shows Razorpay checkout for lifetime purchase", async () => {
@@ -98,7 +105,7 @@ describe("Pricing page", () => {
     });
 
     await waitFor(() => {
-      expect((window as any).Razorpay.open).toHaveBeenCalledWith(
+      expect(testWindow().Razorpay.open).toHaveBeenCalledWith(
         expect.objectContaining({
           order_id: "order_abc123",
           amount: 41500,
@@ -169,7 +176,7 @@ describe("Pricing page", () => {
     );
 
     await waitFor(() => {
-      expect((window as any).Razorpay.open).toHaveBeenCalled();
+    expect(testWindow().Razorpay.open).toHaveBeenCalled();
     });
   });
 });

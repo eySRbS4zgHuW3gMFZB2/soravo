@@ -10,6 +10,8 @@ ignore = [
   { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident is unmaintained. Transitive via urlpattern -> tauri-utils -> tauri. Identifier parsing with no security-sensitive operations." },
   { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version is unmaintained. Transitive via urlpattern -> tauri-utils -> tauri. No security impact." },
   { id = "RUSTSEC-2024-0429", reason = "glib unsoundness in VariantStrIter Iterator impls. Transitive via glib -> gtk -> tauri. VariantStrIter is not used in security-critical paths. Reviewed: desktop UI code does not expose this API externally." },
+  { id = "RUSTSEC-2025-0119", reason = "number_prefix is unmaintained. Transitive via indicatif -> hf-hub -> soravo-desktop. Progress-bar number formatting only; no security-critical functionality." },
+  { id = "RUSTSEC-2024-0436", reason = "paste is unmaintained. Transitive via specta/tauri -> soravo-desktop. Build-time proc-macro only; no runtime security impact." },
 ]
 
 [licenses]

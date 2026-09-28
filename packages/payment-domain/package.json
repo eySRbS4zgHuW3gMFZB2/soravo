@@ -7,9 +7,13 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc",
+    "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^6.0.0"
+    "@eslint/js": "latest",
+    "eslint": "latest",
+    "typescript": "^6.0.0",
+    "typescript-eslint": "latest"
   }
 }

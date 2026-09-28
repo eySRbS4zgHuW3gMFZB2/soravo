@@ -2,13 +2,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Mutex;
-use tauri::{generate_handler, Manager};
+use tauri::generate_handler;
 
-use soravo_desktop_lib::{commands::*, session::SessionMachine};
+use soravo_desktop_lib::{
+    account::AccountMachine,
+    commands::{account_sign_in, account_sign_out, get_account_snapshot, soravo_ipc::*},
+    session::SessionMachine,
+};
 
 fn main() {
     // Initialize session state machine (Soravo's authoritative state)
     let session_machine = Mutex::new(SessionMachine::default());
+    // T14: local account state (signed-out by default; no identity synthesised).
+    let account_machine = Mutex::new(AccountMachine::new());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
@@ -27,9 +33,11 @@ fn main() {
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(session_machine)
+        .manage(account_machine)
         .invoke_handler(generate_handler![
             runtime_status,
             ping,
+            emit_ping,
             session_snapshot,
             session_transition,
             session_reset,
@@ -39,6 +47,9 @@ fn main() {
             update_microphone_settings,
             update_hotkey_settings,
             update_model_settings,
+            get_account_snapshot,
+            account_sign_in,
+            account_sign_out,
         ])
         .run(tauri::generate_context!())
         .expect("error while running soravo desktop");

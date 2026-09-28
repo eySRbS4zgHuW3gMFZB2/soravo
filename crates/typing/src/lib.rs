@@ -39,19 +39,22 @@
 //! can be scoped more precisely.
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::time::Instant;
 
 /// Result of a typing operation.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct TypingResult {
     pub success: bool,
     pub method: TypingMethod,
+    #[serde(default, alias = "duration_ms")]
     pub duration_ms: u64,
     pub message: String,
 }
 
 /// The method used for text injection.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
 pub enum TypingMethod {
     Native,
     ClipboardFallback,
