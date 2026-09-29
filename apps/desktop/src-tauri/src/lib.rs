@@ -17,6 +17,7 @@ pub mod audio_feedback;
 pub mod audio_toolkit;
 pub mod autostart;
 pub mod catalog;
+pub mod cli;
 pub mod clipboard;
 pub mod helpers;
 pub mod input;

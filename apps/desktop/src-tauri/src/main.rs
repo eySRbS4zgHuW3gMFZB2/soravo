@@ -31,7 +31,6 @@ fn main() {
         .plugin(tauri_plugin_single_instance::init(|_, args, _| {
             println!("Launched with args: {args:?}");
         }))
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(session_machine)
         .manage(account_machine)
         .invoke_handler(generate_handler![
