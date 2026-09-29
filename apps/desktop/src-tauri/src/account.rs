@@ -13,11 +13,10 @@
 //! - Device ID is a local, non-secret identifier for tracking only
 //! - No payment/entitlement secrets stored locally
 
-use std::sync::Mutex;
-use tauri::{AppHandle, State};
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, specta::Type)]
 pub enum AccountState {
     /// No account signed in; local dictation still available.
     SignedOut,
@@ -29,7 +28,7 @@ pub enum AccountState {
     Unavailable,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, specta::Type)]
 pub struct AccountSnapshot {
     pub state: AccountState,
     pub user_id: Option<String>,
@@ -95,8 +94,15 @@ impl AccountMachine {
         self.snapshot.lock().map(|m| m.clone()).unwrap_or_default()
     }
 
+    /// T14: legacy local placeholder — NOT wired to any IPC command and NOT
+    /// used as an identity source (it synthesises a static user id). Kept so
+    /// existing unit/manual references still compile; real sign-in requires
+    /// the Supabase PKCE decision recorded in the T14 report.
     pub fn request_sign_in(&self) -> Result<String, String> {
-        let mut snapshot = self.snapshot.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        let mut snapshot = self
+            .snapshot
+            .lock()
+            .map_err(|e| format!("lock poisoned: {e}"))?;
         snapshot.state = AccountState::SignedIn;
         snapshot.user_id = Some("user-123".to_string());
         snapshot.session_id = Some("session-456".to_string());
@@ -106,7 +112,10 @@ impl AccountMachine {
     }
 
     pub fn sign_out(&self) -> Result<String, String> {
-        let mut snapshot = self.snapshot.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+        let mut snapshot = self
+            .snapshot
+            .lock()
+            .map_err(|e| format!("lock poisoned: {e}"))?;
         snapshot.state = AccountState::SignedOut;
         snapshot.user_id = None;
         snapshot.session_id = None;

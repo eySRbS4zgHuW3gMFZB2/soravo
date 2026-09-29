@@ -2,6 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@soravo/payment-domain": ["../../packages/payment-domain/src/index.ts"]
+    },
     "types": ["node"]
   },
   "include": ["src"],

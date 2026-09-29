@@ -37,7 +37,7 @@ impl Session {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
-        
+
         Self {
             id,
             state: TranscriptionState::Idle,
@@ -83,13 +83,18 @@ impl SttScheduler {
         self.current_session.take()
     }
 
-    pub fn transition_state(&mut self, new_state: TranscriptionState) -> Result<(), SchedulerError> {
+    pub fn transition_state(
+        &mut self,
+        new_state: TranscriptionState,
+    ) -> Result<(), SchedulerError> {
         if let Some(ref mut session) = self.current_session {
             session.state = new_state;
             session.update_activity();
             Ok(())
         } else {
-            Err(SchedulerError::InvalidTransition("No active session".to_string()))
+            Err(SchedulerError::InvalidTransition(
+                "No active session".to_string(),
+            ))
         }
     }
 
@@ -99,7 +104,7 @@ impl SttScheduler {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64;
-            
+
             if now - session.last_activity_ms > self.max_idle_ms {
                 return Err(SchedulerError::SessionExpired(session.id.clone()));
             }
@@ -123,6 +128,8 @@ mod tests {
     fn test_state_transition() {
         let mut scheduler = SttScheduler::new();
         scheduler.start_session("test".to_string()).unwrap();
-        assert!(scheduler.transition_state(TranscriptionState::Recording).is_ok());
+        assert!(scheduler
+            .transition_state(TranscriptionState::Recording)
+            .is_ok());
     }
 }
