@@ -9,13 +9,19 @@
     "dev:desktop": "pnpm --filter @soravo/desktop tauri dev",
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps chromium",
-    "lint": "pnpm --filter @soravo/website lint && pnpm --filter @soravo/desktop lint && pnpm --filter @soravo/license-api lint && pnpm --filter @soravo/payment-domain lint",
+    "lint": "pnpm --filter @soravo/website lint && pnpm --filter @soravo/desktop lint && pnpm --filter @soravo/license-api lint && pnpm --filter @soravo/payment-domain lint && pnpm lint:checkout",
+    "lint:checkout": "eslint supabase/functions/payment-checkout --max-warnings=0",
     "test": "pnpm --filter @soravo/website test && pnpm --filter @soravo/desktop test && pnpm --filter @soravo/license-api test && pnpm --filter @soravo/payment-domain test && pnpm test:supabase",
     "test:supabase": "vitest run --config supabase/tests/vitest.config.mjs",
-    "typecheck": "pnpm --filter @soravo/website typecheck && pnpm --filter @soravo/desktop typecheck && pnpm --filter @soravo/license-api typecheck && pnpm --filter @soravo/payment-domain typecheck"
+    "typecheck": "pnpm --filter @soravo/website typecheck && pnpm --filter @soravo/desktop typecheck && pnpm --filter @soravo/license-api typecheck && pnpm --filter @soravo/payment-domain typecheck && pnpm typecheck:checkout",
+    "typecheck:checkout": "tsc -p supabase/functions/payment-checkout/tsconfig.json --pretty false"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@playwright/test": "^1.63.0",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1",
     "vitest": "latest",
     "wrangler": "4.132.0"
   }

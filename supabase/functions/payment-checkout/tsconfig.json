@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@soravo/payment-domain": ["../../../packages/payment-domain/src/index.ts"]
+    }
+  },
+  "include": ["checkout.ts", "index.ts", "deno-shim.d.ts", "../../../packages/payment-domain/src/**/*.ts"]
+}

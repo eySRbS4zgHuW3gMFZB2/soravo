@@ -73,9 +73,47 @@ Soravo owns:
 User-facing Handy branding, copy, logos, product identity, or behavior that
 conflicts with Soravo contracts.
 
-## No duplicate stacks
+## V1 HANDY-CORE PRESERVATION POLICY
 
-Do not create parallel implementations for the same desktop responsibility.
+Soravo V1 = Soravo-branded wrapper/platform around functioning Handy STT foundation.
+
+### V1 Core Principles
+
+1. **Handy STT behavior is FROZEN for V1** — preserve functioning baseline; no Soravo post-processing layer
+2. **Soravo Modules = wrapper/business infrastructure** — accounts, Supabase, entitlements, payments, licensing, branding, release
+3. **Integration Boundary = controlled interface** — typed IPC, session contracts, transcript semantics
+4. **No duplicate STT stacks** — single audio/VAD/STT pipeline
+5. **Handy core is the V1 behavioral baseline** — change only when required for security, platform compatibility, or explicit contract
+
+### Do NOT Modify (V1 Preservation Rule)
+
+Unless required for security boundary, platform/build compatibility, or explicit human approval:
+
+- Audio capture behavior
+- VAD behavior
+- Transcription engine behavior
+- Language detection behavior
+- Transcription pipeline behavior
+- Filler-word behavior
+- Normalization behavior
+- Punctuation behavior
+- Transcript post-processing
+- STT output semantics
+- Hotkey behavior
+- Typing/injection behavior
+- Clipboard fallback behavior
+- Model execution behavior
+
+### If Tests Conflict with V1 Handy Behavior
+
+1. Classify the conflict (test error vs implementation error)
+2. STOP for product/architecture decision
+3. DO NOT change Handy behavior merely to satisfy the test
+4. Document the conflict in PROGRESS.md
+
+---
+
+## No duplicate stacks
 
 If a compatible Handy-derived implementation exists:
 

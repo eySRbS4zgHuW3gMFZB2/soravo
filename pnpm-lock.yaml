@@ -8,9 +8,21 @@ importers:
 
   .:
     devDependencies:
+      '@eslint/js':
+        specifier: 10.0.1
+        version: 10.0.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
+      eslint:
+        specifier: 10.11.0
+        version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      typescript-eslint:
+        specifier: 8.70.1
+        version: 8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       vitest:
         specifier: latest
         version: 5.0.2(@types/node@26.5.1)(jsdom@30.1.1)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0))

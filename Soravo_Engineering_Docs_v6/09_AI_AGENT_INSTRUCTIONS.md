@@ -112,4 +112,10 @@ Stop and request review when:
 - security requires weakening;
 - two implementations would coexist;
 - a dependency change crosses subsystem boundaries;
-- the first compiler error indicates a wider migration than the task scope.
+- the first compiler error indicates a wider migration than the task scope;
+- **V1 HANDY-CORE PRESERVATION VIOLATIONS** (STOP and request product decision):
+  - Changing Handy core STT behavior (audio, VAD, transcription, language detection, normalization, punctuation)
+  - Adding Soravo transcription post-processing layer (filler removal, normalization, rewriting)
+  - Creating duplicate STT/typing/typing implementation
+  - Test conflicts with preserved Handy behavior
+  - Modifying Handy STT output semantics to match test expectations

@@ -15,6 +15,7 @@ ADR-013 Durable Razorpay webhook idempotency.
 ADR-014 Cloudflare Pages as established website hosting.
 ADR-015 TestSprite as supplemental QA.
 ADR-016 Documentation authority: GitHub implementation truth + this pack intent/control truth.
+ADR-018 V1 Handy-core preservation policy.
 
 Create/update an ADR when:
 - architecture changes;

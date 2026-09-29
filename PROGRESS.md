@@ -1,8 +1,8 @@
 # Soravo Project Progress
 
 > **Canonical status for AI agents**  
-> **Last audited:** 2026-09-27  
-> **Main SHA:** 549eeeec0d45364644313c45a7e5384af09df87d  
+> **Last audited:** 2026-09-29 (T32-E milestone checkpoint)  
+> **Main SHA:** ede495b55efd95cedd882d90a19d12b4777da852  
 > **Authority:** SORAVO_PLAN.md, docs/spec-v3/  
 > **Razorpay 018–026:** committed to `feature/razorpay-payments-021-026` at
 > `746fbbd5` — see *MILESTONE-COMMIT-026* at the end of this file
@@ -1867,3 +1867,277 @@ Full report: `T31-SORAVO-WRAPPER-COMPLETION-REPORT.md`
 
 ### Next Exact Task
 - **T32 proposal:** payment-checkout hardening — `getRegionalPrice` unresolved import + `Buffer` (Node API) in Deno Edge Function + defense-in-depth JWT verification via `auth.getUser`; needs supabase type/lint coverage (T16 F-09) first; no LIVE mode, no Dashboard objects
+
+---
+
+## T32-A Progress (2026-09-29)
+
+Full report: `T32-A-HANDY-V1-POLICY-RECONCILIATION-REPORT.md`
+
+### Scope Constraints Honoured
+- ✅ V1 rule: no Handy STT behavior modified; no source code changed
+- ✅ No catalog/transcription/payment/auth source changes
+- ✅ No commit/push (per task instruction)
+- ✅ Documentation-only work
+
+### Implementation Completed
+- Read v6 engineering pack in SPEC_MANIFEST order (§00–§21, DESIGN, manifest) + PROGRESS.md, T29, T30, T31, live git/PR/CI state
+- Reconciled V1 Handy Wrapper Policy into all authoritative documents with existing contradictions
+
+### Files Changed
+- ✅ `Soravo_Engineering_Docs_v6/02_PRODUCT_REQUIREMENTS.md` — Added V1 HANDY-CORE PRESERVATION section
+- ✅ `Soravo_Engineering_Docs_v6/04_HANDY_FORK_AND_REUSE_POLICY.md` — Added V1 HANDY-CORE PRESERVATION POLICY section
+- ✅ `Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` — Added V1 HANDY-CORE PRESERVATION VIOLATIONS stop conditions
+- ✅ `Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` — Added ADR-018 entry
+- ✅ `Soravo_Engineering_Docs_v6/21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md` — Added V1 behavior preservation requirements
+- ✅ `T32-A-HANDY-V1-POLICY-RECONCILIATION-REPORT.md` — Created
+- ✅ `PROGRESS.md` — this entry
+
+### Tests Executed
+- ✅ `git status` — clean working tree, no staged changes
+- ✅ Documentation consistency check — V1 policy now documented in 02, 04, 09, 21
+
+### Verified Items
+- All V1 policy requirements now explicitly documented
+- No source files modified
+- No new contradictions introduced
+- ADR-018 reference now available in index
+
+### Blocked Items
+- ADR-018 human approval (per T29)
+- T30 catalog checklist open (10 tests)
+- T30 transcription decision open (5 tests)
+
+### Not Executed Items
+- Any source code changes
+- Any commit/push
+
+### Next Exact Task
+- **T32 — payment-checkout hardening** (Soravo-owned, TEST only):
+  1. Bring `supabase/functions/**` under type/lint coverage (T16 F-09)
+  2. Fix `getRegionalPrice` unresolved + `Buffer`→runtime-safe base64
+  3. Add defense-in-depth JWT verification
+  4. Extend `supabase/tests/` with checkout unit tests
+
+---
+
+## T32-B Progress (2026-09-29)
+
+### Scope Constraints Honoured
+- ✅ Payment/account boundary ONLY — zero Handy-core files changed (no crates/, no apps/desktop STT/audio/VAD/transcription/post-processing)
+- ✅ TEST MODE only — no LIVE credentials, no Dashboard objects, no deployment, no Razorpay API mutation calls
+- ✅ No credentials, Plan IDs, prices, products, keys, or external-provider facts invented
+- ✅ No tests weakened or deleted for green CI (15 tautologies replaced with 22 real contract tests)
+
+### Implementation Completed
+- Reproduced all 7 T31 payment-checkout findings against primary sources; all 7 real/current (see T32-B report §2)
+- `supabase/functions/payment-checkout/checkout.ts` (new) — all checkout decisions, runtime-agnostic, directly unit-tested; `index.ts` reduced to thin Deno wiring (env read + serve), mirroring the razorpay-webhook layout
+- Fixed `getRegionalPrice` unresolved reference (now imported from `@soravo/payment-domain`)
+- Replaced Node-only `Buffer` with runtime-safe `encodeBase64Ascii` (Deno/Node/browser)
+- Authentication via authoritative Supabase Auth API (`GET /auth/v1/user`); decoded JWT claims kept as structural pre-check only; transient Auth outage fails closed to 500 (not 401)
+- TEST-mode enforcement: non-`rzp_test_` keys fail closed at env read
+- Monthly Razorpay Plan IDs from deployment env (`RAZORPAY_PLAN_SORAVO_MONTHLY_<CURRENCY>`); missing mapping fails closed 503 — fabrication removed (T16 F-05 class)
+- `supabase/config.toml` — explicit `verify_jwt = true` for payment-checkout (was implicit default), documenting the platform gate
+- Type/lint coverage for the checkout scope (T16 F-09, checkout half): new tsconfig (extends base, strict) + eslint config + `pnpm lint:checkout` / `pnpm typecheck:checkout` wired into root `lint`/`typecheck` (CI-enforced); root devDeps pinned to already-locked versions (no store churn)
+
+### Files Changed
+- ✅ `supabase/functions/payment-checkout/checkout.ts` — new (all logic, tested)
+- ✅ `supabase/functions/payment-checkout/index.ts` — thin Deno wiring only
+- ✅ `supabase/functions/payment-checkout/tsconfig.json` — new (strict typecheck)
+- ✅ `supabase/functions/payment-checkout/eslint.config.js` — new (re-exports domain rule set, no new deps)
+- ✅ `supabase/functions/payment-checkout/deno-shim.d.ts` — new (minimal Deno ambient for tsc only)
+- ✅ `supabase/functions/payment-checkout/package.json` — new (`{"type":"module"}` only)
+- ✅ `supabase/tests/payment-checkout.test.mjs` — rewritten (22 real tests, catalog as price authority)
+- ✅ `supabase/config.toml` — explicit `verify_jwt = true` + gate documentation
+- ✅ `package.json` / `pnpm-lock.yaml` — root lint/typecheck wiring + pinned devDeps
+- ✅ `T32-B-PAYMENT-HARDENING-REPORT.md` — created
+- ✅ `PROGRESS.md` — this entry
+
+### Tests Executed
+- ✅ `pnpm test:supabase` — **200 passed, 0 failed** (checkout 22 new + webhook 166 + migration-guard 12)
+- ✅ `pnpm lint:checkout` / `pnpm typecheck:checkout` — pass
+- ✅ `pnpm --filter @soravo/payment-domain lint` — pass; `pnpm --filter @soravo/license-api test` — 71/71
+- ✅ Website suite — 179/179 (1 flaky admin failure on first run, green on rerun; unrelated file, untouched)
+- ✅ Mutation check: removed `getRegionalPrice` import → 4 failures; restored → 22 green
+
+### Verified Items
+- Charged amount always from server catalog; client amount/user_id ignored (asserted on the Razorpay payload)
+- Auth-confirmed user id used as identity; sub-mismatch rejected; no secret in any response
+- `git diff --name-only -- crates/ apps/desktop/` — empty (zero Handy-core changes)
+
+### Blocked Items
+- Supabase Edge Function deployment + `RAZORPAY_PLAN_SORAVO_MONTHLY_*` values + webhook secret (require Supabase access / human credentials)
+- Real Razorpay Plan IDs (human Dashboard action; fabrication deliberately refused)
+- `supabase/functions/razorpay-webhook/**` still outside type/lint coverage (T16 F-09 remainder; needs Deno-aware setup for esm.sh imports)
+- T30 catalog checklist + transcription A/B/C (unchanged, still STOP-gated)
+- license-api `service.ts` has the same `plan_<product>_<currency>` fabrication (left untouched — needs product decision on real plan IDs)
+
+### Not Executed Items
+- Any Razorpay API call, Dashboard object, LIVE-mode operation, or deployment
+- Any Handy-core, STT, transcription, post-processing, audio/VAD, or frontend change
+- Any commit or push (per task instruction)
+
+### Next Exact Task
+- **Deploy-gated:** set `RAZORPAY_PLAN_SORAVO_MONTHLY_*` + TEST secrets in Supabase, deploy payment-checkout, replay one TEST lifetime + one TEST monthly checkout (requires human/Supabase access)
+- **Follow-up (needs product decision):** real monthly Plan IDs for license-api parity; webhook type/lint coverage
+
+---
+
+## T32-C Progress (2026-09-29)
+
+Full report: `T32-C-SORAVO-INFRASTRUCTURE-CLOSURE-AUDIT.md`
+
+### Scope Constraints Honoured
+- ✅ AUDIT ONLY — no source, test, config, migration, or workflow file modified
+- ✅ V1 rule: Handy STT/audio pipeline classified as preserved foundation, not Soravo work
+- ✅ T30 transcription dispute NOT reopened (classifications recorded as-is)
+- ✅ Completion matrix (`T16-FINAL-COMPLETION-MATRIX.md`) NOT modified
+- ✅ No commit/push (per task STOP instruction)
+
+### Implementation Completed
+- Read SPEC_MANIFEST pack order + PROGRESS.md (full) + T16 matrix + T29/T30/T31/T32-A/T32-B reports + live git/PR/CI state
+- Audited all 20 Soravo-owned wrapper/infrastructure domains with concrete evidence
+  (source path / test result / CI run / live provider verification / marked absence)
+- State audit: branch `t31/soravo-wrapper-completion` @ `648d110d`; origin/main `ede495b5`;
+  PR #63 OPEN (T31 only), PR #62 OPEN (other milestone); CI run 36509157391
+  (web/desktop/e2e green, rust red = 15 STOP-gated by design); Security Audit 36509157409 SUCCESS
+- Key structural findings: webhook hardening `746fbbd5` IS contained in `main`;
+  T32-A docs + all of T32-B checkout hardening are UNCOMMITTED (no PR, no CI coverage);
+  `catalog.json` re-verified `{}`; `tauri.conf.json` has zero `updater` references;
+  release workflow is `workflow_dispatch`-only; one whitespace nit in T32-A doc edit
+  (`09_AI_AGENT_INSTRUCTIONS.md:122`)
+
+### Files Changed
+- ✅ `T32-C-SORAVO-INFRASTRUCTURE-CLOSURE-AUDIT.md` — created (this task's output)
+- ✅ `PROGRESS.md` — updated (this entry + Last-audited header)
+
+### Tests Executed
+- None (audit-only mandate; all figures cited from T30/T31/T32-B reports and CI runs)
+
+### Verified Items
+- Counts: IMPLEMENTED_VERIFIED 4 (schema, RLS, webhook, ledger — TEST scope) ·
+  IMPLEMENTED_UNVERIFIED 1 (Soravo IPC) · PARTIAL 12 · BLOCKED 3
+  (catalog, updater, Cloudflare) · PRODUCTION_VERIFIED 0 · NOT_STARTED 0
+- Closed with TEST-scope evidence: real TEST payment → ledger claim → live entitlement
+- No production readiness inferred for any domain
+
+### Blocked Items
+- T30 catalog checklist + transcription A/B/C; ADR-018 approval (all owner-gated, unchanged)
+- T32-B commit/deploy; `RAZORPAY_PLAN_SORAVO_MONTHLY_*` values; webhook 53→8 trim;
+  `subscription.cancelled` vs ADR-012; Cloudflare creds; signing keys; updater endpoints
+
+### Not Executed Items
+- Any source modification, commit, push, deployment, or LIVE-mode operation
+
+### Next Exact Task
+1. **[Owner]** T30 gates (catalog checklist + transcription A/B/C) + ADR-018 approval
+2. Commit T32-A/T32-B (fixing the `:122` blank-line + PROGRESS line-4 trailing-whitespace nits) so PR #63 CI covers them
+3. **[Owner + Supabase access]** Deploy payment-checkout; replay TEST lifetime + monthly
+4. **[Owner]** Real TEST Plans/Subscriptions; merchant-account international enablement
+
+---
+
+## T32-D Progress (2026-09-29)
+
+Full report: `T32-D-SORAVO-BLOCKER-REPORT.md`
+Matrix: `T32-D-SORAVO-BLOCKER-EXECUTION-MATRIX.md`
+
+### Scope Constraints Honoured
+- ✅ DECISION ONLY — no source, test, config, migration, function, or workflow file modified
+- ✅ V1 rule: Handy STT/audio/VAD/engine/language/filler/normalization untouched; no UI redesign
+- ✅ T30 transcription dispute NOT reopened (classifications recorded as-is; decision routed only)
+- ✅ Model catalog: no IDs, hashes, mirrors, licenses, or sets invented
+- ✅ Updater: no endpoints, keys, pubkeys, or release URLs invented
+- ✅ Cloudflare: nothing deployed, no deployment evidence fabricated
+- ✅ Payment: no LIVE mode, no Dashboard objects, no credential/secret touched
+- ✅ Completion matrix (`T16-FINAL-COMPLETION-MATRIX.md`) NOT modified
+- ✅ No commit/push (per task STOP instruction)
+
+### Implementation Completed
+- Read SPEC_MANIFEST + authoritative docs in manifest order (v6 pack §00–§21 re-anchored on §05:35-36, §06:8-24, §15) + PROGRESS.md in full (1–2036) + T16 matrix + T29/T30/T31/T32-A/T32-B/T32-C + live git/PR/CI/file state
+- State audit: branch `t31/soravo-wrapper-completion` @ `648d110d`; origin/main `ede495b5`; PR #63 OPEN (T31 only), PR #62 OPEN (other milestone); CI 36509157391 FAILURE = exactly the 15 STOP-gated tests, Security Audit 36509157409 SUCCESS
+- Live re-verification: `catalog.json` = `{}` (schema-invalid); `updater` — 1 match in `main.rs` (init), 0 in `tauri.conf.json` (no endpoints/pubkey); `service.ts:205` fabrication still present (recorded, untouched); `supabase/functions/payment-checkout/` = T32-B 6-file worktree-only delta
+- Deterministic verdict for all 16 remaining rows (12 PARTIAL + 3 BLOCKED + 1 IMPLEMENTED_UNVERIFIED): D1 accounts, D2 sessions/devices, D3 entitlements, D4 checkout, D5 license-api, D6 desktop account, D7 desktop entitlement, D8 cloud sync, D9 catalog, D10 updater, D11 Cloudflare, D12 CI/CD, D13 security, D14 Windows, D15 macOS, D16 IPC, D17 transcription STOP-gate
+- Special handling decided: catalog stays BLOCKED with 10-item evidence checklist; updater missing config specified exactly; Cloudflare evidence = credentials + first real deployment; payment external-gated list (Plan IDs, credentials, signing secrets, non-INR/ lifecycle verification, deploy); desktop-entitlement contract ruled INSUFFICIENT (v6 §05:36 cites an "explicit offline policy" that does not exist — owner decision required)
+
+### Files Changed
+- ✅ `T32-D-SORAVO-BLOCKER-EXECUTION-MATRIX.md` — created (16-row deterministic matrix with A–F per row + ordered T32-E…T32-S plan)
+- ✅ `T32-D-SORAVO-BLOCKER-REPORT.md` — created (rationale + audit trail)
+- ✅ `PROGRESS.md` — updated (this entry + Last-audited header; pre-existing trailing-whitespace nit on line 4 left for T32-E to fix with `:122`)
+
+### Tests Executed
+- None (decision mandate; figures cited from T30/T31/T32-B reports and CI runs 36509157391/36509157409)
+
+### Verified Items
+- Exactly 1 fully AI-executable row with zero external input: D16 IPC round-trip verification (→ T32-P, after commit task)
+- AI-executable halves deferred to own tasks: D4/D12 commit + CI coverage (→ T32-E, owner-approved), D13-item-1 webhook lint coverage (→ T32-J), D3-1 cancelled-vs-expiry (contract in v6 §06:22, → T32-F after ratification)
+- 9 rows need Human/product decision, 10 need External Provider/dashboard/credential, 3 need Windows/macOS hardware, 1 (D9) needs authoritative model data; only D16 is a pure verification gap
+
+### Blocked Items
+- T30 catalog 10-item checklist + transcription A/B/C; ADR-018 approval (all owner-gated)
+- T32-E commit approval (no-commit STOP in this task); then Supabase deploy auth, `RAZORPAY_PLAN_SORAVO_MONTHLY_*` values, webhook secret
+- Webhook 53→8 trim; `subscription.cancelled` vs ADR-012 ratification; Cloudflare creds; signing keys; updater endpoints/pubkey; merchant international enablement
+
+### Not Executed Items
+- Any source modification, commit, push, deployment, Dashboard action, or LIVE-mode operation
+- T32-E…T32-S next tasks (proposed, sequenced, not started)
+
+### Next Exact Task
+- **T32-E — Commit T32-A + T32-B (owner-approved, fix `:122` + line-4 nits in same pass) so PR #63 CI covers the delta; then T32-P (IPC round-trip, AI, no gate)**
+
+## T32-E Progress (2026-09-29)
+
+Full report: `T32-E-MILESTONE-CHECKPOINT-REPORT.md`
+
+### Scope Constraints Honoured
+- ✅ Checkpoint only — T32-A documentation reconciliation + T32-B payment-checkout hardening + T32-C/T32-D audit artefacts
+- ✅ Zero Handy-core files staged (`crates/`, `apps/desktop` source, `services/`, `packages/` all untouched)
+- ✅ No behaviour change: `:122` whitespace fix is whitespace-only; no functional edit made by this task
+- ✅ No invented model IDs/hashes/mirrors/licenses, no invented updater endpoints/keys, no fabricated deployment or payment evidence
+- ✅ No LIVE mode, no Dashboard object, no credential/secret read or written, no Razorpay/Supabase/Cloudflare API mutation
+- ✅ `T16-FINAL-COMPLETION-MATRIX.md` NOT modified; T30 transcription dispute NOT reopened
+- ✅ Pre-existing T22–T31 untracked reports and non-T32 worktree files preserved and NOT staged
+- ✅ No reset / stash / discard / restore of any pre-existing change
+- ✅ No merge
+
+### Implementation Completed
+- Completed the mandatory reading gate: `SPEC_MANIFEST.json`, v6 control pack §00–§21 (`00`, `01`, `02`, `03`, `04`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `21`), `PROGRESS.md` in full, `T16-FINAL-COMPLETION-MATRIX.md`, `T29`/`T30`/`T31`/`T32-A`/`T32-B`/`T32-C`/`T32-D`
+- State audit per v6 §19: branch `t31/soravo-wrapper-completion` @ `648d110d286b81a8a0ce1d203f7a5407936ebc51`, in sync with `origin/t31/soravo-wrapper-completion` (no ahead/behind); `origin/main` = `ede495b55efd95cedd882d90a19d12b4777da852`; merge-base identical to `origin/main`; worktree dirty with the T32-A/T32-B delta only plus preserved pre-existing untracked files
+- Live PR/CI read: PR #63 OPEN (base `main`, head `t31/soravo-wrapper-completion`); CI `36509157391` FAILURE; Security Audit `36509157409` SUCCESS — both at `648d110d`
+- Resolved the T32-D branch question against current repository state: **no new branch**. T32-D execution plan item 1 requires "PR #63 CI must cover the delta", and PR #63 already targets `main` from this branch, so the checkpoint commits here and PR #63 is updated. A separate `t32/*` branch was rejected: it would duplicate PR #63's commits in a second PR while leaving #63 open on the same content.
+- Fixed the `:122` nit (`09_AI_AGENT_INSTRUCTIONS.md` extra blank line at EOF) — whitespace only
+- Reviewed the T32-B payment diff against the T32-B report contract and v6 §06/§12/§15; contract satisfied (see report §3 for the one residual observation)
+
+### Files Changed
+- ✅ `Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` — EOF blank-line nit fixed (whitespace only)
+- ✅ `PROGRESS.md` — `Last audited` → T32-E, `Main SHA` `549eeeec…` → verified `ede495b5…` (stale `HISTORICAL/STALE` value per v6 §01 evidence vocabulary), this entry appended
+- ✅ `T32-E-MILESTONE-CHECKPOINT-REPORT.md` — created
+- ✅ T32-A docs (5), T32-B code/config/tests (7), and the T32-A/B/C/D reports staged unchanged from their authoring tasks
+
+### Tests Executed
+- ✅ `pnpm test:supabase` — 3 files, **200/200 pass** (22 in `payment-checkout.test.mjs`)
+- ✅ `pnpm lint` — PASS (includes `lint:checkout`, Deno-aware ESLint over `supabase/functions/payment-checkout`)
+- ✅ `pnpm typecheck` — PASS (includes `typecheck:checkout`, `tsc --noEmit`)
+- ✅ `pnpm install --frozen-lockfile --lockfile-only` — PASS (`pnpm-lock.yaml` in sync)
+- ✅ Secret scan of `supabase/functions/payment-checkout/` and `supabase/tests/` — 0 findings
+- ✅ `git diff --check` — 2 items in the working-tree delta: `09_AI_AGENT_INSTRUCTIONS.md:122` (**fixed**) + `PROGRESS.md:4` (**retained**). The full staged-set check surfaces 7 hard-break hits across `PROGRESS.md:4-5` and the `T32-A` report header — all exactly 2 spaces, 0 tabs. See report §5 for the evidence-based decision to retain them
+
+### Verified Items
+- T32-B contract holds: platform JWT gate + authoritative `auth.getUser`; server-authoritative product/price/currency from `packages/payment-domain`; client `amount`/`userId` ignored; TEST-mode key-id guard; plan IDs read from environment and never invented; `verify_jwt = true`; runtime-agnostic `checkout.ts` separated from Deno wiring in `index.ts`
+- Zero Handy-core, UI, or catalog-source changes; no `target/`, `node_modules/`, or build output staged
+- `supabase/functions/payment-checkout/package.json` is outside the `pnpm-workspace.yaml` globs, so the local function package is unaffected by workspace installs
+- No secrets, tokens, key material, or credential values in any staged file
+
+### Blocked Items
+- Unchanged by this task: T30 catalog 10-item checklist + transcription A/B/C; ADR-018 approval; `RAZORPAY_PLAN_SORAVO_MONTHLY_*` values; Supabase deploy auth; `RAZORPAY_WEBHOOK_SECRET`; Cloudflare credentials; Windows/macOS signing keys; updater endpoints/pubkey; merchant international-payments enablement
+- New LOW finding (report §2.1, §7.2 F-E1): `parseJWTClaims` decodes a base64url JWT segment with `atob()` (base64). Bounded, fail-closed, pre-existing at HEAD, not a T32 regression — needs an owner/ADR decision or a scoped follow-up task; not fixed here because no in-repo contract specifies the handling
+- New MEDIUM finding (report §7.2 F-E2): `PROGRESS.md:4-8` still declares `**Authority:** SORAVO_PLAN.md, docs/spec-v3/`, which contradicts `SPEC_MANIFEST.json` + the v6 pack. Deliberately not changed — owner-level decision; recommended as the first line of the next documentation task
+- CI for this commit: coverage provided by PR #63; run IDs/conclusions recorded on PR #63 at push time (not in this commit, to keep the milestone a single commit)
+
+### Not Executed Items
+- Any source behaviour change, deployment, Dashboard action, provider mutation, or LIVE-mode operation
+- T32-P…T32-S next tasks (proposed, sequenced, not started)
+- Merge (explicitly out of scope)
+
+### Next Exact Task
+- **T32-P — IPC round-trip verification (AI, no external input):** D16 — one runtime round-trip `session_snapshot` → `session_transition` (valid + invalid) → `inject_text` (valid + oversize rejection) against the authoritative session machine in `apps/desktop/src-tauri/src/commands/soravo_ipc.rs`, asserting state + typed errors

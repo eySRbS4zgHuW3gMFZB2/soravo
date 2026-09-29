@@ -16,6 +16,13 @@ V1:
 - Customer entitlement/device/session dashboard and owner-only admin.
 - No audio/transcript/keystroke/clipboard telemetry.
 
+V1 HANDY-CORE PRESERVATION:
+- Soravo V1 = wrapper/platform around Handy STT core (not rewrite)
+- DO NOT modify Handy core STT behavior without explicit justification
+- DO NOT add Soravo transcription post-processing layer (filler removal, normalization, punctuation rewriting)
+- Implement at Soravo boundary when possible
+- No duplicate STT stacks
+
 Success requires install → configure → dictate → correct injection → account → entitlement/purchase → release artifacts → automated tests → benchmarked performance.
 
 The full Soravo visual redesign is deferred until functionality, security, QA and release foundations are complete.
