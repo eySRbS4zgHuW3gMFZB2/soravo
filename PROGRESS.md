@@ -1818,3 +1818,52 @@ Full report: `T30-HANDY-V1-FAILURE-RECLASSIFICATION-REPORT.md`
 
 ### Next Exact Task
 - Human: approve §4 Option (A/B/C) + §5 catalog checklist → follow-up task executes exactly the approved option
+
+---
+
+## T31 Progress (2026-09-29)
+
+Full report: `T31-SORAVO-WRAPPER-COMPLETION-REPORT.md`
+
+### Scope Constraints Honoured
+- ✅ V1 rule: no Handy STT behavior modified; no post-processing added/altered
+- ✅ No catalog fabrication; no transcription test/code changes (T30 STOP still in force)
+- ✅ No duplicate STT stack; no Handy/Soravo boundary crossing
+- ✅ Feature branch `t31/soravo-wrapper-completion`; no direct push to main
+- ✅ No secrets touched, printed, or committed
+
+### Implementation Completed
+- Read v6 engineering pack in SPEC_MANIFEST order (§00–§21, DESIGN, manifest) + PROGRESS.md, T29, T30, T16 matrix, live git/PR/CI state
+- State audit: branch `t31/soravo-wrapper-completion` from `42ad6290`; origin/main `ede495b5`; PR #62 OPEN (other branch, untouched); dirty work classified (T30 PROGRESS entry = previous-task → committed as e05bdac7; T22–T30 reports + misc = preserved untracked, untouched)
+- Handy-derived implementation inspected: `audio_toolkit/`, `clipboard.rs`, `input.rs`, `tray.rs`, `overlay.rs`, `managers/`, `shortcut/`, `hotkey.rs` present in `apps/desktop/src-tauri/src/`; core crates `soravo-audio/-vad/-stt/-hotkeys/-typing/-transcript/-config/-history` present
+- Soravo integration inspected: `session.rs` state machine (IDLE→…→DONE, ERROR→IDLE), `commands/account.rs` (`account_sign_in/out`), `commands/soravo_ipc.rs` (`session_snapshot/transition`, `inject_text` with oversize rejection) — all live
+- Skills: `.opencode/skills/` empty (no project-local skills installed); proceeded per pack procedures, installed nothing
+- Fix: `.github/workflows/security-audit.yml` cargo-audit ignore drift — appended `--ignore RUSTSEC-2025-0119 --ignore RUSTSEC-2024-0436`, matching `ci.yml` + `deny.toml` precedent (both already carry them with reasons)
+
+### Files Changed
+- ✅ `.github/workflows/security-audit.yml` — 1 line (2 ignore flags)
+- ✅ `PROGRESS.md` — this entry (+ prior T30 entry committed separately as e05bdac7)
+
+### Tests Executed
+- ✅ `cargo test -p soravo-audio -p soravo-vad -p soravo-stt -p soravo-hotkeys -p soravo-typing -p soravo-transcript -p soravo-config -p soravo-history` — **77 passed, 0 failed, 3 ignored** (Handy-core baseline green)
+- ✅ `cargo test -p soravo-desktop --lib` — **188 passed, 15 failed** (identical known STOP-gated set, unchanged)
+- ✅ `pnpm test:supabase` — **196 passed, 0 failed** (Soravo-owned webhook/payment layer green)
+- ✅ `cargo audit --deny warnings` with the exact new flag set vs live advisory DB (1273 advisories, 812 crates) — **exit 0**
+
+### Verified Items
+- Desktop core compiles (CI `desktop` job PASS on run 36501679480; local `cargo test` compiled all targets)
+- Security-audit `cargo-audit` failure root cause = config drift only (deny.toml + ci.yml already ignore both IDs; security-audit.yml lagged)
+- No new policy created: justification reuses the accepted deny.toml reasons (number_prefix = progress-bar formatting via indicatif→hf-hub; paste = build-time proc-macro via specta/tauri)
+- payment-checkout F-01 nuance found for next task: `[functions.payment-checkout]` has NO `verify_jwt = false` (default true) → platform gateway verifies the Supabase JWT before `parseJWT` runs; the atob-decode is claim extraction post-gate, not the sole check
+
+### Blocked Items
+- 10 catalog tests: T30 §5 human checklist open (model set, licenses, pins, hashes, mirrors, generator, chain-of-custody)
+- 5 transcription tests: T30 §4 product decision open (Options A/B/C)
+- Razorpay TEST/LIVE objects, signing keys, Supabase deploys: external/human-gated
+
+### Not Executed Items
+- Any Handy core, catalog, transcription, payment, or auth source change
+- Frontend redesign (explicitly deferred per task + v6 Phase 8)
+
+### Next Exact Task
+- **T32 proposal:** payment-checkout hardening — `getRegionalPrice` unresolved import + `Buffer` (Node API) in Deno Edge Function + defense-in-depth JWT verification via `auth.getUser`; needs supabase type/lint coverage (T16 F-09) first; no LIVE mode, no Dashboard objects
