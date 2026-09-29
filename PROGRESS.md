@@ -3532,7 +3532,7 @@ resolved in-pack, not guessed (§2 below).
 |---|---|
 | Local HEAD | `61de5411` (== `origin/t31/soravo-wrapper-completion`, **0/0**) |
 | `origin/main` | `ede495b5`; branch 12 ahead / 0 behind; `origin/main` **is** an ancestor of HEAD |
-| Worktree | **0 tracked modifications** at start; **30 untracked paths, all pre-existing** |
+| Worktree | **0 tracked modifications** at start; **29 untracked paths, all pre-existing** (24 `T*.md` reports · `apps/desktop/.env.example` · `apps/desktop/src-tauri/tauri.toml` · `deno.lock` · `docs/archive/spec-v3/spec-v3/` · `reports/`) |
 | `git diff --check` (pre-change) | exit **0** |
 | Worktrees | 1 main + 3 in `.swarm-worktrees/` (`83a506e8`, `7eaea96f`, `d5a1f846`) — untouched |
 | PR #63 | **OPEN**, base `main`, head `61de5411` (identical to local), `mergeStateStatus: BLOCKED`, `reviewDecision: REVIEW_REQUIRED` |
@@ -3630,7 +3630,7 @@ split exists to prevent.
 - **v6 `SPEC_MANIFEST.json`** — not amended; `file_count: 24` still correct.
 - **Every historical `PROGRESS.md` entry** — not rewritten. The 2,953-char
   `Last audited` header was **deliberately not rewritten** (see G-4).
-- **All 30 pre-existing untracked paths** — none staged, modified, deleted or moved.
+- **All 29 pre-existing untracked paths** — none staged, modified, deleted or moved.
 
 ### Evidence
 
