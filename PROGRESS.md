@@ -1,7 +1,7 @@
 # Soravo Project Progress
 
 > **Canonical status for AI agents**  
-> **Last audited:** 2026-09-29 (T32-E milestone checkpoint)  
+> **Last audited:** 2026-09-29 (T32-P Soravo IPC V1-safe completion — F-J1/F-J2 resolved Soravo-side, O-J1 tech-debt, zero Handy-core touch)  
 > **Main SHA:** ede495b55efd95cedd882d90a19d12b4777da852  
 > **Authority:** SORAVO_PLAN.md, docs/spec-v3/  
 > **Razorpay 018–026:** committed to `feature/razorpay-payments-021-026` at
@@ -2141,3 +2141,250 @@ Full report: `T32-E-MILESTONE-CHECKPOINT-REPORT.md`
 
 ### Next Exact Task
 - **T32-P — IPC round-trip verification (AI, no external input):** D16 — one runtime round-trip `session_snapshot` → `session_transition` (valid + invalid) → `inject_text` (valid + oversize rejection) against the authoritative session machine in `apps/desktop/src-tauri/src/commands/soravo_ipc.rs`, asserting state + typed errors
+
+---
+
+## T32-F-RAZORPAY-TEST-VERIFICATION-READINESS Progress (2026-09-29)
+
+**Full report:** `T32-F-RAZORPAY-TEST-VERIFICATION-REPORT.md` (audit only — no source modified, no commit/push)
+**HEAD (audit ref):** `6aa322c0` on `t31/soravo-wrapper-completion`; PR #63 OPEN; CI 36513615346 Security Audit SUCCESS, CI 36513615343 web/desktop/e2e SUCCESS + rust FAILURE (same 15 STOP-gated tests, no new class)
+
+### Verdict
+
+**TEST-mode flow CANNOT be externally verified end-to-end today without inventing provider data.** The code path (checkout → pricing → SDK → capture → signed webhook → ledger → entitlement) is implemented and locally proven, and the lifetime path was proven live in TEST mode historically (027). The blockers are external inputs, not code. Lifetime re-verification is closest (key rotation + webhook secret + checkout deploy + one TEST order); monthly additionally needs all five TEST Plans + a subscription lifecycle pass.
+
+### Thirteen-item audit (CODE / TEST-PROVIDER / LIVE / NOT-CONFIGURED / HUMAN-INPUT)
+
+- Test credentials config: CODE VERIFIED (`rzp_test_` gate, server-only, fail closed) + TEST PROVIDER VERIFIED historically (020 auth/order, 024 secret presence) — HUMAN INPUT: local webhook secret EMPTY; stored TEST key rejected with 401 in 024, rotation likely needed
+- Test Plan IDs: fail-closed plumbing CODE VERIFIED (missing → 503, never fabricated) — NOT CONFIGURED (all 5 values unknown; `service.ts:205` pattern fabrication recorded, not fixed)
+- Checkout request: CODE VERIFIED (Bearer JWT, `{productId, currency}` only; pricing maps plans correctly; 6/6 service tests) — no deployed replay ever
+- Server-side price resolution: CODE VERIFIED (catalog-authoritative, client amount ignored; 22/22 checkout tests + mutation check) + TEST PROVIDER VERIFIED historically (027 INR match, 029 five TEST orders)
+- Checkout SDK: CODE VERIFIED (`ensureRazorpaySDK` loader + failure path; 5/5 pricing tests) — no browser purchase proof exists
+- Payment completion: CODE VERIFIED + TEST PROVIDER VERIFIED historically (027 INR 415 lifetime settled; 023 synthetic captures) — non-INR blocked by merchant config (027-C)
+- Webhook signature verification: CODE VERIFIED (`crypto.subtle.verify`, 400/503 contracts) + TEST PROVIDER VERIFIED historically (024 15-probe fingerprint, 027 HMAC negative control)
+- Webhook event ledger: CODE VERIFIED (claim state machine, CAS, 5-min lease) + TEST PROVIDER VERIFIED historically (024 claim→fail→reclaim cycle in logs; 027 all completed)
+- Entitlement creation/update: CODE VERIFIED (derived rows, no PII, unique guard) + TEST PROVIDER VERIFIED historically for lifetime (027 single grant) — no monthly lifecycle rows ever produced live
+- Duplicate handling: CODE VERIFIED (duplicate → 200, inflight → 409) — no validly-signed live duplicate ever injected (027 limitation)
+- Failed handling: CODE VERIFIED (422 permanent vs 500 transient) + partial live proof (024 live 422) — 409/5xx/replay branches test-only against live
+- Monthly lifecycle: mapping CODE VERIFIED (charged/pause/resume/cancel/refund) — TEST PROVIDER: NONE (no real Plans/Subscriptions); cancelled-vs-ADR-012 immediate-revocation divergence parked for ratified task (T32-D's other T32-F proposal, NOT done here — ID collision recorded)
+- Lifetime lifecycle: CODE VERIFIED + TEST PROVIDER VERIFIED historically (027 order→capture→grant; 023 refund→revoke)
+
+### Tests executed (no credentials, no network)
+
+- `pnpm test:supabase` — **200 passed, 0 failed** (checkout 22 + webhook 166 + migration-guard 12)
+- `pnpm --filter @soravo/license-api test` — **71 passed, 0 failed**
+- `pnpm --filter @soravo/website test payment-service + pricing` — **11 passed, 0 failed**
+- `pnpm lint:checkout` + `pnpm typecheck:checkout` — PASS (`@soravo/payment-domain` has no own suite; covered via license-api + catalog-parity tests)
+
+### Human checklist (exact, in report §6)
+
+A. Dashboard TEST mode: verify/rotate TEST keypair (024 saw 401) → create 5 TEST Plans (monthly per-currency) → enable International Payments + confirm INR settlement (or INR-only scope) → set webhook URL + 8 events + copy secret. B. Local: put webhook secret in `.env.local` (still gitignored/untracked). C. Supabase: set function secrets (5 plan IDs + keys + webhook secret) → deploy `payment-checkout` (T32-B code never deployed) → confirm webhook at `main`. D. Agent verification once A–C done: deployed checkout replay (lifetime + monthly) → real TEST lifetime payment → real monthly lifecycle incl. signed duplicate.
+
+### Not executed
+
+Any live Razorpay call, Dashboard change, deployment, secret-value read, or provider-data invention. No commit/push. Handy core untouched. Matrix untouched. T30 dispute not reopened.
+
+---
+
+## T32-G-PAYMENT-MILESTONE-CI-STATE Progress (2026-09-29)
+
+**Full report:** `T32-G-PAYMENT-MILESTONE-CI-STATE-REPORT.md` (audit only — no source modified, no commit/push, no merge)
+**HEAD (audit ref):** `6aa322c0` on `t31/soravo-wrapper-completion` (in sync with origin, 0 ahead/behind); PR #63 OPEN (base `main`, head == `6aa322c0`)
+
+### Verdict
+
+**T32-A/T32-B milestone correctly checkpointed — STOP.** Committed (`6aa322c0`, 22 files), pushed, contained in OPEN PR #63 (unmerged), CI-covered. No new payment behavior implemented.
+
+### Ten items verified
+
+- Branch/HEAD: `t31/soravo-wrapper-completion` @ `6aa322c0`; worktree drift vs HEAD is `PROGRESS.md` only (this entry)
+- T32-A committed YES (5 doc files + report in `6aa322c0`); T32-B committed YES (checkout.ts/index.ts/tsconfig/eslint/deno-shim/package.json/test/config.toml/root package.json/lockfile)
+- Pushed YES (origin head == local HEAD); PR #63 OPEN contains them (title already T31+T32-scoped)
+- CI on checkpoint head: Security Audit 36513615346 SUCCESS; CI 36513615343 web/desktop/e2e SUCCESS, rust FAILURE = exactly the 15 STOP-gated tests (188/15, failure list pulled from failed log and verified byte-identical — fmt + clippy passed)
+- Checkout lint/typecheck/tests CI-required YES (root `lint`/`typecheck` extend with `lint:checkout`/`typecheck:checkout`; root `test` includes `test:supabase`; web job runs all three)
+- Supabase tests pass YES — `pnpm test:supabase` 200/200 this session; `lint:checkout` + `typecheck:checkout` PASS
+- Payment secrets in tracked files: NONE (`.env.local` untracked + gitignored; license-api programmatic config only, enforced by its own tests; only fixture/negative-control strings in tests)
+- TEST credentials env-only YES (checkout `Deno.env.get` + `rzp_test_` fail-closed gate; webhook function-secrets only)
+- Handy core untouched YES (T32-E commit has zero `crates/`/`apps/desktop`/`services/`/`packages/` source files; V1 boundary intact)
+- T32-F 401 REMAINS EXTERNAL/PROVIDER: auth logic byte-identical to commit (no drift), triple auth layer + 22 tests intact; the 401 was a provider-side rejection of a well-formed TEST key on `GET /v1/webhooks` (key rotation = owner action); no silent auth change
+
+### Razorpay TEST environment
+
+NOT re-probed (correctly): local webhook secret empty, stored key likely rotated, plan IDs unknown, live probing would require secret reads (forbidden). T32-F §6 checklist (A–D) remains the exact path. No provider data invented.
+
+### Files changed
+
+- ✅ `T32-G-PAYMENT-MILESTONE-CI-STATE-REPORT.md` — created (this task's output)
+- ✅ `PROGRESS.md` — updated (this entry + Last-audited header)
+
+### Not executed
+
+Any source modification, live Razorpay call, Dashboard change, deployment, secret-value read, commit/push, or merge. Matrix untouched. T30 dispute not reopened.
+
+### Next exact task
+
+- **T32-P — IPC round-trip verification (AI, no external input)** per T32-E §10 / T32-D plan item 2. Do not re-commit T32-A/T32-B, do not merge PR #63.
+
+---
+
+## T32-H-RAZORPAY-TEST-E2E Progress (2026-09-29)
+
+**Full report:** `T32-H-RAZORPAY-TEST-E2E-REPORT.md` (audit only — STOPPED before any provider call, no source modified, no commit/push, no merge)
+**HEAD (audit ref):** `6aa322c0` on `t31/soravo-wrapper-completion` (in sync with origin); PR #63 OPEN; CI 36513615346 Security Audit SUCCESS, CI 36513615343 web/desktop/e2e SUCCESS + rust FAILURE (same 15 T30 STOP-gated tests, unchanged)
+
+### Verdict
+
+**Provider E2E CANNOT be executed today without inventing provider data — STOPPED per mandate, zero provider calls made.** Credential mechanism inspected first (license-api = programmatic injection only, no auto-load, no `process.env` reads — enforced by its own tests; checkout = `Deno.env.get` with `rzp_test_` fail-closed gate; webhook = function-secret only). Pre-call gates 4 (Plan IDs) and 5 (webhook secret) FAIL; gates 1–3, 6 pass with two findings recorded below. No lifecycle semantic changed; the cancelled-vs-expiry conflict is recorded, not resolved.
+
+### Pre-call gates
+
+- TEST-mode enforcement: PRESENT in checkout (`isTestModeKeyId`, fail closed, unit-tested) — ABSENT in license-api `RazorpayProvider` (any non-empty key accepted; new finding F-H1, routed as follow-up, not fixed here)
+- TEST key shape: PASS (key ID present, length 23, `rzp_test_` prefix count 1, zero `rzp_live_` — value never read/printed)
+- Test-harness live safety: PASS (fixture credentials + mocked fetch only; no-`process.env` assertions in suite)
+- Plan IDs: FAIL — all five `RAZORPAY_PLAN_SORAVO_MONTHLY_*` UNKNOWN (monthly checkout fails closed 503 by design; `service.ts:205` pattern fabrication carried, untouched)
+- Webhook secret: FAIL — local `RAZORPAY_WEBHOOK_SECRET` EMPTY (length 0); Supabase-side presence historically proven, unlistable without access token, not re-verified
+- Callback endpoint: CONFIRMED as configuration (`https://zbzhlhoxblguepplqppw.supabase.co/functions/v1/razorpay-webhook`; `verify_jwt = false` webhook / `true` checkout) — Dashboard-side URL/event state still UNVERIFIED (not guessed)
+
+### Findings
+
+- **F-H1 (NEW, MEDIUM):** license-api provider lacks a TEST-mode gate — a LIVE keypair via `createPaymentProvider` would transact LIVE with no rejection. Follow-up only.
+- **F-H2 (CARRIED, HIGH — contract conflict):** `subscription.cancelled` routes to immediate cancel while ratified v6 §06:22 preserves monthly access through expiry. Semantics NOT changed; parked for the ratified alignment task (owner ratification required).
+
+### Tests executed (no credentials, no network)
+
+- `pnpm test:supabase` — **200 passed, 0 failed** (checkout 22 + webhook 166 + migration-guard 12)
+- `pnpm --filter @soravo/license-api test` — **71 passed, 0 failed**; `typecheck` — clean
+- `pnpm lint:checkout` + `pnpm typecheck:checkout` — PASS
+- `pnpm --filter @soravo/website test payment-service + pricing` — **11 passed, 0 failed**
+
+### Resume path (exact owner actions, report §4)
+
+Verify/rotate TEST keypair → create 5 TEST Plans (record real IDs) → enable International Payments / confirm INR settlement → confirm TEST webhook URL + 8 events + copy secret → place secret in `.env.local` → set Supabase function secrets → deploy `payment-checkout` → confirm doc sandbox flow → execute lifetime + monthly lifecycle + signed duplicate.
+
+### Not executed
+
+Any Razorpay API call, Dashboard change, deployment, secret-value read, official-doc procedure confirmation (deferred — no transaction executed), source modification, commit/push, or merge. Matrix untouched. T30 dispute not reopened. Handy core untouched. No provider data invented.
+
+### Next exact task
+
+- **T32-P — IPC round-trip verification (AI, no external input)** per T32-E §10 / T32-D plan item 2 / T32-G §6. Do not re-commit T32-A/T32-B, do not merge PR #63.
+
+---
+
+## T32-I — V1 Failure and Catalog Decision Reconciliation (2026-09-29)
+
+### Scope constraints honoured
+
+- ✅ Handy behavior frozen — no post-processing, filler removal, capitalization, punctuation normalization, language reinterpretation, or alternate transcription behavior introduced
+- ✅ `catalog.json` NOT populated — no model metadata inferred or fabricated
+- ✅ Production code NOT edited; no test edited, removed, or relocated
+- ✅ No commit, push, or merge (per STOP instruction)
+
+### Implementation completed
+
+- Re-reproduced the 15 Rust failures this session: `cargo test -p soravo-desktop --lib --no-fail-fast` → **188 passed, 15 failed** (byte-identical to T28/T30/CI runs)
+- Classified per task categories: **A=10 (catalog/data), B=5 (tests contradicting frozen V1 behavior), C=0, D=0, E=0**
+- Full per-failure record in `T32-I-V1-FAILURE-AND-CATALOG-DECISION-REPORT.md` (§3 catalog F-01…F-10 with exact test + production code + Handy-core touch (NO) + governing doc + required input + AI-may-act (NO); §4 transcription F-11…F-15 with frozen actuals vs test expectations)
+- Catalog decision (§6): exact 8-row authoritative metadata table (model ID, architecture, quantization, mirror, SHA-256, license, provenance + supporting fields) + 10-item human checklist — specified, not populated
+- Transcription decision (§7): confirmed all 5 tests assert V1-forbidden behavior; human proposal Options A (rewrite expectations to frozen output + annotate, recommended) / B (ignored deferred module) / C (remove + spec task) — proposed, not executed
+- Adopted T30 where re-verified; carried T32-F/G/H payment findings without reclassification
+
+### Files changed
+
+- ✅ `T32-I-V1-FAILURE-AND-CATALOG-DECISION-REPORT.md` — created (this task)
+- ✅ `PROGRESS.md` — updated (this entry + Last-audited header)
+
+### Tests executed
+
+- ✅ `cargo test -p soravo-desktop --lib --no-fail-fast` — 188 passed, 15 failed (reproduction only; no test modified)
+
+### Verified items
+
+- `catalog.json` re-read byte-identical `{}`; `scripts/gen_catalog.py` still never existed
+- V1 silence verified: repo-wide doc grep for filler/normalization/punctuation hits only the new V1-preservation sections
+- PR #63 OPEN @ `6aa322c0`, unmerged; CI state unchanged (Security Audit SUCCESS; rust red = same 15 by design)
+
+### Blocked items
+
+- 10-item catalog checklist (human + upstream hosts); transcription A/B/C product decision; ADR-018 approval; Razorpay Plans/secrets/deploys; Cloudflare/signing/updater/protection items (all carried)
+
+### Not executed items
+
+- Catalog population, any production/test/config/data edit, commit/push/merge, provider calls, deployments
+
+### Next exact task
+
+- **Human decision:** §7 Option A/B/C (transcription) + §6 checklist (catalog) + ADR-018 approval — then a follow-up task executes exactly the approved option
+- **T32-P — IPC round-trip verification (AI, no external input)** remains the next agent-executable task
+
+---
+
+## T32-J — Soravo IPC Round-Trip Verification (2026-09-29)
+
+**Status:** VERIFICATION COMPLETE — no source/test/config/data file modified; no commit/push (verification-only, nothing for CI beyond PR #63)
+**Report:** `T32-J-IPC-ROUNDTRIP-REPORT.md` (full 12-command matrix + findings + battery)
+**Branch/HEAD:** `t31/soravo-wrapper-completion` @ `6aa322c0` (PR #63 OPEN, unmerged)
+
+### Verified (all 12 recovered commands)
+
+- Rust registration: all 12 in `generate_handler!` (`main.rs:37-53`) + `mod.rs` re-exports; every command carries `#[specta::specta]` with `Type`-derived DTOs
+- Frontend invocation: 9/12 with live `.tsx` callers (`runtime_status`, `session_transition`, `load`, `update_microphone/hotkey/model`, `ping`/`session_reset` via test + `onPing` subscription); `session_snapshot`/`save_settings`/`emit_ping` wrapper-only by documented design (T10-B §5)
+- Serialization: camelCase DTOs asserted by executing tests; `SessionPhase` UPPERCASE ↔ TS union exact; `InteractionMode`/`ModelStatus` snake_case ↔ TS unions exact; legacy snake_case settings files still parse
+- Validation: `session_transition` via `SessionMachine` allow-list (invalid → structured `INVALID_TRANSITION` JSON, no mutation); `inject_text` 100 000-byte bound before engine contact
+- Session transitions: 13 ladder tests pass (full ladder, ERROR-from-any, ERROR→IDLE, reset, staleness rejection)
+- Injection boundary: `inject_text` terminates at Soravo-owned `soravo-typing`; Handy `clipboard::paste()` untouched, unentered, unaltered — zero Handy-core involvement in any IPC path (STOP rule honored)
+
+### Findings (recorded, not fixed — verification scope)
+
+- F-J1 (LOW gap): `inject_text` has no `ipc.ts` wrapper (re-confirms T10-B §5 deliberate state) — follow-up: add invoker + `TypingResult` mirror (Soravo-owned, V1-safe)
+- F-J2 (LOW gap): `typing://result` emitted with no frontend listener — route to the same follow-up as F-J1
+- F-J3 (INFO): `validate_inject_text` counts bytes but message says "chars" (bound conservative-correct; cosmetic)
+- O-J1 (INFO): no `specta export` step — hand-mirrored TS types verified consistent this session, drift-prone by construction
+
+### Tests executed
+
+- `cargo test -p soravo-desktop --lib -- commands::soravo_ipc session::` — **21 passed, 0 failed**
+- `cargo test -p soravo-config -p soravo-typing --lib` — **8 passed, 0 failed**
+- `cargo test -p soravo-desktop --lib` (full) — **188 passed, 15 failed** (byte-identical to T32-I STOP-gated set; zero IPC involvement)
+- `cargo clippy -p soravo-desktop --lib --all-targets -- -D warnings` — PASS; `cargo fmt --check` — PASS
+- `pnpm --filter @soravo/desktop test` — **8 passed**; `typecheck` (`tsc -b`) — PASS
+
+### Blocked / carried
+
+- T32-I catalog checklist (10 items), transcription A/B/C, ADR-018, Razorpay objects/secrets/deploys, signing/updater/protection — all unchanged
+
+### Next exact task
+
+- **Human decision:** transcription A/B/C + catalog checklist + ADR-018 (unchanged)
+- **Proposed follow-up (AI, no external input):** F-J1/F-J2 frontend `inject_text` invoker + `typing://result` listener (scoped, V1-safe, needs no Handy change)
+
+## T32-P — Soravo IPC V1-Safe Completion (2026-09-29)
+
+**Status:** COMPLETE — focused Soravo-owned frontend change; no commit/push yet at report time (milestone commit follows)
+**Report:** `T32-P-IPC-V1-COMPLETION-REPORT.md` (reading gate, pre-state, per-finding decisions, battery, boundary proof)
+**Branch/HEAD:** `t31/soravo-wrapper-completion` @ `6aa322c0` pre-change (PR #63 OPEN, unmerged)
+
+### Decisions
+
+- F-J1 → **C (tech debt), IMPLEMENTED:** `injectText(text)` + `TypingMethod`/`TypingResult` mirrors added to `apps/desktop/src/ipc.ts`. Rust contract preserved verbatim (`"inject_text"`, `{ text }`); 100KB validation + error contract untouched server-side. 12/12 commands now wrapped.
+- F-J2 → **E (unnecessary for V1 as wired behavior), SMALLEST LISTENER ONLY:** `TYPING_RESULT_EVENT` + `onTypingResult()` helper added (exact `onPing` mirror). No `app.tsx` subscription, no UI behavior — no V1 flow consumes the event yet.
+- O-J1 → **C (tech debt), DOCUMENTED NOT MIGRATED:** authoritative docs never require Specta codegen (zero `specta` hits in TDD/plan/§05/§03); no export step exists; new mirrors follow existing hand-mirror convention.
+- F-J3 (bytes-vs-"chars") carried, untouched — out of scope.
+
+### Work performed / files changed
+
+- `apps/desktop/src/ipc.ts` — additive only (+types, +constant, +`injectText`, +`onTypingResult`)
+- `apps/desktop/src/app.test.ts` — +3 tests (event constant, listener subscription, command routing)
+- V1 rule: `git diff --name-only -- crates/ apps/desktop/src-tauri/src/audio_toolkit apps/desktop/src-tauri/src/shortcut crates/typing crates/stt` → empty; Handy `clipboard::paste()` unentered, unaltered
+
+### Tests
+
+- `pnpm --filter @soravo/desktop typecheck` — PASS; `test` — **11 passed** (was 8; +3 new)
+- `cargo test -p soravo-desktop --lib -- commands::soravo_ipc session::` — **21 passed**; `-p soravo-config -p soravo-typing` — PASS
+- `cargo test -p soravo-desktop --lib` (full) — **188 passed, 15 failed** (name-diffed vs T32-I §1: identical 10 catalog + 5 transcription; no new failure; no test/data modified)
+- `cargo fmt --check`, `cargo clippy -- -D warnings` — PASS
+
+### Blockers / next exact task
+
+- Carried: T32-I catalog checklist, transcription A/B/C, ADR-018, Razorpay objects/secrets/deploys, signing/updater/protection; F-J3 cosmetic
+- **Next: T32-Q — IPC consumer wiring decision (decision-only):** which Soravo UI flow (if any) should call `injectText()` / subscribe `typing://result` once committed/final text flows end-to-end. Do NOT wire `app.tsx` speculatively.
