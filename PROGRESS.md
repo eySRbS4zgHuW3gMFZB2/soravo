@@ -1771,3 +1771,50 @@ Do NOT add Razorpay secret credentials to frontend environment. Razorpay `keyId`
 See: docs/spec-v3/RAZORPAY-SUBSCRIPTIONS-029.md
 
 Status: CODE-COMPLETE, Razorpay TEST API Limited (Items created; Plans via API BLOCKED)
+
+---
+
+## T30 Progress (2026-09-29)
+
+Full report: `T30-HANDY-V1-FAILURE-RECLASSIFICATION-REPORT.md`
+
+### Scope Constraints Honoured
+- ✅ V1 rule: "Preserve Handy's functioning STT core and add Soravo functionality around it"
+- ✅ No Handy STT behavior modified; no post-processing added/altered
+- ✅ No filler removal / normalization / language-handling / punctuation / semantics changes
+- ✅ No catalog fabrication (IDs, hashes, URLs, licenses, provenance)
+- ✅ No test changed merely to obtain green CI (STOP before editing — proposal only)
+- ✅ No production source code modified; no commit/push
+
+### Implementation Completed
+- Read full v6 engineering pack in SPEC_MANIFEST order (§00–§21, DESIGN, manifest) + PROGRESS.md, T29, T16 matrix, T28, T27, T13, T08/ADR-026 provenance, live git/PR/CI state
+- State audit: branch `t24/t22-milestone-ci-stabilization`, HEAD `42ad6290`, origin/main `ede495b5`, clean tracked tree, PR #62 OPEN at same head, latest CI failure = the same 15 tests
+- Reproduced: `cargo test -p soravo-desktop --lib --no-fail-fast` → **188 passed, 15 failed** (identical set to T28/CI)
+- New evidence: v6 pack has ZERO mentions of filler/normalization/punctuation (neither side specified); `post_process.rs` is SORAVO-NEW (`fc56c31b`, absent `a156c8c9`); `gen_catalog.py` never existed; `test_catalog_quant_rendering` poison site re-confirmed at `catalog/mod.rs:119:10`
+
+### Files Changed
+- ✅ `T30-HANDY-V1-FAILURE-RECLASSIFICATION-REPORT.md` — created (this task's output)
+- ✅ `PROGRESS.md` — updated (this entry)
+
+### Tests Executed
+- ✅ `cargo test -p soravo-desktop --lib --no-fail-fast` — 188 passed, 15 failed (read-only reproduction)
+- ✅ Transcription subset — exact left/right values recorded for all 5 (§2.2 of report)
+- ✅ Single model test — Lazy-poison cascade confirmed (not independent defect)
+
+### Verified Items
+- 10 catalog failures = ONE root cause (`catalog.json` = `{}`): **A. Soravo-owned missing data** — fixable data-only, BLOCKED on human checklist (§5 of report)
+- 5 transcription failures = **D. Contradictory/stale tests** testing V1-out-of-scope post-processing; contradict passing normalization/detection contracts; preserve-current-behavior is the V1 decision
+- B/C/E/F/G = 0 members (no Handy-compat defect, no env issue, nothing unknown)
+- T27 "blocked by catalog.json" claim for transcription REFUTED (re-verified); T27 provenance claim CONTESTED by v6 §21 (both recorded, non-blocking)
+
+### Blocked Items
+- Catalog population: 9-item human decision checklist open (model set, source org, licenses, pins, hashes, arches, mirrors, generator, chain-of-custody)
+- Transcription: product choice among proposal Options A/B/C (rewrite expectations to frozen behavior / relocate to ignored deferred module / remove + spec task)
+- ADR-018 V1 preservation policy still unapproved (per T29)
+
+### Not Executed Items
+- Any source/test/data modification (STOP rule)
+- Commit/push (per task instruction)
+
+### Next Exact Task
+- Human: approve §4 Option (A/B/C) + §5 catalog checklist → follow-up task executes exactly the approved option
