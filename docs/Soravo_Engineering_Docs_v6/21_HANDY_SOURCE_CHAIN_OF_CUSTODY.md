@@ -74,6 +74,17 @@ An upstream Handy update requires all of:
 
 No "pull latest Handy" operation is permitted as a default maintenance action.
 
+## V1 behavior preservation requirements
+
+Every change to a Handy-derived subsystem MUST verify:
+
+- **V1 rule compliance**: no STT behavior modification without explicit justification
+- **No post-processing layer**: no filler removal, normalization, punctuation rewriting, or language-specific output changes
+- **Boundary compliance**: Soravo functionality implemented at wrapper level, not inside STT pipeline
+- **Test conflict documentation**: any test requiring V1-out-of-scope behavior is STOP-gated
+
+---
+
 ## Chain-of-custody acceptance
 
 The Handy foundation is chain-of-custody VERIFIED only when:
@@ -83,6 +94,7 @@ The Handy foundation is chain-of-custody VERIFIED only when:
 - license attribution is preserved;
 - Soravo-specific modifications are enumerated;
 - current `main` contains the recorded import/adaptation commit;
-- targeted and broad CI-equivalent validation passes.
+- targeted and broad CI-equivalent validation passes;
+- V1 behavior preservation requirements are satisfied.
 
 Until then, Handy provenance is `UNKNOWN` and release readiness cannot claim full provenance verification.

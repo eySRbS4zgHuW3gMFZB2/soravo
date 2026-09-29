@@ -22,3 +22,7 @@ Entitlement semantics:
 lifetime has no expiry unless revoked; monthly may be cancelled while remaining valid through expiry; renewal extends expiry. Database constraints are authoritative.
 
 No third price catalog may exist.
+
+## Soravo ownership and provider boundary
+
+Soravo accounts, Soravo cloud, the Soravo entitlement system, subscriptions, and the Soravo payment system are Soravo-owned systems. Razorpay is an implementation/provider detail of the Soravo payment system: it is not the product identity and not the architectural owner of payments. The Soravo payment/entitlement domain remains provider-independent (single price-catalog source of truth in `@soravo/payment-domain`; server-derived user, product, and price) even though Razorpay is the current provider per ADR-004. Provider-specific logic must not be placed inside the Handy-derived local core; desktop-to-Soravo-service communication uses the explicit contracts/interfaces defined here and in `03_TECHNICAL_DESIGN.md` / `05_DESKTOP_CONTRACTS.md`.

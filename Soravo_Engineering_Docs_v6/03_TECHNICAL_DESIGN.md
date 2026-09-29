@@ -26,3 +26,7 @@ Model lifecycle: DISCOVERED → DOWNLOADING → VERIFYING → INSTALLING → AVA
 Payment catalog source of truth: `packages/payment-domain`. Current research values: monthly INR 9900, USD 1200, CAD 1600, EUR 1100, AUD 1800 minor units; lifetime INR 41500, USD 5000, CAD 6700, EUR 4600, AUD 7500. These are implementation values, not permanent business decisions.
 
 Lifetime = Razorpay Order. Monthly = Razorpay Plan + Subscription. Browser receives only public key ID and provider transaction identifiers.
+
+## Fork/reuse boundary (integration view)
+
+The Handy-derived foundation exposes local capabilities (audio/VAD/STT/model/typing) upward through Soravo contracts. The Soravo-owned product layer (Soravo accounts, Soravo cloud, Soravo entitlement system, Soravo payment system) never reaches into Handy-derived internals except through these integration contracts. Desktop-to-service communication uses explicit contracts/interfaces: typed IPC/events on-device, and authenticated API contracts off-device per `06_WEB_CLOUD_PAYMENT.md`. Provider-specific logic lives in the Soravo-owned product layer behind the Soravo payment system interface, never inside the Handy-derived local core.

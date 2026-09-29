@@ -4,6 +4,33 @@
 
 `inspect → understand → plan → implement → verify → security review → QA → document → checkpoint → commit → push → PR`
 
+## Permanent reading gate (non-negotiable)
+
+At the beginning of **every** task and **every** new agent session, before any
+other action:
+
+1. read `SPEC_MANIFEST.json`;
+2. read every authoritative document in `SPEC_MANIFEST.json` read order, in
+   full, from the canonical pack `docs/Soravo_Engineering_Docs_v6/`;
+3. read `PROGRESS.md` in full;
+4. perform a fresh Git/VM/PR/CI state audit;
+5. only then read task-specific reports.
+
+**The most recent task report is never a substitute for the pack.** Reports are
+evidence about one task; this pack governs every task.
+
+If any two sources conflict: record both statements · identify the authority
+level · verify against GitHub/VM · reconcile the documentation · **do not
+guess**.
+
+## Permanent PROGRESS governance
+
+`PROGRESS.md` MUST be updated at the end of **every** task. Every entry records:
+exact task ID · objective · exact files changed · exact files deliberately
+unchanged · evidence/commands · test/CI state · security state · blockers ·
+decisions · commit/PR state · exact next task. Never finish a task leaving
+`PROGRESS.md` unaware of the work performed.
+
 ## Mandatory first sequence
 
 1. read the entire engineering pack;

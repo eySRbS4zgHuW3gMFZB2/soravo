@@ -1,6 +1,15 @@
-# Soravo Engineering Documentation Pack v5
+# Soravo Engineering Documentation Pack v6
 
-Status: authoritative engineering-control pack.
+> ## NOT THE AUTHORITATIVE PACK — NON-AUTHORITATIVE MIRROR
+>
+> **The canonical pack is `docs/Soravo_Engineering_Docs_v6/`.** It is the only
+> copy present on `origin/main`, and it is the copy the permanent reading gate
+> must be read from. This directory is a duplicate created on this branch in
+> `fc56c31b`; its content has been reconciled into the canonical directory as a
+> union, so no control text is lost. Do not edit the control plane here.
+
+Status: non-authoritative mirror of the authoritative engineering-control pack.
+Pack version: `6.0.0`.
 Generated: 2026-09-27.
 Research HEAD: `2f96f3d21213bce24f049996d5ab897f16acd31b`.
 Repository: `eySRbS4zgHuW3gMFZB2/soravo`.

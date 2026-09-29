@@ -1,10 +1,15 @@
-# Soravo Engineering Documentation Pack v5
+# Soravo Engineering Documentation Pack v6
 
 Status: authoritative engineering-control pack.
+Pack version: `6.0.0` (this directory, this README, and `SPEC_MANIFEST.json`
+all state **v6**; earlier revisions of this file said "v5" while the directory
+name and manifest said v6 — corrected in T32-Y).
+Canonical path: `docs/Soravo_Engineering_Docs_v6/`.
 Generated: 2026-09-27.
 Research HEAD: `2f96f3d21213bce24f049996d5ab897f16acd31b`.
 Repository: `eySRbS4zgHuW3gMFZB2/soravo`.
 Project-source file limit: 25.
+Manifest entries: 24 (see *Directory contents versus the manifest* below).
 
 ## Purpose
 
@@ -57,35 +62,76 @@ security controls.
 
 ## Mandatory read order
 
-1. `00_README.md`
-2. `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md`
-3. `02_PRODUCT_REQUIREMENTS.md`
-4. `03_TECHNICAL_DESIGN.md`
-5. `04_HANDY_FORK_AND_REUSE_POLICY.md`
-6. `05_DESKTOP_CONTRACTS.md`
-7. `06_WEB_CLOUD_PAYMENT.md`
-8. `07_IMPLEMENTATION_PLAN.md`
-9. `08_TASK_BREAKDOWN.md`
-10. `09_AI_AGENT_INSTRUCTIONS.md`
-11. `10_AI_SKILLS.md`
-12. `11_MCP_AND_AGENT_TOOLING.md`
-13. `12_SECURITY_BASELINE.md`
-14. `13_DEFINITION_OF_DONE_AND_QA.md`
-15. `14_CI_CD_AND_BRANCHING.md`
-16. `15_ENVIRONMENT_AND_SECRETS.md`
-17. `16_TEST_AND_BENCHMARK_PROTOCOL.md`
-18. `17_RELEASE_RUNBOOK.md`
-19. `18_INTERRUPTION_AND_HANDOFF.md`
-20. `19_STATE_AUDIT_PROTOCOL.md`
-21. `20_ADR_INDEX.md`
-22. `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`
-23. `DESIGN.md` (authoritative Soravo design specification)
-25. `SPEC_MANIFEST.json`
+This is a **PERMANENT READING GATE**. It is performed at the beginning of
+**every** task and **every** new agent session, without exception and without
+being asked.
+
+| # | Document | # | Document |
+|---|---|---|---|
+| 1 | `00_README.md` | 13 | `12_SECURITY_BASELINE.md` |
+| 2 | `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` | 14 | `13_DEFINITION_OF_DONE_AND_QA.md` |
+| 3 | `02_PRODUCT_REQUIREMENTS.md` | 15 | `14_CI_CD_AND_BRANCHING.md` |
+| 4 | `03_TECHNICAL_DESIGN.md` | 16 | `15_ENVIRONMENT_AND_SECRETS.md` |
+| 5 | `04_HANDY_FORK_AND_REUSE_POLICY.md` | 17 | `16_TEST_AND_BENCHMARK_PROTOCOL.md` |
+| 6 | `05_DESKTOP_CONTRACTS.md` | 18 | `17_RELEASE_RUNBOOK.md` |
+| 7 | `06_WEB_CLOUD_PAYMENT.md` | 19 | `18_INTERRUPTION_AND_HANDOFF.md` |
+| 8 | `07_IMPLEMENTATION_PLAN.md` | 20 | `19_STATE_AUDIT_PROTOCOL.md` |
+| 9 | `08_TASK_BREAKDOWN.md` | 21 | `20_ADR_INDEX.md` |
+| 10 | `09_AI_AGENT_INSTRUCTIONS.md` | 22 | `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md` |
+| 11 | `10_AI_SKILLS.md` | 23 | `DESIGN.md` (authoritative Soravo design specification) |
+| 12 | `11_MCP_AND_AGENT_TOOLING.md` | 24 | `SPEC_MANIFEST.json` |
+
+Then, in order: read `PROGRESS.md` in full · perform a fresh Git/VM/PR/CI state
+audit · and only then read task-specific reports.
+
+**The latest task report is never a substitute for this pack.** A report is
+evidence about one task; this pack is the control plane that governs every task.
+
+**`PROGRESS.md` governance.** `PROGRESS.md` MUST be updated at the end of
+**every** task, recording: exact task ID · objective · exact files changed ·
+exact files deliberately unchanged · evidence/commands · test/CI state ·
+security state · blockers · decisions · commit/PR state · exact next task. An
+agent must never finish a task while leaving `PROGRESS.md` unaware of the work
+performed.
+
+**If sources conflict:** record both statements · identify the authority level ·
+verify against GitHub/VM · reconcile the documentation · never guess.
 
 ## First action for every OpenCode session
 
 Read this pack, then perform a state audit.
 Do not start implementation before the state audit is complete.
+
+## Directory contents versus the manifest
+
+`SPEC_MANIFEST.json` declares `file_count: 24` and lists exactly those 24
+entries. This directory also contains two files that are **not** manifest
+entries:
+
+- `22_IMPLEMENTATION_COMPLETION_MATRIX.md`
+- `22_IMPLEMENTATION_COMPLETION_MATRIX_UPDATE.md`
+
+They are retained milestone artifacts, are **not** part of the control plane,
+and are **not** read by the gate. They are disclosed here so that the
+directory listing and the manifest are reconcilable without deleting history.
+The manifest is **not** amended to absorb them: the manifest is the authority for
+what the gate reads, and the gate is unchanged by their presence.
+
+## Duplicate pack copies
+
+A second, byte-divergent copy of this pack exists at the repository root
+(`Soravo_Engineering_Docs_v6/`). **This directory,
+`docs/Soravo_Engineering_Docs_v6/`, is the canonical copy and the index of
+record**, on three independent bases:
+
+1. it is the only copy present on `origin/main`;
+2. it is the path recorded in the pack-location convention used by the task
+   control plane;
+3. `20_ADR_INDEX.md` inside this directory is the single index of record.
+
+The root copy is a **non-authoritative mirror**. Its ADR index carries a pointer
+to this file instead of a second current entry. Any edit to the control plane
+belongs here.
 
 ## Current-state warning
 
