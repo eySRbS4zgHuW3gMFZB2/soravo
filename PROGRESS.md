@@ -3710,6 +3710,52 @@ Post-push CI for this task's own commit is recorded in the follow-up entry
 below, per the implementation-discipline rule *"CI state is recorded after
 push."*
 
+### Commit / push / CI — ACTUAL RESULT (recorded after push, not assumed)
+
+**Two commits, two pushes, both verified.**
+
+| Commit | Subject | Pushed |
+|---|---|---|
+| `c6af1055` | `docs(control-plane): … permanent (T32-Y2)` — the 6 control-plane files | `61de5411..c6af1055` |
+| `494f521a` | `docs(progress): correct the T32-Y2 untracked-path count to 29 and record commit … CI` | `c6af1055..494f521a` |
+
+- **Local/upstream after push: `0` ahead / `0` behind.**
+- **CI `36646785895` (at `494f521a`) — `FAILURE`, by design.**
+  `web` ✅ · `e2e` ✅ · `desktop` ✅ · **`rust` ❌**.
+- **Security Audit `36646786032` — SUCCESS** (43 s).
+- `rust` log: `test result: FAILED. 203 passed; 7 failed; 0 ignored` — plus two
+  green sibling binaries (27 passed; 3 passed).
+
+**The 7 failures are the byte-identical STOP-gated set — confirmed from this
+run's own log, not carried forward:**
+
+1. `catalog::tests::catalog_parses_and_is_nonempty` — `catalog/mod.rs:227`,
+   *"bundled catalog should contain models"* (**catalogue content — O-2**)
+2. `managers::model::tests::test_discover_catalog_alternate_quant_in_models_dir` —
+   `model.rs:2986`, *"catalog has multi-quant models"* (**catalogue content — O-2**)
+3. `managers::transcription::tests::auto_language_without_detection_skips_gated_filler_removal`
+4. `managers::transcription::tests::ignored_user_language_is_not_output_evidence`
+5. `managers::transcription::tests::portuguese_transcription_does_not_use_english_ui_filler_words`
+6. `managers::transcription::tests::unknown_evidence_with_confident_text_detection_removes_gated_fillers`
+7. `managers::transcription::tests::unknown_evidence_with_portuguese_text_preserves_um`
+
+→ **2 catalogue-content + 5 frozen-V1 transcription. 0 Soravo defects. 0 new
+failure. `203/7` is now confirmed a fourth time**, and the third consecutive
+confirmation that a documentation-only commit does **not** turn `rust` green.
+**A documentation commit leaving `rust` red is the correct outcome.** Turning it
+green by editing a test is prohibited by the rules this task installs.
+
+**PR #63 — still OPEN, still NOT MERGED.** Head now `494f521a`;
+`mergeStateStatus: BLOCKED`; `reviewDecision: REVIEW_REQUIRED`. Two independent
+gates remain: required check `rust` red by design, and **0 of 1** required
+approving review. Not retitled, not merged.
+
+**One self-correction made and committed** rather than left standing: the first
+`PROGRESS.md` commit of this task stated **30** pre-existing untracked paths; the
+audited set is **29**, and the enumeration is now inline so the figure is
+checkable rather than asserted (`494f521a`).
+
+
 ### Security
 
 - **Provider mutations: ZERO.** No Razorpay, Supabase, Cloudflare or GitHub write
