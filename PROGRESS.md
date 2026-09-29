@@ -3488,3 +3488,354 @@ All five classifications retained: `HANDY-REUSE` · `HANDY-ADAPT` · `SORAVO-NEW
 - ✅ **No untracked pre-existing work staged, deleted, or modified.**
 
 ---
+
+## T32-Y2 — PERMANENT OPENCODE GOVERNANCE HARDENING (2026-09-30)
+
+**Status:** COMPLETE — **documentation/control-plane only.** Six Markdown files
+amended; zero production source, zero tests, zero CI, zero catalog, zero UI,
+zero Handy behaviour, zero payment/provider work. PR #63 **not merged**.
+
+**Branch / HEAD (start = end of work):** `t31/soravo-wrapper-completion` @
+`61de541126c6c93e408c8fd1d74321948d01842c` (0/0 vs `origin/t31/soravo-wrapper-completion`).
+**`origin/main`** `ede495b55efd95cedd882d90a19d12b4777da852` — branch **12 ahead / 0 behind**.
+
+> **Task-ID note.** `T32-Y2` is a **new, distinct** ID. It does **not** collide
+> with the `T32-Y` slot that T32-X reserved for UI truthfulness (`app.tsx:190-200`),
+> and it does not collide with the T32-Y documentation-authority task. The
+> reserved `T32-Y-UI` slot therefore remains **open and unclaimed** — see
+> *Next exact task* item 1.
+
+### Objective
+
+Make the six governance blocks issued by the owner **permanent, STOP-grade, and
+unambiguous inside the canonical control pack**, so that no future session can
+pass the gate by reading a single report, a summary, or a compacted context:
+reading gate · V1 Handy preservation · PROGRESS governance · source boundary ·
+stop conditions · implementation discipline.
+
+### Reading gate — COMPLETED, in the mandated order
+
+1. root `SPEC_MANIFEST.json`;
+2. the **15** root manifest documents in order (`README.md`, `01_PRD.md` …
+   `14_ENVIRONMENT_AND_SECRETS.md`) + `SORAVO_PLAN.md`;
+3. `PROGRESS.md` **in full — all 3,490 lines**;
+4. fresh Git/VM/PR/CI state audit (below);
+5. **then** the canonical v6 pack: `SPEC_MANIFEST.json` + **all 24 entries in
+   read order**, full text.
+
+The two authority conflicts encountered *during* the gate are both recorded and
+resolved in-pack, not guessed (§2 below).
+
+### State audit (fresh, this session)
+
+| Field | Value |
+|---|---|
+| Local HEAD | `61de5411` (== `origin/t31/soravo-wrapper-completion`, **0/0**) |
+| `origin/main` | `ede495b5`; branch 12 ahead / 0 behind; `origin/main` **is** an ancestor of HEAD |
+| Worktree | **0 tracked modifications** at start; **30 untracked paths, all pre-existing** |
+| `git diff --check` (pre-change) | exit **0** |
+| Worktrees | 1 main + 3 in `.swarm-worktrees/` (`83a506e8`, `7eaea96f`, `d5a1f846`) — untouched |
+| PR #63 | **OPEN**, base `main`, head `61de5411` (identical to local), `mergeStateStatus: BLOCKED`, `reviewDecision: REVIEW_REQUIRED` |
+| Branch protection (`main`) | checks `web`/`e2e`/`rust`/`desktop`, `strict: true`, **1** approving review, `enforce_admins: false` — read-only check |
+| Releases | `gh release list` **empty**; no `release.yml` run has ever occurred |
+| Host | Linux `x86_64`, 4 cores, 7 GB RAM |
+| Toolchain | node `v22.23.1`, pnpm `11.17.0`, rustc/cargo `1.97.1`, gh `2.100.0`, `supabase` CLI present |
+| `rustup target list --installed` | **`x86_64-unknown-linux-gnu` only** → macOS/Windows remain `UNKNOWN` |
+| `opencode` CLI | **not on `PATH`** → `opencode --version` / `opencode mcp list` are **`UNKNOWN`**, not inferred. MCP was **not** used this task; no MCP tool was called |
+| `.opencode/` | `opencode-swarm.json` + `node_modules`; **no** `skills/` directory |
+
+### 1. Gap analysis — what already existed vs. what was missing
+
+Measured by grep over the canonical pack at HEAD, then closed. **No block was
+assumed absent; each was verified.**
+
+| # | Governance block | State at HEAD | Evidence |
+|---|---|---|---|
+| 1 | Mandatory reading gate | **PARTIAL** | 5 steps, permanence, "latest report never a substitute" already present (`00:63-88`, `09:7-25`). **Absent:** repeat-on-interrupt/compaction (**0** hits for `compact`/`restart`); the substitutes `chat history` (**0**), `memory` (only the unrelated "reconstructing architecture from memory", `00:20`), `summaries` (only the unrelated `00_README`/conflict uses), `PROGRESS.md alone` |
+| 2 | V1 Handy preservation | **PARTIAL** | Policy already in `02:19-24`, `04:76-112`, `21:77-84`, `09:143-148`, ADR-018, ADR-019. **Absent:** the named default-strategy sentence; the explicit *"could alter Handy transcription behavior → STOP + owner decision/ADR"* escalation; *"do not modify Handy to satisfy a stale/contradictory test"* as a named rule; the "freezing is not endorsing" distinction |
+| 3 | PROGRESS governance | **PARTIAL** | 11 fields present (`00:90-95`, `09:26-32`). **Absent:** `work performed` as a field; `push` (pack said "commit/PR state"); the sentence *"never finish a task without recording it"* |
+| 4 | Source boundary | **ABSENT as a named rule** | **0** hits for `source boundary`. The substance existed (`04:26-36`, `04:116-125`, `09:70-77`, `21:51-58`) but was not a per-subsystem, STOP-grade gate, and *"one implementation per responsibility"* was never stated |
+| 5 | Stop conditions | **PARTIAL** | 9 base + 5 V1 in `09:133-148`. **Absent from the pack:** `model metadata is missing`, `provider IDs are missing`, `secrets are unavailable`, `platform evidence is unavailable`, `source-of-truth documents conflict`; and the entire **duty when stopped** (document exact missing evidence + smallest deterministic next task) |
+| 6 | Implementation discipline | **PARTIAL** | `09:5` mission chain exists but is a different 12-step set. **Absent:** `Never skip directly from a report to implementation` (**0** hits); `diff review` as a mandatory pre-commit step; `CI` as a recorded post-push step |
+
+**All six are now fully present and verified present by grep** (table in *Tests*).
+
+### 2. Two authority conflicts found *during* the reading gate
+
+**C-1 — Two `SPEC_MANIFEST.json` files.** The owner's gate names
+"SPEC_MANIFEST.json" without a path; the repository has **two**. Determined, not
+guessed: the gate is driven by the **canonical pack manifest**, because
+`00_README.md:120-134` already establishes `docs/Soravo_Engineering_Docs_v6/` as
+canonical and the index of record. Recorded in `00` and `09`: read **both**;
+treat the root 15-document pack as `HISTORICAL/STALE` **pending owner
+reconciliation (open item O-5)**; never let it override the pack; assert nothing
+about its authority while O-5 is open. **O-5 was not pre-empted.**
+
+**C-2 — The non-authoritative mirror's read order was wrong.** The root mirror's
+`00_README.md` listed `23.` then **`25.`**, skipping entry 24, and — because
+T32-Y deliberately left it banner-only — contained **no reading-gate text at
+all**. An agent landing there would have read a wrong order and found no gate.
+Fixed: numbering corrected to `24.`; an explicit pointer to the canonical gate
+added. The gate text was **deliberately not duplicated** into the mirror —
+duplicating control text is precisely the drift hazard the canonical/mirror
+split exists to prevent.
+
+### 3. Work performed
+
+- Verified the mirror invariant before editing: `diff -rq` showed only `00` and
+  `20` (banner files) plus the 2 disclosed `22_*` artifacts. Preserved it.
+- Amended canonical `09_AI_AGENT_INSTRUCTIONS.md` with four new permanent blocks
+  (implementation discipline, source boundary, V1 Handy preservation, permanence
+  and scope) and expanded the reading gate, PROGRESS governance and stop
+  conditions.
+- Amended canonical `00_README.md` (the file the gate lives in) with the manifest
+  disambiguation, the full substitute ban, the repeat-on-resume rule, the
+  extended PROGRESS field list, and a permanence statement.
+- Amended canonical `18_INTERRUPTION_AND_HANDOFF.md` so the repeat-gate rule is
+  anchored where a resuming agent actually lands, including re-verification of
+  the invariants a resume can silently invalidate.
+- Mirrored `09` and `18` byte-for-byte to the root copy; corrected the mirror
+  `00` read-order numbering + pointer.
+- Fixed a pre-existing typo in the authoritative pack: `Creating duplicate
+  STT/typing/typing implementation` → **`STT/typing/clipboard`** (also widens the
+  ban to clipboard, matching "parallel dictated-text insertion path").
+- Recorded the first-mistake-and-recovery below rather than hiding it.
+
+### Files changed (6 + this file)
+
+- `docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md`
+- `docs/Soravo_Engineering_Docs_v6/00_README.md`
+- `docs/Soravo_Engineering_Docs_v6/18_INTERRUPTION_AND_HANDOFF.md`
+- `Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` (byte-identical mirror)
+- `Soravo_Engineering_Docs_v6/00_README.md` (numbering + pointer only)
+- `Soravo_Engineering_Docs_v6/18_INTERRUPTION_AND_HANDOFF.md` (byte-identical mirror)
+- `PROGRESS.md` — this entry
+
+### Unchanged protected files (verified, not asserted)
+
+- **All production source** — `crates/**`, `apps/desktop/src-tauri/**`,
+  `apps/desktop/src/**`, `services/**`, `packages/**`, `supabase/**`.
+- **Every test file.** No test added, edited, removed, relocated, ignored or annotated.
+- **All Handy transcription behaviour files** — `audio_toolkit/`, `managers/`,
+  `shortcut/`, `actions.rs`, `post_process.rs`, `clipboard.rs`, `input.rs`,
+  `settings.rs`, `transcription_coordinator.rs`, `catalog/`, `paste_tx/`.
+- **`catalog.json`** (still 3 bytes `{}`); no model metadata fabricated.
+- **`.github/workflows/**`** — no CI added; T1 boot gate and T2 macOS/Windows
+  build jobs remain **absent**.
+- **`Cargo.toml` / `Cargo.lock` / `deny.toml`**; no dependency touched.
+- **`app.tsx` / `ui/`** — the `app.tsx:190-200` truthfulness item stays open.
+- **`docs/spec-v3/`** and **`docs/archive/spec-v3/`** — neither deleted nor
+  declared nonexistent; the branch/main ref distinction stands (T32-Y P-3).
+- **v6 `20_ADR_INDEX.md`** — not touched; ADR-019 remains the single current entry.
+- **v6 `SPEC_MANIFEST.json`** — not amended; `file_count: 24` still correct.
+- **Every historical `PROGRESS.md` entry** — not rewritten. The 2,953-char
+  `Last audited` header was **deliberately not rewritten** (see G-4).
+- **All 30 pre-existing untracked paths** — none staged, modified, deleted or moved.
+
+### Evidence
+
+**Change-set proof.** `git status --porcelain` over the task's own paths returns
+exactly **6 modified `.md` files**. The non-Markdown and source-path filters
+return only the **pre-existing untracked** paths `apps/desktop/.env.example`,
+`apps/desktop/src-tauri/tauri.toml`, `deno.lock`, `reports/`,
+`docs/archive/spec-v3/spec-v3/` — the **identical set captured at session
+start**, before any edit. Classified per the dirty-worktree rule as
+*unrelated / generated / previous-task*; preserved untouched.
+
+**Additive-only proof.** `git diff -U0` removal list enumerated in full: every
+removed line is either a heading re-wrap (`18`), the mis-numbered `25.` → `24.`,
+or a strict superset re-wrap of the gate/PROGRESS/stop blocks. The one
+duplicate-typo line was corrected, not dropped. `git diff --check` **exit 0**.
+
+**Mirror invariant.** `diff -rq docs/Soravo_Engineering_Docs_v6 Soravo_Engineering_Docs_v6`
+→ only `00`/`20` differ (banners) + the 2 disclosed `22_*` artifacts — unchanged
+from T32-Y. `md5sum` confirms `09` and `18` are **byte-identical** in both trees.
+
+### G-4 / G-5 — self-reported findings, disclosed not hidden
+
+- **G-4 (open, MEDIUM).** The `Last audited` header (line 4) still reads
+  **T32-X** while the newest work is T32-Y and now T32-Y2. T32-Y appended rather
+  than rewrote. This task also did **not** rewrite it: it is a governed
+  current-state field whose correct value is an owner act, and a blind rewrite of
+  a 2,953-character field is exactly the unreviewable change the diff-review rule
+  forbids. Recorded as the smallest fix for the next task.
+- **G-5 (recovered, disclose).** During the **first** edit to `09` I replaced a
+  block and **silently dropped** the paragraph *"If any two sources conflict:
+  record both statements · identify the authority level · verify against
+  GitHub/VM · reconcile the documentation · **do not guess**."* It was caught by
+  the post-edit superset check, **restored** before any commit, and the final diff
+  confirms it present. This is a **net control weakening** introduced and removed
+  inside one task — precisely the failure class the reading gate, the source
+  boundary and the "never skip from a report to implementation" rule exist to
+  prevent. It is recorded here rather than left for someone else to discover.
+
+### Tests
+
+**No test target is affected: the change set contains zero source and zero test
+files.** No test was added, edited, removed, relocated, ignored or annotated.
+
+The Rust/desktop baseline is therefore **carried, not re-measured**, and is
+reported as **`HISTORICAL/STALE`**: `203 passed / 7 failed` — 2 catalogue-content
++ 5 frozen-V1 transcription — measured by T32-Y locally and confirmed in CI runs
+`36638028609` and `36644914376`. **This session did not run `cargo test`** and
+makes no fresh claim about it. `rust` remains **red by design**; clearing it by
+editing a test is explicitly forbidden by the rules this task installs.
+
+**Documentation-consistency checks actually run this session — all PASS:**
+
+| Check | Result |
+|---|---|
+| 24/24 canonical manifest entries present | **PASS** |
+| `file_count: 24` == `files[]` (24) == `read_order` entries (24) | **PASS** |
+| Directory = 24 entries + the 2 disclosed `22_*` artifacts | **PASS** |
+| `v5` residue = the single historical note in `00_README.md:5` only | **PASS** |
+| All six governance blocks present (24-term grep, §1 table) | **PASS** |
+| `git diff --check` | **exit 0** |
+| Mirror invariant: only `00`/`20` + 2 artifacts differ | **PASS** |
+| `md5sum` canonical vs mirror for `09`, `18` | **identical** |
+| `diff --name-only` over Handy behaviour paths | **empty** |
+
+### CI
+
+**State at audit time, before this change was committed** (i.e. the state T32-Y
+left at `61de5411`) — recorded, **not** claimed as this task's result:
+
+- **Security Audit `36645952474` — SUCCESS** (56 s).
+- **CI `36645952484` — `in_progress`**: `web` ✅, `e2e` ✅, `rust` and `desktop`
+  still running at 6 m 43 s.
+- Prior: Security Audit `36644914411` ✅, CI `36644914376` ❌ (`rust` red **by
+  design**, 203/7, byte-identical failure list).
+
+Post-push CI for this task's own commit is recorded in the follow-up entry
+below, per the implementation-discipline rule *"CI state is recorded after
+push."*
+
+### Security
+
+- **Provider mutations: ZERO.** No Razorpay, Supabase, Cloudflare or GitHub write
+  API was called. All GitHub access was read-only (`gh run/pr/api` reads).
+- **Secret-shaped token scan of the full diff: 0 findings** (`rzp_live_`/`rzp_test_`
+  runs, `key_secret`, `RAZORPAY_KEY_SECRET`, `SUPABASE_SERVICE_ROLE`, `sk_live_`,
+  `ghp_`/`gho_`, `-----BEGIN`, `AKIA…`).
+- **No secret was read, printed, or committed.** Secret state was not inspected
+  at all this task — it was not needed.
+- **No `unsafe` introduced.** No Rust, SQL, or provider code touched.
+- **No security boundary moved.** CSP, `capabilities/default.json`, RLS, webhook
+  HMAC, and `verify_jwt` settings untouched.
+- Branch protection inspected **read-only**; not modified.
+- **MCP not used.** No MCP tool was called, so no MCP availability is claimed
+  (`11_MCP_AND_AGENT_TOOLING.md` *Verification rule* → `UNKNOWN`).
+- Only Markdown was written.
+
+### Determinations
+
+1. **No ADR required.** Checked against every trigger in v6 `20_ADR_INDEX.md`:
+   architecture change — no; Handy subsystem replaced — no; duplicate
+   implementations retained — no; payment/provider semantics — no; security
+   boundary — no; auth/storage — no; release architecture — no; dependency
+   strategy — no. **No trigger fires.** The control pack *is* the mechanism v6
+   `00` defines for agent-operating truth; a process control is not an
+   architecture decision. T32-Y set the same precedent for a control-plane change.
+2. **Additive-only, therefore non-weakening.** Every amendment adds a
+   constraint or a step. None relaxes a security, V1-preservation or stop rule.
+   Proven by the enumerated removal list and by restoring G-5 before commit.
+3. **The two existing manifests are read, not resolved.** O-5 stays open.
+4. **The mirror receives a pointer, never a second copy of the gate.**
+5. **The `Last audited` header is not rewritten** (G-4) — owner-level field.
+6. **PR #63 is not merged and not retitled.** Merging remains last; the required
+   `rust` check is red by design and 0 of 1 approving review stands.
+
+### Blockers (carried, unchanged by this task)
+
+1. **O-1** transcription-test treatment (T32-I §7 A/B/C, or **A′**) — must **not**
+   be resolved by editing a test to match behaviour.
+2. **O-2** the 9 catalog data items (0/9 closed) — fabrication prohibited.
+3. **O-3** ✅ closed by T32-Y (ADR-019 accepted + indexed).
+4. **O-4** `app.tsx:190-200` truthfulness.
+5. **O-5** the `docs/spec-v3/` / root-pack authority declaration — **referenced
+   by the new gate text as still open**.
+6. **O-6 (new, from this task)** G-4 — the stale `Last audited` header.
+7. T32-W **T1 boot gate + T2 macOS/Windows build jobs** — still absent from CI.
+8. Tray / overlay / `signal_handle` / 119 registrations / settings-store
+   unification / macOS usage strings / model + Silero VAD assets / updater
+   restoration (F1–F8, all still deferred).
+9. `subscription.cancelled` vs ADR-012 (F-H2); license-api TEST-mode gate (F-H1);
+   `service.ts:205` plan-pattern fabrication.
+10. Payment TEST objects/secrets/deploys; Cloudflare first deployment;
+    signing/notarization; release-exercise half of T32-S.
+11. Handy upstream identity remains `UNKNOWN` (v6 §21) — tray recovery is
+    `BLOCKED` on it.
+
+### Decisions
+
+1. Amended **existing** files; **created no new pack file** — adding a 25th entry
+   would break the `24/24/24/24` manifest invariant T32-Y established and
+   verified.
+2. Placed the substantive rules in **`09`** (the agent-operating control file)
+   and **restated** the gate in **`00`** (where the gate is defined and read
+   first), because a rule an agent has not yet reached cannot govern it.
+3. **Anchored the repeat-gate rule in `18`**, not only in `00`/`09`, because
+   `18` is where a resuming agent is instructed to look.
+4. Used **union, not replacement**, for the stop conditions — the pack's four
+   conditions absent from the owner's list (database history diverges, security
+   weakening, dependency crossing subsystems, wider migration) were **kept**.
+   Hardening is additive; dropping a stop condition would be a weakening.
+5. Corrected the `STT/typing/typing` typo **in the authoritative pack** — it is
+   a control defect, and fixing it is strictly within this task's scope.
+6. **Did not** create the report file `T32-Y2-*.md`; this entry is the record,
+   per the PROGRESS-governance field list and the T32-X precedent.
+
+### Commit / push / PR state
+
+- **Commit 1** — the six control-plane files + this `PROGRESS.md` entry. Scope
+  verified pre-commit: `git status` filtered to non-`.md` for the **staged** set
+  is empty; no path under `crates/`, `src-tauri/`, `apps/`, `.github/`, no
+  `Cargo.*`, no `catalog.json`, no `*.test.*`, no lockfile.
+- **Push** to `origin/t31/soravo-wrapper-completion`; then 0/0.
+- **PR #63 remains OPEN and NOT MERGED.** Head advances to the new commit;
+  `mergeStateStatus` stays `BLOCKED`.
+- **Commit 2** — this section, updated with the real commit SHA, push result and
+  post-push CI run IDs, recorded in the entry immediately below.
+
+### Next exact task
+
+1. **G-4 / O-6 — refresh the `Last audited` header** (2,953 chars, still says
+   T32-X). Smallest deterministic fix: rewrite that one field to T32-Y2, or
+   shorten it to a pointer, so the governed current-state field is not a
+   three-task-old claim. `PROGRESS.md` only.
+2. **`T32-Y-UI` (slot still open)** — `app.tsx:190-200` truthfulness. `app.tsx`
+   only; no behaviour change, no `injectText()` caller, no `onTypingResult()`
+   subscription, no UI redesign.
+3. **T1 boot gate + T2 macOS/Windows build jobs** — agent-executable, no external
+   input; the evidence class whose absence let the launch-abort class survive
+   T08 → T32-U.
+4. **O-5** — reconcile `README.md` / `SORAVO_PLAN.md` / `PROGRESS.md:6` with the
+   `docs/spec-v3/` situation, which the new gate text now points at as open.
+5. **P-5 / P-6** — commit the untracked T32 report corpus; add the missing
+   `## T32-U` entry.
+6. **T32-S-1** — the release-exercise half (owner + external certificates).
+7. **O-1, O-2** — transcription-test treatment; the 9 catalog data items.
+
+**Explicitly NOT next tasks:** no `docs/spec-v3` deletion · no Handy behaviour
+change · no transcript/session integration layer (T32-R §15.1 stands) · no
+`injectText()` caller · no `onTypingResult()` subscription · no
+`crates/transcript` / `soravo-stt` / `soravo-licensing` wiring · no `hotkey.rs`
+· no second STT or insertion path · no from-scratch tray · no VAD backend switch
+· no `catalog.json` population · no behaviour change to make CI green · **no
+merge of PR #63** · **no relaxation of any rule this task installed**.
+
+### Scope constraints honoured
+
+- ✅ Zero production source modified. Zero tests modified/added/removed/relocated/ignored/annotated.
+- ✅ **Zero Handy STT/audio/VAD/engine/language/filler/normalisation/punctuation/typing/clipboard/hotkey/post-processing files modified** — proven from the change set, not asserted.
+- ✅ `catalog.json` not populated; **no** model id/hash/URL/licence/architecture/quantisation/mirror/score/provenance invented; no weight licence inferred from a software licence.
+- ✅ No transcription manager, STT producer, second STT path or second insertion path. No `crates/transcript` / `soravo-stt` / `soravo-licensing` wired.
+- ✅ `app.tsx` **not** modified. No `injectText()` caller, no `onTypingResult()` subscription, no transcript UI.
+- ✅ No CI added; no workflow touched; no updater endpoint/key/credential invented.
+- ✅ **No ADR created or ratified. `20_ADR_INDEX.md` NOT modified. No ADR trigger fires.**
+- ✅ **No historical `PROGRESS.md` entry rewritten**; the governed header not rewritten (G-4, disclosed).
+- ✅ **PR #63 not merged, not retitled.**
+- ✅ **Provider mutations: ZERO.** No secret read, printed, or committed. No `unsafe` introduced. MCP not used.
+- ✅ **No untracked pre-existing work staged, deleted, or modified.**
+
+---

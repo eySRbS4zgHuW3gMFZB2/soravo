@@ -84,15 +84,35 @@ being asked.
 Then, in order: read `PROGRESS.md` in full · perform a fresh Git/VM/PR/CI state
 audit · and only then read task-specific reports.
 
+**Which manifest.** The gate is driven by this directory's `SPEC_MANIFEST.json`.
+A second, older `SPEC_MANIFEST.json` exists at the repository root; read it and
+the documents it names for traceability, treat them as `HISTORICAL/STALE` pending
+owner reconciliation (open item O-5), and never let them override this pack.
+
+**Nothing may substitute for the gate.** Not previous task reports, not the most
+recent or single latest task report, not chat history, not agent memory, not
+summaries or digests, not `PROGRESS.md` alone. Each is evidence about one task
+or one moment; this pack is the control plane that governs **every** task.
+
+**Repeat the gate whenever the work is interrupted, restarted, resumed, handed
+over, or the context is compacted or summarized.** A carried summary is not a
+completed gate. Re-read the pack, re-read `PROGRESS.md` in full, and re-run the
+state audit.
+
 **The latest task report is never a substitute for this pack.** A report is
 evidence about one task; this pack is the control plane that governs every task.
 
 **`PROGRESS.md` governance.** `PROGRESS.md` MUST be updated at the end of
-**every** task, recording: exact task ID · objective · exact files changed ·
-exact files deliberately unchanged · evidence/commands · test/CI state ·
-security state · blockers · decisions · commit/PR state · exact next task. An
-agent must never finish a task while leaving `PROGRESS.md` unaware of the work
-performed.
+**every** task, recording: exact task ID · objective · work performed · exact
+files changed · exact files deliberately unchanged (protected files) ·
+evidence/commands · tests · CI · security · blockers · decisions ·
+commit/push/PR state · exact next task. **Never finish a task without recording
+it.** An agent must never finish a task while leaving `PROGRESS.md` unaware of
+the work performed.
+
+**Permanence.** This gate and the governance rules in `09_AI_AGENT_INSTRUCTIONS.md`
+are permanent and apply to all future tasks. An agent may not relax them to
+unblock progress.
 
 **If sources conflict:** record both statements · identify the authority level ·
 verify against GitHub/VM · reconcile the documentation · never guess.

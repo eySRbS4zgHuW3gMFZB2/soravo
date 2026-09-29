@@ -66,6 +66,13 @@ security controls.
 
 ## Mandatory read order
 
+> **The permanent reading gate itself is not reproduced here.** The read order
+> below is a pointer only, and it was corrected here in T32-Y2 (it previously
+> read `25.` for `SPEC_MANIFEST.json` and skipped entry 24). Read the gate —
+> steps, substitution bans, `PROGRESS.md` governance, and the repeat-on-resume
+> rule — from `docs/Soravo_Engineering_Docs_v6/00_README.md`. Duplicating control
+> text here is the drift hazard the canonical/mirror split exists to prevent.
+
 1. `00_README.md`
 2. `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md`
 3. `02_PRODUCT_REQUIREMENTS.md`
@@ -89,7 +96,7 @@ security controls.
 21. `20_ADR_INDEX.md`
 22. `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`
 23. `DESIGN.md` (authoritative Soravo design specification)
-25. `SPEC_MANIFEST.json`
+24. `SPEC_MANIFEST.json`
 
 ## First action for every OpenCode session
 
