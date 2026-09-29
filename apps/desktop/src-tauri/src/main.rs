@@ -6,7 +6,7 @@ use tauri::generate_handler;
 
 use soravo_desktop_lib::{
     account::AccountMachine,
-    commands::{account_sign_in, account_sign_out, get_account_snapshot, soravo_ipc::*},
+    commands::{account::*, soravo_ipc::*},
     session::SessionMachine,
 };
 
