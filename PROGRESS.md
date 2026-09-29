@@ -3447,6 +3447,14 @@ All five classifications retained: `HANDY-REUSE` · `HANDY-ADAPT` · `SORAVO-NEW
 
 **PR #63 — 2 gates:** required check `rust` red (203/7 by design) **and** 0 of 1 required approving reviews. `mergeStateStatus: BLOCKED`. **Not merged.**
 
+### Commit / push / CI — COMPLETED
+
+- **Commit `b3bf5d1b`** — `docs(control-plane): accept ADR-019, reconcile the v6 pack authority, record the permanent reading gate (T32-Y)`. **16 documentation files, 0 non-markdown**; pre-commit `git status` filtered to non-`.md` was **EMPTY**; no path under `crates/`, `src-tauri/`, `apps/`, `.github/`; no `Cargo.*`, `catalog.json`, `*.test.*`, `*.ts*` staged.
+- **Pushed** `27200173..b3bf5d1b → origin/t31/soravo-wrapper-completion`; local/upstream **0/0** after push.
+- **PR #63 still OPEN, NOT MERGED.** Head now `b3bf5d1b`; `mergeStateStatus: BLOCKED`; `reviewDecision: REVIEW_REQUIRED`.
+- **CI inspected.** `rust` **fail 8 m 11 s (BY DESIGN)** · `desktop` **pass 10 m 37 s** · `web` pass 45 s · `e2e` pass 51 s · `cargo-audit` pass · `cargo-deny` pass · `npm-audit` pass. Runs `36644914376` (CI) / `36644914411` (Security Audit).
+- **`rust` verified to be the SAME 7 failures, not a regression.** CI log `test result: FAILED. 203 passed; 7 failed; 0 ignored` with a **byte-identical** failure list to the local run and to the `27200173` baseline. **203/7 now confirmed three times: local, CI `36638028609`, CI `36644914376`.** A documentation commit that does not turn `rust` green is the **correct** outcome; turning it green by editing a test is explicitly prohibited.
+
 **Owner decisions:** **O-1** transcription-test treatment (**must not** be resolved by editing a test to match behaviour — that pins live user-visible data loss as the specification) · **O-2** the 9 catalog data items (0/9 closed) · ✅ **O-3 CLOSED** (ADR-019 accepted + indexed) · **O-4** `app.tsx:190-200` truthfulness · **O-5** the `docs/spec-v3/` authority declaration.
 
 **F1–F8 all still deferred** (tray · overlay · `signal_handle` · 119 registrations · settings-store unification, user-visible today · macOS usage strings · model + Silero VAD assets · updater restoration).

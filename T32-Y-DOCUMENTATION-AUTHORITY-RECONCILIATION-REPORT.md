@@ -478,12 +478,42 @@ branch-protection items carried unchanged.
 
 | Item | Value |
 |---|---|
-| **Commit** | `docs(control-plane): accept ADR-019, reconcile the v6 pack authority, record the permanent reading gate (T32-Y)` — documentation only; **no source, test, catalog, UI, workflow, or lockfile change** |
-| **Files in the commit** | 12 documentation files: 2 new task documents, 8 authoritative-pack files, 8 mirror-pack files, `PROGRESS.md` |
-| **Pre-commit diff inspection** | ✅ performed; verified no source/test/catalog/UI changes |
-| **Push** | ✅ `origin/t31/soravo-wrapper-completion` |
-| **PR #63** | **OPEN, NOT MERGED, NOT MODIFIED BY MERGE.** The commit is pushed onto the existing feature branch. Title/description left for the owner (T32-X N-7) — **not** changed here |
-| **CI after push** | Recorded in `PROGRESS.md`. Expected: `rust` remains **red by design** (203/7) — this is the documented, intended state, not a regression introduced by a documentation change. `web`, `e2e`, `desktop`, security jobs expected green |
+| **Commit** | `b3bf5d1b` — `docs(control-plane): accept ADR-019, reconcile the v6 pack authority, record the permanent reading gate (T32-Y)` |
+| **Files in the commit** | **16 documentation files, 0 non-markdown.** 2 new task documents, 6 canonical-pack files, 8 mirror-pack files, `PROGRESS.md`. Diffstat: `16 files changed, +608 −50` (plus the appended report) |
+| **Pre-commit diff inspection** | ✅ performed. `git status --porcelain \| grep -v '\.md$'` → **EMPTY**. No path under `crates/`, `src-tauri/`, `apps/`, `.github/`, and no `Cargo.*`, `catalog.json`, `*.test.*`, `*.ts*` was staged |
+| **Push** | ✅ `27200173..b3bf5d1b → origin/t31/soravo-wrapper-completion`. Local/upstream **0/0** after push |
+| **PR #63** | **OPEN · NOT MERGED · NOT MODIFIED BY MERGE.** Head now `b3bf5d1b`; `mergeStateStatus: BLOCKED`; `reviewDecision: REVIEW_REQUIRED`; **0 of 1** approving reviews |
+
+### 13.1 CI after push — inspected, result as expected
+
+| Check | Result | Run |
+|---|---|---|
+| `rust` | **fail — 8 m 11 s, BY DESIGN** | `36644914376` |
+| `desktop` | **pass** — 10 m 37 s | `36644914376` |
+| `web` | pass — 45 s | `36644914376` |
+| `e2e` | pass — 51 s | `36644914376` |
+| `cargo-audit` | pass — 10 s | `36644914411` |
+| `cargo-deny` | pass — 43 s | `36644914411` |
+| `npm-audit` | pass — 15 s | `36644914411` |
+
+**The `rust` failure is the documented, intended state, and it was verified to be the *same* 7 failures — not a regression introduced by this documentation change.** The CI log's failure list and `test result:` line are byte-identical to the local run and to the pre-existing `27200173` baseline:
+
+> `test result: FAILED. 203 passed; 7 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s`
+
+failing: `catalog::tests::catalog_parses_and_is_nonempty` ·
+`managers::model::tests::test_discover_catalog_alternate_quant_in_models_dir` ·
+`managers::transcription::tests::auto_language_without_detection_skips_gated_filler_removal` ·
+`…::ignored_user_language_is_not_output_evidence` ·
+`…::portuguese_transcription_does_not_use_english_ui_filler_words` ·
+`…::unknown_evidence_with_confident_text_detection_removes_gated_fillers` ·
+`…::unknown_evidence_with_portuguese_text_preserves_um`
+
+**203/7, three times confirmed: locally, in CI at `27200173` (run `36638028609`), and in CI
+at `b3bf5d1b` (run `36644914376`).** The `desktop` job passing at 10 m 37 s is additional
+confirmation that a documentation-only commit cannot have altered the build.
+
+**A documentation commit that does not turn `rust` green is the correct outcome.** Turning it
+green by editing a test is explicitly prohibited.
 
 ---
 
