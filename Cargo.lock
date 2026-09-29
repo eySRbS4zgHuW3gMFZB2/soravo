@@ -5512,6 +5512,8 @@ dependencies = [
  "hf-hub",
  "log",
  "objc2 0.6.4",
+ "objc2-app-kit",
+ "objc2-foundation",
  "objc2-service-management",
  "once_cell",
  "rand 0.8.8",

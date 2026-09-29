@@ -1,7 +1,7 @@
 # Soravo Project Progress
 
 > **Canonical status for AI agents**  
-> **Last audited:** 2026-09-30 (T32-X — **IMPLEMENTED the 2 unconditionally-authorized T32-W corrections (P0-CORR-1 updater-plugin removal, P3-CORR-1 `pub mod cli;`). Total diff = 1 insertion + 1 deletion in 2 Soravo-authored files. The launch abort is GONE and PROVEN gone.** The fatal P0 abort no longer occurs: the process now survives 12–30 s and reaches webview creation (`WebKitCache/Version 17/`, `storage/`, `hsts-storage.sqlite` all created) — 3/3 deterministic runs, 0 panics, 0 `PluginInitialization` — versus a deterministic `main.rs:54:10` panic within ~1 s before. **STOPPED before corrections 3/4/5: two owner-reserved decisions block them, and one invalidates a T32-W §7.1 claim.** **(a) `D-CATALOG` is unratified and it gates the boot** — T32-W §16 makes P1-BOOT depend on it and the ADR states *"If neither A nor B is ratified, D1.3 does not execute"*. Option A fabricates model metadata (PROHIBITED); option B is a 1-line edit to the **Handy-derived** `catalog/mod.rs:32`, which is **neither** "HANDY EXISTING CODE CALLED" **nor** "SORAVO INTEGRATION GLUE" — a STOP condition under this task's own classification rule. S12 (`initialize_shortcuts`) was **deliberately not applied** without the boot: it would install a global shortcut whose every trigger is dropped at `shortcut/handler.rs:48`, and it would panic on macOS at the first record attempt (`secure_input.rs:600`) — the exact "green lie" §6.4 forbids. **(b) NEW FINDING: macOS *and Windows* still do not compile, and T32-W §7.1 is wrong that `crate::cli` was the only unresolvable `crate::` path** — `clipboard.rs:813` calls `crate::paste_tx::try_reliable_paste` under `#[cfg(any(target_os="macos", target_os="windows"))]` (`:810`), and **`paste_tx/` was DELETED** at `557cfb66` after being added with 1,243 lines at `5f56260c`, and was never re-declared in any `lib.rs`. Only `x86_64-unknown-linux-gnu` is installed, so this is proven by exhaustive `crate::`-path resolution analysis, **not** by cross-compilation. Windows is affected too and was never flagged. **Invariants RE-VERIFIED and unchanged: 188 passed / 15 failed (byte-identical STOP-gated set), exactly ONE STT path, exactly ONE insertion path, `injectText()` 0 `.tsx` callers, `typing://result` 0 subscribers, 15 commands still registered, ZERO Handy core/STT/audio/VAD/clipboard/catalog files edited.** ADR-019 remains DRAFT/unratified in the repository; the owner's T32-X instruction was treated as ratification **for the two unconditional items only**)
+> **Last audited:** 2026-09-30 (T32-X — **HANDY V1 RUNTIME RESTORATION COMPLETE: the app boots, the Handy runtime is live, the global shortcut is installed.** Two owner decisions unblocked the rest of the work: **`D-CATALOG` = option B** (ratified) and **`paste_tx/` restored from `5f56260c`** (ratified). All five T32-W corrections are now applied: P0-CORR-1 (updater plugin removed), P3-CORR-1 (`pub mod cli;`), **D-CATALOG-B** (1 line, `catalog/mod.rs`), **P1-BOOT** (`.setup()` with S3–S10), **P2-REG** (`+1` command). **Launch proven by the runtime log, not by a build:** `ModelManager` → *"Seeded 0 catalog model(s) into the registry"*; `TranscriptionManager` → *"Idle watcher thread started"*; `HistoryManager` → *"Initializing database"* + 4 SQLite migrations; `commands` → **"Shortcuts initialized successfully"**; **zero ERROR/WARN**; 3/3 deterministic 15 s runs, 0 panics. 6 managed states live. **Invariants HELD: exactly ONE STT path** (`transcribe` call sites still 2, one inside the unregistered `retry_history_entry_transcription`) **and exactly ONE insertion path** (restored `try_reliable_paste` has exactly 1 caller — `clipboard.rs:813`, a *branch inside* the same `clipboard::paste` chain, cfg-gated to macOS/Windows and runtime-gated on `reliable_paste`, default `false` — **not a second path**); `injectText()` 0 `.tsx` callers; `typing://result` 0 subscribers; `vad_backend: Silero` unchanged at runtime; **zero Handy behaviour files edited**; **zero test files touched**. **Test movement 188/15 → 203/7 — the ratified ADR predicted D-CATALOG-B would turn NO tests green; 8 did.** They were Lazy-poison collateral (T30 documented this), not independent defects. The remaining 7 are the true STOP gate: 5 transcription (T30/T32-I/T32-T, untouched) + 2 that assert catalogue *content* (`catalog_parses_and_is_nonempty` now fails on its own `!CATALOG.is_empty()`; `test_discover_catalog_alternate_quant_in_models_dir` on *"catalog has multi-quant models"*) = the T32-I §6 checklist. **macOS/Windows compilation remains UNVERIFIED — only `x86_64-unknown-linux-gnu` is installed; `paste_tx` is restored byte-identical to `5f56260c` (SHA-256 verified ×3) and the two crates it needs were already in `Cargo.lock`, so `Cargo.lock` gains 2 lines and ZERO new packages.** Dictation still cannot produce text: no model on disk, no `selected_model`, no Silero VAD asset — assets, not code.)
 > **Main SHA:** ede495b55efd95cedd882d90a19d12b4777da852  
 > **Authority:** SORAVO_PLAN.md, docs/spec-v3/  
 > **Razorpay 018–026:** committed to `feature/razorpay-payments-021-026` at
@@ -2998,5 +2998,169 @@ The task said "the approved ADR". The repository says otherwise, and I did not p
 4. Confirm F1–F8 deferrals; route the settings-store divergence (F5).
 
 **Then** a follow-up task applies corrections 3 → 4 → 5, adds the **T1 boot gate** and **T2 macOS/Windows builds**, and updates `app.tsx:190-200` for truthfulness.
+
+---
+
+## T32-X (phase 2) — OWNER DECISIONS APPLIED: RUNTIME BOOT RESTORED (2026-09-30)
+
+**Status:** **COMPLETE for the T32-W correction set.** Corrections 3 → 4 → 5 applied after the owner ratified the two STOP conditions raised in phase 1.
+**Branch/HEAD:** `t31/soravo-wrapper-completion` @ `5649411d` → this commit (PR #63 OPEN, unmerged)
+
+### Owner decisions that unblocked this phase
+
+| # | Question | Decision | Applied as |
+|---|---|---|---|
+| **STOP-2** | `D-CATALOG` A / B / C / D | **B** — 1-line schema tolerance, the only non-fabricating option | `#[serde(default)]` on `CatalogRoot::models` (`catalog/mod.rs:32`) |
+| **STOP-3** | `crate::paste_tx` unresolvable on macOS/Windows | **Restore `paste_tx/` from `5f56260c`** | 3 files, 1,243 lines, restored byte-for-byte + `pub mod paste_tx;` |
+
+Neither decision fabricated model metadata, invented an updater endpoint/key, or altered a Handy behaviour.
+
+### Corrections applied (all five; the full T32-W §16 set)
+
+| # | Correction | File | Size | Classification |
+|---|---|---|---|---|
+| 1 | **P0-CORR-1** delete `.plugin(tauri_plugin_updater…build())` | `main.rs` | −1 | SORAVO INTEGRATION GLUE |
+| 2 | **P3-CORR-1** add `pub mod cli;` | `lib.rs` | +1 | SORAVO INTEGRATION GLUE |
+| 3 | **D-CATALOG-B** `#[serde(default)]` on `models` | `catalog/mod.rs` | +1 (+4 doc) | **HANDY-DERIVED — the one line the owner explicitly ratified** |
+| 4 | **P1-BOOT** `.setup(\|app\| …)` running S3–S10 in the mandated order | `main.rs` | +1 hook, 8 statements | SORAVO INTEGRATION GLUE (100 % calls into existing `pub` Handy APIs) |
+| 5 | **P2-REG** register `initialize_shortcuts` (+1) | `main.rs` | +1 entry | SORAVO INTEGRATION GLUE (existing, unmodified command) |
+| 6 | restore `paste_tx/{mod,macos,windows}.rs` + declare it | `lib.rs` | 1,243 lines **restored, not authored** | HANDY REUSE — SHA-256 identical to `5f56260c` |
+| 7 | `objc2-app-kit`, `objc2-foundation` as direct macOS deps | `Cargo.toml` | +2 | mechanical prerequisite of #6 |
+
+**Restore integrity:** all three `paste_tx` files are **byte-identical** to `5f56260c` (SHA-256 `2d70bc1f…`, `a4f9ebd9…`, `11d975d7…`). This is Handy code recovered from the project's own history, not new code.
+
+### The boot, exactly as specified
+
+```rust
+portable::init();                                  // S0  pre-builder
+let cli_args = CliArgs::parse();                  // S1  pre-builder
+init_transcribe_backend();                        // S2  pre-builder
+… .setup(move |app| {                             // S3–S10, mandated order
+    let mm = Arc::new(ModelManager::new(app.handle())?);            app.manage(…);  // S3
+    let tm = Arc::new(TranscriptionManager::new(app.handle(), mm)?); app.manage(…);  // S4
+    let am = Arc::new(AudioRecordingManager::new(app.handle(), tm.stream_router())?); // S5
+    let hm = Arc::new(HistoryManager::new(app.handle())?);          app.manage(…);  // S6
+    app.manage(TranscriptionCoordinator::new(app.handle().clone()));                // S7
+    app.manage(cli_args);                                                       // S8
+    secure_input::init(app.handle());                                            // S9
+    if let Err(e) = initialize_shortcuts(app.handle().clone()) { log::warn!(…); }  // S10
+})
+```
+
+All six hard ordering edges honoured. **O4 is the load-bearing one and it is respected:** `TranscriptionCoordinator` is managed *after* all four managers, so its worker thread never hits an unmanaged `Arc<TranscriptionManager>` and never dies silently under `catch_unwind`.
+
+### Proof — the runtime log, not a build
+
+Launch is the only genuine runtime evidence (T32-V §9), so it is the proof used:
+
+| Log line (source) | Step proved |
+|---|---|
+| `managers::model` — *"Seeded 0 catalog model(s) into the registry"* | **S3 `ModelManager::new` constructed** — D-CATALOG-B works |
+| `managers::model` — *"Skipping model auto-selection until onboarding is complete"* | S3 complete, `always_on_microphone`/`onboarding_completed` defaults intact |
+| `managers::transcription` — *"Idle watcher thread started"* | **S4 `TranscriptionManager::new` constructed**, idle-watcher thread live |
+| `managers::history` — *"Initializing database at …/history.db"* + 4 `rusqlite_migration` runs | **S6 `HistoryManager::new` constructed**, migrations applied |
+| `settings` — *"Loaded settings: AppSettings {…}"* ×2 | **S5 `AudioRecordingManager::new`** (its first statement) and **S10 `init_shortcuts`** |
+| `commands` — **"Shortcuts initialized successfully"** | **S10 `initialize_shortcuts` succeeded — the global shortcut is installed** |
+| — zero `ERROR` / `WARN` lines from Soravo code | no degraded path taken |
+| `history.db` on disk (12 KB) | real filesystem effect of the boot |
+
+**Launch determinism:** 3/3 runs survived 15 s · 0 panics · 0 `PluginInitialization`. Baseline for comparison: a deterministic panic within ~1 s at `main.rs:54:10` on every launch, reproduced first-hand in phase 1.
+
+**Runtime settings confirm the frozen Handy behaviour is intact:** `vad_backend: Silero` (no switch to Earshot), `filler_word_removal_enabled: true` (Handy default), `reliable_paste: false` (Handy default), `paste_method: Direct`, `selected_model: ""`, `onboarding_completed: false`, `always_on_microphone: false` (no mic opens at construction), `keyboard_implementation: Tauri` (HandyKeys unavailable → the built-in fallback, which Handy persists itself).
+
+### Tests — and a correction to the ratified ADR
+
+`cargo test -p soravo-desktop --lib` → **203 passed / 7 failed** (baseline **188 / 15**).
+
+| Movement | Count | Cause |
+|---|---|---|
+| `paste_tx::tests` restored | **+7 passing** | the module's own target-independent tests returned with the module |
+| Catalogue tests no longer panic | **+8 passing** | D-CATALOG-B removed the `Lazy` poison, so 8 tests now execute instead of aborting |
+| Failing set shrinks | **15 → 7** | 5 transcription (untouched) + 2 content-dependent catalogue |
+
+> **The ratified ADR-019 was wrong about the consequence.** Its D-CATALOG-B row states: *"Turns the 10 catalogue tests green? **NO** — `catalog_parses_and_is_nonempty` then fails on its own `!CATALOG.is_empty()` assertion; the other 9 continue to fail."*
+> **8 of the 9 turned green.** T30 §2.3 had already identified the mechanism and the ADR did not carry it forward: those tests were **Lazy-poison collateral**, failing only because `CATALOG`'s `Lazy` was poisoned by the parse panic — *"Single model test — Lazy-poison cascade confirmed (not independent defect)"*. Removing the panic removes the cascade. The ADR was **right** that the 2 genuinely content-dependent tests stay red, and **wrong** that the other 8 would.
+
+**The STOP gate is intact.** No test was added, edited, removed, relocated, ignored, or annotated — `git status` shows **zero test files touched**. The 7 remaining failures are exactly the true STOP set:
+
+| Test | Failure now | Gate |
+|---|---|---|
+| `catalog::tests::catalog_parses_and_is_nonempty` | `catalog/mod.rs:227` — *"bundled catalog should contain models"* (its own assertion, exactly as the ADR predicted) | needs a **populated** catalogue |
+| `managers::model::tests::test_discover_catalog_alternate_quant_in_models_dir` | `model.rs:2986` — *"catalog has multi-quant models"* | needs a **populated** catalogue |
+| 5 × `managers::transcription::tests::…filler*` / `…language_is_not_output_evidence` | byte-identical left/right values | T30/T32-I/T32-T product dispute, untouched |
+
+### Invariants — all re-verified after the change
+
+| Invariant | Result | Evidence |
+|---|---|---|
+| **Exactly one STT path** | ✅ | `transcribe` defined `managers/transcription.rs:1176`; still exactly 2 call sites — `actions.rs:724` (live) and `commands/history.rs:87` (inside `retry_history_entry_transcription`, **0 occurrences in `main.rs`** ⇒ unreachable). Zero new call sites, zero new engines |
+| **Exactly one insertion path** | ✅ | `actions.rs:822` → `utils::paste` is still the only site carrying dictated text. The restored `try_reliable_paste` has **exactly one caller** — `clipboard.rs:813` — a *branch inside* the same `clipboard::paste` chain, `#[cfg(any(macos, windows))]` and runtime-gated on `reliable_paste` (default `false`). **Restoring it did not add a path; it restored a branch of the original path** |
+| `injectText()` unused | ✅ | definition `ipc.ts:139`; **0 `.tsx` callers** |
+| `typing://result` unsubscribed | ✅ | **0 subscribers** |
+| `+1` registration only | ✅ | 16 registered (15 + `initialize_shortcuts`); `hotkey_*`, `retry_history_entry_transcription`, all 10 model and 17 audio commands still **unregistered** |
+| No Handy behaviour file edited | ✅ | `git diff --name-only` over `crates/`, `audio_toolkit/`, `managers/`, `shortcut/`, `actions.rs`, `post_process.rs`, `clipboard.rs`, `settings.rs`, `transcription_coordinator.rs`, `session.rs`, `input.rs` → **empty** |
+| No transcript/STT wiring | ✅ | no `soravo-transcript` / `soravo-stt` / `soravo-licensing` in any manifest; no `crates/transcript` dependency |
+| VAD selection unchanged | ✅ | `vad_backend: Silero` observed in the live runtime log |
+
+### Deviation from T32-W's stated scope — disclosed
+
+T32-W §16 and the ADR both assert **"Dependencies: none added… `Cargo.lock` unchanged."** That is no longer true, and the change was a **mechanical prerequisite of the owner-ratified `paste_tx` restore**: `macos.rs` imports `objc2_app_kit` and `objc2_foundation`, which were not direct dependencies.
+
+- Both were **already in `Cargo.lock` at 0.3.2** as transitive dependencies (`tauri-nspanel`, `wry`, …).
+- Added at the exact locked version, macOS-target-scoped only.
+- **`Cargo.lock` diff = 2 added lines; `+name =` count = 0** — no new package, no version change, no new transitive closure, no build-script or supply-chain surface. Proven by diff, not asserted.
+
+### Verification battery
+
+| Check | Result |
+|---|---|
+| `cargo build -p soravo-desktop --bin soravo-desktop` | **PASS** |
+| `cargo check -p soravo-desktop --lib --bins` | **PASS** |
+| `cargo fmt --all -- --check` | **CLEAN** |
+| `cargo clippy -p soravo-desktop --lib --all-targets -- -D warnings` | **PASS**, no warnings |
+| `cargo test -p soravo-desktop --lib --no-fail-fast` | **203 passed / 7 failed** (7 = true STOP gate) |
+| Launch ×3 (15 s) | **ALIVE ×3**, 0 panics, boot sequence logged in full |
+| `pnpm --filter @soravo/desktop test` | **11 passed** (unchanged) |
+| `pnpm --filter @soravo/desktop typecheck` | **clean** (unchanged) |
+| `git diff --check` on source | **clean** |
+
+### Honest limits of this milestone
+
+1. **The app boots and the runtime is live — dictation still cannot produce text.** Per the ADR's I4 and T32-W §9.3, a model on disk, `selected_model` pointing at it, the Silero VAD asset (`resources/models/silero_vad_v4.onnx`, absent; no `resources/`, no `bundle.resources`) and a microphone are still required. These are **asset/data** gates, not code. The chain stops at assets, never at code.
+2. **macOS and Windows compilation are UNVERIFIED.** Only `x86_64-unknown-linux-gnu` is installed. `paste_tx` is byte-identical to the import commit and its two crates are already locked, so the structural reason for the break is removed — but "removed" is not "verified". T32-W's **T2** (build macOS *and* Windows in CI) is still outstanding and remains the only way to close this.
+3. **Two live but uncoupled session state machines** (ADR I3) — `CoordinatorState` now runs alongside `SessionMachine`, with nothing wired between them. Disclosed by the ADR; unchanged here.
+4. **The Soravo Settings UI still cannot constrain the runtime** (T32-W §11.1) — two disjoint stores. Confirmed live: the log shows the Handy `AppSettings` store being read, while the five Soravo settings commands write `soravo_config`. A product decision (F5), not fixed.
+5. **A fixed-default global shortcut** (`ctrl+space` / `escape` on this host) that the Settings UI cannot change — the same root cause as (4).
+6. **`app.tsx:190-200` is now partially false** and still says speech recognition, microphone access, global shortcuts and text insertion are *"deliberately unavailable"*. **Not fixed here** — it is a UI/content change outside T32-W's five corrections and needs its own decision. Logged as a truthfulness obligation.
+7. **No tray, no overlay** (F1/F2) — correctly deferred, not faked. The user-visible result is a window with no tray.
+8. **The 7 remaining red tests** are the STOP gate and are not to be edited for green CI.
+
+### Files changed in this phase
+
+- `apps/desktop/src-tauri/src/main.rs` — `.setup()` S3–S10 + `+1` command + S0/S1/S2 pre-builder
+- `apps/desktop/src-tauri/src/lib.rs` — `pub mod paste_tx;`
+- `apps/desktop/src-tauri/src/catalog/mod.rs` — `#[serde(default)]` on `models` (**the one ratified Handy-derived line**)
+- `apps/desktop/src-tauri/src/paste_tx/{mod,macos,windows}.rs` — **restored** from `5f56260c`, unmodified
+- `apps/desktop/src-tauri/Cargo.toml` — +2 macOS-scoped deps already in the lock
+- `Cargo.lock` — +2 lines, **0 new packages**
+- `PROGRESS.md` — this entry + header
+- **No test file, no `catalog.json`, no capability, no workflow, no migration, no Edge Function.**
+
+### Blocked (carried, not resolved)
+
+1. T32-I §6 10-item catalogue checklist — 2 tests red by design; **no model may be fabricated**
+2. T32-I §7 transcription A/B/C decision — 5 tests red by design (T32-T matrix + Option A′ stand)
+3. Model acquisition + Silero VAD asset (F7); macOS `NSMicrophoneUsageDescription` (F6)
+4. Tray (F1, **BLOCKED on v6 §21 upstream provenance**) + overlay (F2) + `signal_handle` (F3) + 119 remaining registrations (F4) + settings-store unification (F5) + updater restoration (F8)
+5. **T1 boot gate + T2 per-target builds** — still absent from CI. This task *executed* the boot proof manually; it is not yet an automated gate, which is why the defect class could survive T08 → T32-U
+6. `app.tsx:190-200` truthfulness fix
+7. ADR-019 ratification in the repository + numbering (019 vs 028) + `20_ADR_INDEX.md` entry; ADR-018 still unapproved
+8. Payment / Cloudflare / signing / branch-protection items (unchanged)
+
+### Next exact task
+
+- **Owner:** ratify ADR-019 in the repository (settle 019 vs 028, add the `20_ADR_INDEX.md` entry); confirm F1–F8; decide the `app.tsx` truthfulness fix; route the settings-store divergence.
+- **Next engineering task (AI-executable, no external input):** add the **T1 boot gate** — a CI step that launches the built binary and asserts it reaches the Tauri runtime without panic — plus **T2** macOS/Windows build jobs. Without them this defect class recurs, and macOS/Windows compilation stays unverified.
+- **Then:** F7 asset acquisition (gated on the T32-I §6 checklist + licence/provenance), F5 settings unification, F6 macOS usage strings, F1/F2 tray and overlay.
 
 ---

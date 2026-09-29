@@ -23,6 +23,7 @@ pub mod helpers;
 pub mod input;
 pub mod llm_client;
 pub mod overlay;
+pub mod paste_tx;
 pub mod portable;
 pub mod secure_input;
 pub mod settings;
