@@ -203,12 +203,22 @@ tray i18n, `memory.rs`, merge of PR #63.
 
 *Recorded after the fact per implementation discipline.*
 
-- **Commit:** `TBD` (this report + `PROGRESS.md` entry + the 6-path recovery
-  change set; no untracked `T*.md`/misc paths staged).
-- **Push:** `TBD`.
-- **CI:** `TBD` — expected: `rust` FAIL with exactly the 2 pre-declared
-  catalog failures (ADR-019-gated), all other jobs green; `203/7 → 254/2`
-  is the correct, fully explained delta.
+- **Commit:** `12b569facb872ad2db12ed42731e20fb894849ef` —
+  `feat(desktop): restore Handy V1 exact-source transcription support (T33-J)`.
+  8 files (6 recovery paths + this report + `PROGRESS.md`); no untracked
+  `T*.md`/misc paths staged.
+- **Push:** `d7a34203..12b569fa → origin/t31/soravo-wrapper-completion`.
+  Local and upstream identical afterwards.
+- **CI:** OBSERVED post-push (CI run `36659943960`, Security Audit run
+  `36659943972`). `web` pass 1m4s · `e2e` pass 53s · `desktop` pass 9m24s ·
+  **`rust` FAIL 8m5s** with `test result: FAILED. 254 passed; 2 failed` —
+  failures exactly `catalog::tests::catalog_parses_and_is_nonempty`
+  (`catalog/mod.rs:227`) + `managers::model::tests::test_discover_catalog_alternate_quant_in_models_dir`
+  (`managers/model.rs:2986`), read from that run's own failed log. Security
+  Audit **SUCCESS** (`cargo-audit` 9s · `cargo-deny` 39s · `npm-audit` 15s).
+  **0 new failures, 0 regressions. `203/7 → 254/2` is the correct, fully
+  explained delta.** PR #63 remains OPEN/BLOCKED (required `rust` red + 0/1
+  review); NOT merged by this task.
 
 **STOP. T33-J implementation is complete. Catalog licensing (GATE-3b/O-2),
 the 2 remaining catalog failures, and everything in §9 are NOT this task.**

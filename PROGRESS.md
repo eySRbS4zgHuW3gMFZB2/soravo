@@ -4769,3 +4769,43 @@ licence, hash, mirror, or URL invented or claimed releasable. T28 §7 still
 Commit/push/CI recorded in the follow-up entry below. **STOP — no catalog
 licensing, model selection, macOS/Windows builds, UI truthfulness, or
 release work in this task.**
+
+### T33-J follow-up — COMMIT, PUSH AND POST-PUSH CI (ACTUAL RESULT)
+
+**Commit** `12b569facb872ad2db12ed42731e20fb894849ef` —
+`feat(desktop): restore Handy V1 exact-source transcription support (T33-J)`.
+**8 files, all authorized, 0 non-authorized**: ADD `text.rs` (828 L, blob
+`82d45b5…` = pin) + `lang_id.rs` (170 L, blob `82834bdb…` = pin), EDIT
+`mod.rs` (surgical re-point, Soravo re-exports preserved) + `Cargo.toml`
+(+5 pin-exact lines), UPDATE `Cargo.lock` (+9: 3 direct + 6 transitive),
+DELETE `post_process.rs` (280 L, no upstream counterpart), plus this report
+and `PROGRESS.md`. `transcription.rs` untouched. `catalog.json` untouched
+(`{}`). Zero test files touched. `git diff --check` exit 0.
+
+**Push** `d7a34203..12b569fa → origin/t31/soravo-wrapper-completion`. Local
+and upstream identical afterwards.
+
+**PR #63 — OPEN, NOT MERGED.** Head now `12b569fa`; `mergeStateStatus:
+BLOCKED`; `reviewDecision: REVIEW_REQUIRED` (0 of 1). Same two independent
+gates: required check `rust` red (now with 2, not 7, pre-declared failures)
+and 0 of 1 required review.
+
+**CI — OBSERVED, NOT ASSUMED (runs `36659943960` + `36659943972`).**
+
+| Job | Result |
+|---|---|
+| `web` | **pass** 1m4s |
+| `e2e` | **pass** 53s |
+| `desktop` | **pass** 9m24s |
+| `rust` | **FAIL** 8m5s — `test result: FAILED. 254 passed; 2 failed`, failures exactly `catalog::tests::catalog_parses_and_is_nonempty` + `managers::model::tests::test_discover_catalog_alternate_quant_in_models_dir` (read from that run's own failed log) |
+| `cargo-audit` / `cargo-deny` / `npm-audit` | **all pass** (9s / 39s / 15s) |
+
+→ **The 5 RC-1 transcription failures are fixed. The 2 RC-2 catalog failures
+remain, pre-declared, ADR-019-gated (O-2/GATE-3b still open). 0 new
+failures. 0 regressions.** A recovery commit that leaves `rust` red on the
+2 catalog tests is the correct outcome; turning them green by populating the
+catalog or editing a test remains prohibited in this task.
+
+**STOP. T33-J is complete.** PR #63 is not merged. No catalog licensing, no
+model selection, no macOS/Windows builds, no UI truthfulness, no release
+work was started here.
