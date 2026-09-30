@@ -4716,3 +4716,56 @@ invariant **24/24/24/24** holds; canonical/mirror invariant holds (only `00` and
 
 **STOP. T33-I is complete. The Handy restoration is NOT started.** PR #63 is not
 merged.
+
+---
+
+## T33-J — HANDY V1 EXACT-SOURCE RECOVERY (2026-09-30)
+
+**Status:** IMPLEMENTATION COMPLETE — STOP-gated recovery executed. No fresh
+fork. No broad merge. No `main`/`latest`. Upstream:
+`https://github.com/cjpais/Handy` @ `ba10ce1943ef34e93c09494027fc0b9ced2e8a44`
+only.
+
+**Reading gate:** v6 pack (full) → `PROGRESS.md` (full, 4,718 lines) → fresh
+Git/PR/CI audit → T33-I + all three T33 Handy recovery reports + T32-I +
+ADR-019 ACCEPTED. Every provenance fact re-derived first-hand.
+
+**Source-recovery manifest (before any edit):** `text.rs` absent (upstream
+blob `82d45b5…`, 29,496 B) → ADD byte-identical; `lang_id.rs` absent
+(upstream blob `82834bdb…`, 6,685 B) → ADD byte-identical (REQUIRED: sole
+provider of `detect_output_language`); `mod.rs` (Soravo glue) → surgical
+re-point only; `catalog.json` (3 B `{}` vs upstream `64fc3482…`, 127,334 B —
+PROVEN exact) → deliberately NOT restored (ADR-019 `D-CATALOG = B` in force;
+ADR-011 blocking); `Cargo.toml` → +5 pin-exact lines (`isolang="2"`,
+`natural="0.5.0"`, `regex="1"`, `strsim="0.11.0"`, `whatlang="0.16"`).
+
+**Change set (6 paths):** ADD `text.rs` (blob match), ADD `lang_id.rs` (blob
+match), EDIT `mod.rs` (Soravo re-exports preserved; `fmt` clean), DELETE
+`post_process.rs` (no upstream counterpart; 5 Soravo tests die with it),
+EDIT `Cargo.toml` (+5), UPDATE `Cargo.lock` (+9: 3 direct + 6 transitive).
+`transcription.rs` UNTOUCHED. `catalog.json` UNTOUCHED (`{}`). Zero test
+files touched. `git diff --check` exit 0.
+
+**Tests:** baseline `203 passed / 7 failed` (exact 7 + outputs recorded in
+`T33-J-HANDY-V1-EXACT-SOURCE-RECOVERY-REPORT.md` §3) → after:
+`managers::transcription` 18/18, catalog 6+2 (pre-declared), **full suite
+254 passed / 2 failed** — failures exactly baseline #1–#2 (catalog-content,
+ADR-019-gated). `clippy -D warnings` pass. `cargo deny` green.
+`cargo audit`: 7 warnings, all pre-existing, zero from the 3 new packages.
+
+**Transcription rule:** single STT path preserved; no second stack; no
+`post_process.rs` replacement behavior; no PT workaround (mechanism
+restored); no filler/normalization/punctuation change beyond upstream's own
+bytes; no test rewrite; no new `injectText()` caller; no second insertion
+path.
+
+**Catalog/licensing separation:** bytes proven but NOT written; no model,
+licence, hash, mirror, or URL invented or claimed releasable. T28 §7 still
+0/9; O-2/GATE-3b still open.
+
+**STOP conditions:** none triggered (all 7 assessed in report §8).
+
+**Full report:** `T33-J-HANDY-V1-EXACT-SOURCE-RECOVERY-REPORT.md`.
+Commit/push/CI recorded in the follow-up entry below. **STOP — no catalog
+licensing, model selection, macOS/Windows builds, UI truthfulness, or
+release work in this task.**
