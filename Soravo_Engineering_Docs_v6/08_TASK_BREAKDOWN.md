@@ -27,6 +27,52 @@ Acceptance:
 - `842acdf9` is either proven relevant or explicitly retired as stale;
 - no provenance claim remains UNKNOWN without a blocker.
 
+### T03 additional acceptance — recovery provenance (RESTORE, DO NOT RE-FORK)
+
+These apply to every restoration of omitted or accidentally replaced
+Handy-derived source. Full rule: `04_HANDY_FORK_AND_REUSE_POLICY.md`
+*Recovery rule* and `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`.
+
+- **exact upstream identity**: repository and the exact pinned commit SHA
+  recorded as the pin of record, with upstream origin and exact byte content
+  established by blob identity (git blob SHA of an imported file equal to the
+  upstream blob at the pin) — never inferred from a filename, a similar commit,
+  or a report. Where a blob is unchanged across several upstream commits, that
+  limitation must be recorded rather than glossed;
+- **no Soravo commit recorded as Handy provenance**: any SHA cited as an
+  upstream identity is confirmed to exist in the upstream repository;
+- **blob-level provenance for every restored file**: each restored file's
+  upstream path, upstream blob SHA, and byte size recorded, plus SHA-256 of the
+  restored local file, verified equal before and after the restore;
+- **recoverability established**: each damaged artifact confirmed available
+  verbatim at the pin, or the restoration is recorded `BLOCKED`;
+- **damage characterized**: traceable to identifiable commits, bounded in
+  scope — recorded explicitly, because this is what forecloses a re-fork;
+- **fresh-fork threshold evaluated and recorded**: all four criteria explicitly
+  marked met/not-met. If none is met, a fresh fork is not authorized;
+- **substitution removed, not kept**: any Soravo-authored replacement with no
+  upstream counterpart is removed in the same change, with its rollback path;
+- **caller-side correctness proven**: the restored file is confirmed to be the
+  provider of the symbols its caller imports, so the restore cannot be
+  incomplete;
+- **dependency delta declared explicitly**: each added dependency named with
+  its version and whether it is new to the lockfile; lockfile deltas recorded
+  with new-package counts;
+- **tests untouched**: no Handy test rewritten, removed, relocated, ignored, or
+  annotated as part of a restore;
+- **no special-cased language**: no language-specific branch introduced as a
+  substitute for the restored mechanism;
+- **no second STT pipeline and no Soravo post-processing** introduced;
+- **not a synchronization**: the restore targets the pin; adopting upstream
+  `main` instead is a separate upstream-synchronization task requiring the
+  nine-item process in `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`;
+- **licensing and asset separation preserved**: restoring bytes is recorded as
+  distinct from approving distribution, and from acquiring a missing runtime
+  asset. No model, licence, hash, mirror, or download URL is fabricated;
+- **provenance record updated in the same change**:
+  `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md` is updated so the record never again
+  records a resolved identity as `UNKNOWN`.
+
 ## T04 — Desktop compiler recovery
 Acceptance:
 - reproduce first compiler error;

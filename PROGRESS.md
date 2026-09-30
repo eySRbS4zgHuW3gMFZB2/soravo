@@ -3905,3 +3905,750 @@ merge of PR #63** · **no relaxation of any rule this task installed**.
 - ✅ **No untracked pre-existing work staged, deleted, or modified.**
 
 ---
+
+## T32-S-RECOVERY — DETERMINATION OF THE SKIPPED T32-S TASK (2026-09-30)
+
+**Status:** **RECOVERY COMPLETE — STOP.** T32-S is **NOT superseded**. One half is conclusively covered by evidence that predates the proposal; the other half is genuinely uncovered and carries a determinate blocker that no prior report recorded.
+**Full report:** `T32-S-RECOVERY-REPORT.md`
+**Branch/HEAD (audit ref):** `t31/soravo-wrapper-completion` @ `31fb920a2b54b6effe12c55ec63bfffb8a8db7ac` (0/0 vs upstream); **`origin/main`** `ede495b55efd95cedd882d90a19d12b4777da852` (12 ahead / 0 behind); PR #63 OPEN, `headRefOid` **identical to local HEAD**, `mergeStateStatus: BLOCKED`, `reviewDecision: REVIEW_REQUIRED`.
+
+> **No T32-S completion is fabricated. No later task is credited with completing T32-S.**
+
+### Reading gate — COMPLETED, in the mandated order
+
+Root `SPEC_MANIFEST.json` → the **15** root manifest documents in `documents[]` order, full → `PROGRESS.md` **in full (3,907 lines)** → **fresh Git/VM/PR/CI state audit** → **then** T32-T (416 lines), T32-U (481), T32-V (605), T32-W spec (760) + ADR-019 draft (357), T32-X (1,147), all full. Additionally read because they govern T32-S's two halves: v6 `14_CI_CD_AND_BRANCHING.md`, `17_RELEASE_RUNBOOK.md`, `15_ENVIRONMENT_AND_SECRETS.md`, `19_STATE_AUDIT_PROTOCOL.md`; `T32-D-…-MATRIX.md` (the proposal, `:148`/`:237`); `T23-GITHUB-BRANCH-PROTECTION-REPORT.md` + `T23-BRANCH-PROTECTION-TASK.md`; `.github/workflows/{release,ci}.yml`; `tauri.conf.json`; `pnpm-workspace.yaml`. **No later report was used as a substitute for the pack.**
+
+### Fresh state audit (run before any determination)
+
+| Field | Value |
+|---|---|
+| Git | 0 ahead / 0 behind; 0 tracked modifications; **29 pre-existing untracked paths** at session start, preserved untouched (**30 after this task added its own report**) |
+| VM | Linux x86_64 · 4 cores · 7.6 GiB · rustc 1.97.1 · **`rustup target list --installed` = `x86_64-unknown-linux-gnu` only** → macOS/Windows not compilable here · node 22.23.1 · pnpm 11.17.0 · gh 2.100.0 · `opencode` **not on PATH** → `UNKNOWN` · **MCP not used** |
+| PR #63 | OPEN · `MERGEABLE` / **`BLOCKED`** · `REVIEW_REQUIRED` (0/1) · title still omits the runtime restoration (T32-X H-3) |
+| CI @ `31fb920a` | `CI 36648915127` **in_progress** (web ✅ · e2e ✅ · rust ⏳ · desktop ⏳) · `Security Audit 36648915113` ✅ · prior `36647828968` ❌ (rust red by design) · `36647828972` ✅ |
+| **Branch protection** | **PRESENT and ENFORCING** — `contexts [web,e2e,rust,desktop]`, `strict true`, 1 review, `dismiss_stale_reviews`, no force-push, no deletions. `rulesets` → `[]` (classic only) |
+| **Release** | `gh run list --workflow release.yml` → **empty**; 200-run history = CI 117 · Security Audit 38 · Pages 33 · Dependabot 12 → **no `Release` run, ever**; `gh release list` → **empty**; `gh secret list` → **only** the two Cloudflare values (**no `APPLE_*`, no `TAURI_SIGNING_*`**) |
+| `origin/main` content | **still** `.plugin(tauri_plugin_updater…)` at `main.rs:28`, **no `.setup()`**, **no `pub mod cli;`**, **no `pub mod paste_tx;`** |
+
+### Provenance — the exact proposal
+
+`T32-D-SORAVO-BLOCKER-EXECUTION-MATRIX.md:237` — **`[Owner] T32-S — Branch protection + release exercise. D12 remainder.`** Never executed: no `T32-S*.md`, no `## T32-S` heading (the only match is a T32-Y subsection at `:3408`), `git ls-files` empty. Decomposed into AC-2 (ruleset decision) · AC-3 (enforcement) · AC-4 (a dispatch run with recorded ID + outcome) · AC-5 (signing wired **or** unsigned scope documented). AC-1 (commit T32-A/B) was routed to **T32-E**; AC-6 (T30 A/B/C + catalog) was routed to the **Human** / D15 and was never a T32-S deliverable.
+
+### Acceptance-criterion → evidence map
+
+| ID | Criterion | Later evidence | Classification |
+|---|---|---|---|
+| **AC-1** | T32-A/B committed so PR #63 CI covers them *(→T32-E)* | `6aa322c0` (22 files), pushed, on PR #63; `web` ✅ on `36648915127`/`36647828968`/`36646785895` | **VERIFIED** (T32-E) |
+| **AC-2** | Owner branch-protection ruleset decision | `T23-GITHUB-BRANCH-PROTECTION-REPORT.md` §7–§8; live API returns that ruleset field-for-field | **VERIFIED** (T23) |
+| **AC-3** | Enforcement in effect | `BLOCKED` + `REVIEW_REQUIRED` + failing required `rust` + `strict:true` → the rule is **holding the merge in both dimensions** | **VERIFIED** (live) |
+| **AC-4** | A dispatch run with recorded ID + outcome | **NONE.** Zero `Release` runs ever; no release; no secret; T32-X §18.8 lists the dispatch as deliberately **not** run | **BLOCKED** |
+| **AC-4a** *(new)* | The dispatch can succeed from the default ref | **NO.** `workflow_dispatch` with no `ref` resolves to `main` = `ede495b5`, which still carries the updater abort and declares neither `cli` nor `paste_tx` ⇒ **all three matrix legs fail at `E0433`** (T32-V §12.4; T32-X STOP-3). If built, the bundle would **panic on first launch** | **VERIFIED** blocker |
+| **AC-5(i)** | Signing-key wiring | None: `release.yml:88-97` commented out, **no secret configured**. v6 §15/§17 — external, must never be invented | **BLOCKED** |
+| **AC-5(ii)** | **Unsigned scope documented as the accepted V1 limitation** | **NONE.** The only "unsigned"-in-release mentions are T32-Y `:340` / PROGRESS `:3420`, which *describe the task* rather than record a limitation | **NOT COVERED — agent-executable** |
+| **AC-6** | T30 A/B/C + catalog checklist *(never T32-S)* | O-1/O-2 still open; catalog **0/9**; `rust` red by design | **BLOCKED** |
+| **AC-7** *(derived, v6 §17)* | Release preconditions | ❌ CI green · ❌ target builds verified · ❌ model licences · ❌ reproducible artifacts; 🟨 payment E2E (TEST lifetime only) | **BLOCKED** |
+| **AC-8** | "Branch protection absent (404)" | Origin `T16:29` → `T32-C:278` → `T32-D:148`; contradicted by live API | **HISTORICAL/STALE** |
+| **AC-9** | `T23-BRANCH-PROTECTION-TASK.md:20` "BLOCKED" | Contradicted by T23's own report and the live API | **HISTORICAL/STALE** |
+
+**Totals: VERIFIED 5 · IMPLEMENTED 0 · BLOCKED 4 · NOT COVERED 1 · HISTORICAL/STALE 2 · UNKNOWN 0.**
+**⇒ Not every criterion is conclusively covered. T32-S is recorded `SKIPPED — PARTIALLY COMPLETE ELSEWHERE, ONE HALF OUTSTANDING`. Not superseded. Not complete.**
+
+### Supersession — T32-T…T32-X did not touch it (proven)
+
+T32-T (transcription tests), T32-U (milestone/CI checkpoint — *observes*, "no state-changing command was run"), T32-V (boot proof), T32-W (spec + ADR draft), T32-X (audit) each modified **no workflow**, created **no release**, dispatched **no workflow**, and changed **no branch protection**. T32-X §18.8 explicitly lists *"no workflow or CI edit · no release-workflow dispatch"* among commands **not** run. **Scope disjointness proven from the change sets, not inferred.** What *was* covered came from elsewhere: **T32-E** (AC-1) and **T23** (AC-2/AC-3), the latter **before** T32-S was proposed.
+
+### NEW finding — the dispatch is ref-blocked, not only certificate-blocked
+
+`release.yml`'s default ref is `main`. On `main` today: `crate::cli` (macOS-only cfg) and `crate::paste_tx` (macOS **and** Windows cfg) are undeclared ⇒ **all three legs fail at compile**. Named residual risk on the branch ref: **N-9** — `paste_tx/windows.rs` needs `windows::Win32` features that `Cargo.toml:72` does not declare (pre-existing; `UNKNOWN` without a Windows toolchain). Dependency chain: **O-1 + O-2 + 1 review → PR #63 merges → main carries the restoration → dispatch becomes meaningful.** An alternative (`--ref t31/soravo-wrapper-completion`) exists but is a **release-policy owner decision**, not a neutral technical step.
+
+### Corrections to prior records (history NOT rewritten)
+
+1. The **"branch protection absent (404)"** claim is **`HISTORICAL/STALE`**, not a current gap. It originates in `T16:29` and was carried into `T32-C:278` *as "(404, T16)"* without a fresh read, then into `T32-D:148`.
+2. **T32-Y §6's `T32-S-1` is one task too few.** Its two branches have different executors: *"document the unsigned scope"* needs **no certificates at all** and is **fully agent-executable today**; only *"wire real external certificates"* is owner/external-gated.
+3. **T32-Y §6's "not agent-completable (certificates must never be invented)" is over-broad** — it understated the agent-executable remainder by exactly one criterion (AC-5(ii)).
+4. T32-Y §6's *direction* is confirmed: provenance, "not superseded", branch protection `✅ COMPLETE`, release exercise `❌ OUTSTANDING` — all independently re-derived.
+
+### Smallest follow-up tasks — DEFINED, NOT EXECUTED
+
+**`T32-S-1` — release-exercise scope record (agent-executable; the only agent-executable remainder).** One Markdown record, documentation only: `release.yml` is `workflow_dispatch`-only and never executed; signing is commented out and unconfigured; **the accepted V1 release scope is unsigned artifacts** and macOS/Windows buildability is **`UNKNOWN`**; the seven v6 §17 preconditions enumerated so a dispatch is labelled a *workflow exercise, not a release*; the ref prerequisite recorded above; N-9 named; and the production path to closing it properly. No workflow edit, no dispatch, no secret, no certificate, no release, no dependency change, no `Info.plist`. **External input: none.**
+
+**`T32-S-2` — release-workflow exercise (owner-gated).** One `workflow_dispatch`, record run ID + per-leg outcome + artifact names + checksums + toolchain, labelled an exercise. Prerequisites in order: (1) the **ref decision** (main-after-merge vs branch-with-policy-consequence); (2) if on `main`: PR #63 merged ⇒ **O-1, O-2, 1 review**; (3) explicit acceptance of unsigned output, or real certificates. **Do not** merge PR #63, edit any test, populate `catalog.json`, invent an endpoint/key/certificate, publish the draft release, or add CI. **External input: yes** (provider write + `contents: write` + a repo-visible `v0.1.0` draft Release).
+
+### Scope constraints honoured
+
+- ✅ No production code modified. Zero changes under `crates/`, `apps/`, `services/`, `packages/`, `supabase/`.
+- ✅ No test added, edited, removed, relocated, ignored, or annotated.
+- ✅ **Zero Handy STT/audio/VAD/engine/language/filler/normalisation/punctuation/typing/clipboard/hotkey/post-processing files modified** — none opened for modification. No post-processing added. No second STT/transcript/insertion path.
+- ✅ `catalog.json` not populated; no model id/hash/URL/licence/architecture/quantisation/mirror/score/provenance invented. No updater endpoint, minisign key, **certificate**, signing secret or credential invented.
+- ✅ **`.github/workflows/**` not modified.** `actionlint` attempted and **unavailable** ⇒ workflow lint is `UNKNOWN`, not asserted.
+- ✅ **No `workflow_dispatch`.** No `gh pr merge`. No review submitted. **No branch-protection mutation** — read-only. **Provider mutations: ZERO.** No secret value read. MCP not used.
+- ✅ No `git add` / commit / push / merge / rebase / reset / stash / checkout / clean / restore. All **pre-existing untracked paths** preserved untouched.
+- ✅ No cross-compilation attempted; macOS/Windows stated **`UNKNOWN`**, never claimed. `cargo test` **not run** — the `203/7` baseline is **carried, not re-measured** (T32-X local + CI `36638028609`/`36644914376`/`36646785895`/`36647828968`).
+- ✅ No ADR ratified; no `20_ADR_INDEX.md` edited; **no historical `PROGRESS.md` entry rewritten.** Only this appended entry.
+
+### Files changed
+
+- `T32-S-RECOVERY-REPORT.md` — **created** (this task's output; untracked per the T22–T32 audit convention)
+- `PROGRESS.md` — this entry appended
+- **Nothing else. Nothing committed, nothing pushed, no PR action, no merge.**
+
+### `PROGRESS.md` governance — disclosed, not acted on
+
+The governed `Last audited` header (line 4, ~2,953 chars, still says T32-X) was **deliberately not rewritten** — it is an owner-level current-state field and a blind rewrite of it is exactly the unreviewable change the diff-review rule forbids. That remains **O-6 / G-4, still open**; this task does not close it. **T32-Y §6's disposition is left exactly as written**; the corrections above are recorded here, not by editing it.
+
+### Next exact task
+
+**`T32-S-1` is the only agent-executable remainder of T32-S** — write the release-exercise scope record (AC-5(ii)). It needs no external input, no provider write, no workflow edit, and no invented data.
+**`T32-S-2` (owner)** follows: the ref decision, then one `workflow_dispatch` with the ID and outcome recorded.
+**No merge of PR #63. No owner decision is pre-empted by this task.**
+
+**Explicitly NOT next tasks:** no transcript/session integration layer (T32-R §15.1 stands) · no `injectText()` caller · no `onTypingResult()` subscription · no `crates/transcript`/`soravo-stt`/`soravo-licensing` wiring · no `hotkey.rs` · no second STT or insertion path · no from-scratch tray · no VAD backend switch · no `catalog.json` population · no test rewriting · **no merge of PR #63** · no branch-protection change (correct as configured) · no workflow edit · no ADR ratification.
+
+---
+
+*Entry: T32-S-RECOVERY — Authority: root `SPEC_MANIFEST.json` + the 15 root manifest documents + v6 `§00/§01/§09/§14/§15/§17/§19/§20` + `PROGRESS.md` in full + `T32-D-…-MATRIX.md` + T32-T/U/V/W/X + `T23-GITHUB-BRANCH-PROTECTION-REPORT.md` + live git/PR/CI/workflow/secret/default-ref evidence, 2026-09-30, `t31/soravo-wrapper-completion` @ `31fb920a`.*
+
+---
+
+## T33 — DESKTOP V1 FUNCTIONAL GAP AUDIT AFTER RUNTIME RESTORATION (2026-09-30)
+
+**Status:** **AUDIT COMPLETE — STOP.** No implementation. Documentation only.
+**Full report:** `T33-DESKTOP-V1-FUNCTIONAL-GAP-AUDIT.md`
+**Branch/HEAD (audit ref):** `t31/soravo-wrapper-completion` @ `31fb920a` (0/0 vs upstream); **`origin/main`** `ede495b5` (branch **18 ahead / 0 behind**); PR #63 OPEN, head identical, `mergeStateStatus: BLOCKED`, `REVIEW_REQUIRED` 0 of 1.
+
+### Reading gate — COMPLETED, in the mandated order
+
+`SPEC_MANIFEST.json` → **all 15 root manifest documents in `documents[]` order, full** → `PROGRESS.md` **in full (4,009 lines)** → **fresh Git/VM/PR/CI audit** → **only then** T32-I (228) · T32-T (416) · T32-V (605) · T32-W spec (760) + ADR draft · T32-X (1,147) · T32-Y report (576) + the **accepted** ADR-019 (515). **No T32 conclusion was accepted on report** — every classification was re-derived from source, from a fresh `cargo test`, or from a fresh process launch.
+
+### The four-way distinction — the central result
+
+| Question | Answer | Deciding evidence |
+|---|---|---|
+| **Did the runtime boot?** | **YES** | 20 s launch **survived** (`exit 124`), **0** `panicked`, **0** `PluginInitialization`, **0** Soravo WARN/ERROR; full S3–S10 sequence logged; `history.db` written |
+| **Is there a usable STT model?** | **NO** | boot log `Seeded 0 catalog model(s) into the registry` · `models/` **empty** · live `selected_model: ""`, `onboarding_completed: false` · `catalog.json` **3 bytes `{}`** |
+| **Does STT produce text?** | **NO — never once executed** | `transcription.rs:1207-1210` returns `Err("Model is not loaded for transcription.")` deterministically; the first record attempt fails earlier at the VAD asset |
+| **Is text inserted?** | **NO — never once executed** | `actions.rs:822` is reached only for a non-empty `final_text`, which (C) makes impossible |
+
+### Classification of the 16 mandated paths
+
+| # | Path | Class | Load-bearing first-hand evidence |
+|---|---|---|---|
+| 1 | Application startup | **VERIFIED** | 20 s launch survived; S3–S10 logged; 16 commands registered; 8 prohibited commands at 0 each |
+| 2 | Microphone capture | **BLOCKED** | `preload_vad` runs **first** (`audio.rs:706`) and resolves an absent `resources/models/silero_vad_v4.onnx`; **no `resources/` dir, `"resources"` = 0, no `*.onnx` anywhere**; macOS has **no `Info.plist`/`NSMicrophoneUsageDescription`**; `/dev/snd` **exists**, so hardware is **not** the blocker |
+| 3 | Global shortcut | **VERIFIED** | runtime log **`Shortcuts initialized successfully`**; live bindings `ctrl+space` / `escape` / `ctrl+shift+space`, `HoldOrToggle`. **But** a fixed default (F5) and the `Pill` button is still a **silent no-op** (7 unregistered commands + empty `.catch`) |
+| 4 | Audio / VAD | **BLOCKED** | live `vad_backend: Silero` (unchanged); asset absent; `Earshot` switch stays **prohibited** |
+| 5 | Model availability | **BLOCKED** | catalogue `{}` · models dir empty · `selected_model: ""` · **0 of 9** checklist items closed |
+| 6 | STT engine invocation | **IMPLEMENTED** | one path (`actions.rs:724` → `transcribe` `:1176`); 2nd call site `commands/history.rs:87` unreachable (command unregistered); deterministic `Err` gate at `:1207` |
+| 7 | Tentative transcript | **IMPLEMENTED** | `StreamTextEvent` producer live; **zero consumers** — `src/overlay/` does not exist, capabilities scope `windows:["main"]`, 0 frontend subscribers |
+| 8 | Committed / final transcript | **IMPLEMENTED** | `final_text` produced `actions.rs:459`, consumed `:806/:812/:822`; never leaves Rust; **no `session_id`/sequence/timestamp** on the event ⇒ the v6 §05 staleness contract is unsatisfiable at that seam |
+| 9 | Native insertion | **IMPLEMENTED** | `actions.rs:822` → `utils.rs:11` re-export → `clipboard.rs:773`; `try_reliable_paste` has **1** caller, **inside** that function, `cfg`-gated + runtime-gated on `reliable_paste: false`; **`paste_tx` SHA-256 re-verified MATCH ×3** vs `5f56260c`; `paste-error` surfaced |
+| 10 | Session state | **IMPLEMENTED** | `SessionMachine` live **and observed** (`app.tsx:57` `onSessionChanged`); `CoordinatorState` live and invisible (0 coupling, ADR-019 I3) |
+| 11 | Settings | **IMPLEMENTED / BLOCKED** | `soravo_config` **0** hits in `settings.rs`/8 `managers`/4 `shortcut`/`actions.rs`; `get_settings` **0** hits in `soravo_ipc.rs`; live log shows Handy `AppSettings` read, Soravo store untouched ⇒ **the Settings UI has zero effect on the runtime** (F5) |
+| 12 | Entitlement / account | **HISTORICAL/STALE** | `account_sign_in` returns `Err(...)` **unconditionally** (`commands/account.rs:42-46`); `account.rs` is **131 lines**; the 941-line PKCE/JWT rewrite + real entitlement reader are **absent from this branch**; `request_sign_in()` (`"user-123"`, `entitlement_active = true`) has **0 callers** — latent, not live |
+| 13 | macOS build | **UNKNOWN** | never compiled; `rustup` = linux target only; `ci.yml` 4 jobs all `ubuntu-latest`; `release.yml` is `workflow_dispatch`-only and **never run**; **no `Info.plist`** |
+| 14 | Windows build | **UNKNOWN** | same; plus `paste_tx/windows.rs` needs `windows::Win32` features **not declared** in `Cargo.toml` (pre-existing, unresolvable without a Windows toolchain); signing secrets **commented out and absent** |
+| 15 | Linux development build | **VERIFIED** | local build PASS; CI `desktop` PASS 9 m 22 s; binary **launched and survived 20 s** |
+| 16 | Release packaging | **BLOCKED** | `release.yml` `workflow_dispatch`-only, **0 runs ever**; `gh release list` empty; only Cloudflare secrets; a default-ref dispatch fails at `E0433` on **all three** legs because `main` still carries the updater abort and declares neither `cli` nor `paste_tx` |
+
+### Vocabulary — why "compiles" is not a class
+
+Three evidence types were **explicitly rejected** as sufficient for `VERIFIED` and are used for nothing: **`cargo check` passing** (proves dead code type-checks), **CI `desktop` green** (`pnpm tauri build` **never calls `run()`** — re-confirmed at `ci.yml:79-81`), and **CI `rust` green** (the suite constructs no manager). The only `VERIFIED` rows above rest on an executed launch, an observed log line, an observed filesystem effect, or a re-executed test.
+
+### New findings — first-hand, in no prior report
+
+- **N-1 (HIGH)** — the desktop account/entitlement layer is a **fail-closed stub**, and the repository's own completion claims for it (`:94`, `:258-261`) are `HISTORICAL/STALE` for this branch.
+- **N-2 (MEDIUM, latent)** — a hard-coded identity stub (`user-123`, `entitlement_active = true`) is live in the tree with **0 callers**; wiring it would grant entitlement against a fabricated identity. **Not wired by this task.**
+- **N-3 (MEDIUM)** — `entitlement_active` is structurally **always `false`**; no registered command can set it `true`.
+- **N-4 (MEDIUM)** — the tentative/committed overlay contract has **zero** consumers **structurally**, not merely "not yet".
+- **N-5 (MEDIUM)** — the transcript event carries no session/sequence/timestamp, so v6 §05 staleness rejection is unsatisfiable at that seam.
+- **N-6 (LOW)** — a microphone device is **not** among the blockers (`/dev/snd` exists); the blocker is unambiguously the absent in-repo asset. Recorded to prevent a future mis-diagnosis.
+- **N-7 (LOW)** — `203/7` is now confirmed a **sixth** time; the two green sibling test binaries in CI are now recorded alongside it.
+
+### The gap map in one line
+
+> Soravo V1 **starts** and installs a **live global shortcut**, then **deterministically stops at the first missing asset/data**: no STT model (empty catalogue, empty models dir, empty `selected_model`) and no Silero VAD file. Everything between those gates is present, wired, single-path, and **never executed end to end**.
+
+**Two of sixteen paths have genuine runtime proof.** Nine `BLOCKED`/`UNVERIFIED` rows reduce to **two missing assets and one missing dataset** — all owner/upstream-gated, all fabrication-prohibited. **There is no code-only change that makes Soravo V1 dictate in a primary-platform build today.**
+
+### Scope constraints honoured
+
+- ✅ **No production source modified.** No test added/edited/removed/relocated/ignored/annotated — **zero test files touched**. No config, capability, migration, Edge Function, workflow, `Cargo.toml`/`Cargo.lock`, manifest, ADR, or index file modified.
+- ✅ **`catalog.json` untouched — 3 bytes `{}`.** No model id/hash/URL/licence/architecture/quantisation/mirror/score/provenance invented; no weight licence inferred from a software licence; **no separate owner-authorized model-data task exists, so no model-data work was done.**
+- ✅ **No transcription behaviour modified. No post-processing added.** VAD left at `Silero` (confirmed live).
+- ✅ **No transcription manager added. No STT producer. No second STT path. No second insertion path.**
+- ✅ **`injectText()` NOT wired** (0 `.tsx` callers). **`typing://result` NOT subscribed** (0 subscribers). No transcript/session integration layer.
+- ✅ **No frontend redesign. `app.tsx` not modified.** No `crates/transcript`/`soravo-stt`/`soravo-licensing` wiring. No `hotkey.rs`.
+- ✅ **No ADR created or ratified. `20_ADR_INDEX.md` not modified. No `PROGRESS.md` historical entry rewritten** — one entry appended. The `Last audited` header **not** rewritten (**O-6 / G-4**, still open, owner act).
+- ✅ **No CI added; no workflow touched; no `workflow_dispatch`; no release created.** No cross-compilation attempted (impossible: no SDK/linker).
+- ✅ **No false platform claim** — macOS and Windows stated `UNKNOWN`; Linux evidence never presented as macOS/Windows evidence.
+- ✅ **PR #63 not merged, not retitled, no review submitted; no branch-protection mutation** (read-only GET).
+- ✅ **Provider mutations: ZERO.** No secret read, printed, or committed. No `unsafe` introduced. **MCP not used.**
+- ✅ **No `git add` / commit / push / merge / rebase / reset / stash / checkout / clean / restore.** All **30** pre-existing untracked paths preserved untouched. The previous task's uncommitted `PROGRESS.md` entry preserved and extended, **not** rewritten.
+
+### Tests / checks run (read-only, no source changed)
+
+`cargo test -p soravo-desktop --lib --no-fail-fast` → **`203 passed; 7 failed; 0 ignored`** (2 catalogue-content + 5 frozen-V1 transcription) — **sixth** confirmation, byte-identical to CI `36648915127` (`FAILED. 203 passed; 7 failed`) and to the `27200173` baseline · `cargo build` PASS · **20 s process launch → `exit 124`, 0 panics, S3–S10 logged** · `sha256sum` of `paste_tx/` vs `git show 5f56260c` → **MATCH ×3** · `gh pr checks 63` · `gh run list` · `gh release list` (empty) · `gh secret list` (Cloudflare only) · branch-protection GET (read-only).
+
+### Files changed
+
+- `T33-DESKTOP-V1-FUNCTIONAL-GAP-AUDIT.md` — **created** (this task's output; untracked per the T22–T33 audit convention)
+- `PROGRESS.md` — **this entry appended**
+- **Nothing else. Nothing committed, nothing pushed, no PR action, no merge.**
+
+### Blockers
+
+**PR #63 — 2 gates:** required check `rust` red (203/7 **by design**) **and** 0 of 1 approving reviews.
+
+**Owner decisions:** **O-1** transcription-test treatment (A/B/C or **A′**, per test, against the T32-T matrix) · **O-2** the 9 catalogue data items · **O-4** `app.tsx:190-200` truthfulness · **O-5** the `docs/spec-v3/` authority declaration · **O-6 / G-4** the stale `Last audited` header · **O-7 (NEW)** desktop account/auth/entitlement scope. ~~O-3~~ closed by T32-Y.
+
+**F1–F8 all still deferred** (tray — **BLOCKED** on v6 §21 upstream provenance · overlay · `signal_handle` · 119 registrations · **settings-store unification, user-visible today** · macOS usage strings · **model + Silero VAD assets** · updater restoration). Payment / Cloudflare / signing / release-exercise items carried unchanged.
+
+### Next exact task
+
+**STOP. T33 is complete. The next task is NOT started.**
+
+1. **Tier 0 [OWNER]** — O-1 · O-2 · O-7 · O-4 · O-5 · O-6/G-4
+2. **Tier 1 [agent-executable, no external input]** — **T1 boot gate** in CI (`xvfb-run`; launch the built binary, assert it reaches the Tauri runtime) · **T2** `macos-latest` + `windows-latest` compile jobs · commit the **30** untracked `T*.md` reports (P-5/H-1) · PR #63 retitle/describe (**do not merge**) · add the missing `## T32-U` entry (P-6/H-2)
+3. **Tier 2 [after the owner decisions]** — **F7** assets → **the first real dictation** · **F5** settings unification · **F6** macOS usage strings · F1/F2 tray+overlay · F4 per-command registrations · execute the approved transcription treatment · **merge PR #63 last** · T32-S-1/2 release exercise
+
+**Explicitly NOT next tasks:** no transcript/session integration layer (T32-R §15.1 stands) · no `injectText()` caller · no `onTypingResult()` subscription · no `crates/transcript`/`soravo-stt`/`soravo-licensing` wiring · no `hotkey.rs` · no second STT or insertion path · no from-scratch tray · no VAD backend switch · **no `catalog.json` population** · no test rewriting · no frontend redesign · **no merge of PR #63**.
+
+---
+
+*Entry: T33 — Authority: root `SPEC_MANIFEST.json` + the 15 root manifest documents in `documents[]` order + `PROGRESS.md` in full (4,009 lines) + a fresh Git/VM/PR/CI audit + T32-I/T/U/V/W(+ADR draft)/X/Y(+accepted ADR-019), with every classification re-derived first-hand from source, from a fresh `cargo test` run, and from a fresh 20-second process launch, 2026-09-30, `t31/soravo-wrapper-completion` @ `31fb920a`.*
+
+---
+
+## T33-HANDY-DIVERGENCE-FORENSIC-001 — PROVENANCE FORENSIC AUDIT (2026-09-30)
+
+**Status:** **AUDIT COMPLETE — STOP.** No implementation. Documentation only. No commit, no push, no PR action, no new fork.
+**Full report:** `T33-HANDY-DIVERGENCE-FORENSIC-001-REPORT.md`
+**Branch/HEAD (audit ref):** `t31/soravo-wrapper-completion` @ `31fb920a` · `origin/main` `ede495b5` (18 ahead / 0 behind) · PR #63 OPEN, `BLOCKED`.
+
+### Reading gate — COMPLETED, in the mandated order
+
+`SPEC_MANIFEST.json` → canonical `docs/Soravo_Engineering_Docs_v6/` pack in manifest order (00, 01, 02, 03, 04, 20, 21 + the 24-entry manifest) → `PROGRESS.md` **in full (4,118 lines)** → fresh Git/VM/PR/CI audit → T29 · T30 · T32-A…X · T32-Y/Y2 · T32-S · T33 reports → **ADR-018 and accepted ADR-019**. Every classification re-derived first-hand; **no prior report's conclusion was accepted on report**.
+
+### Executive finding
+
+**Historical integration damage CONFIRMED, fully traceable to TWO commits and TWO files. The existing fork is RECOVERABLE. A fresh Handy re-fork is NOT justified.**
+
+### The seven CI failures — reproduced and recorded exactly
+
+`cargo test -p soravo-desktop --lib --no-fail-fast` → **`203 passed; 7 failed`** (seventh confirmation, byte-identical to CI `36648915127`, job `rust`; `desktop`/`e2e`/`web` all PASS).
+
+2 catalog + 5 transcription. **Two independent root causes**, not one.
+
+### Root cause 1 — RC-1 (5 transcription failures)
+
+Handy's `src-tauri/src/audio_toolkit/text.rs` (**828 L at pin / 884 L at main**) was **never imported**. In its place `audio_toolkit/post_process.rs` (**280 L**) was written from scratch at **`fc56c31b`** (2026-09-28). `git log --all -S 'gated_filler_words'` → **empty**; `-S 'UNIVERSAL_FILLER_WORDS'` → **empty**. Handy's text module has never existed in this repo at any commit.
+
+Decisive evidence: Soravo's `remove_filler_words(text, _output_language, ...)` — the underscore is Rust's "intentionally unused" marker. Upstream is **two-tiered** (`UNIVERSAL_FILLER_WORDS` = non-lexical interjections only; `gated_filler_words_for_language` where **`pt`/`es` → `&[]`**). Soravo collapses this into one flat English list applied **universally**. Second, independent divergence: Soravo's `normalize_transcription_output` **adds capitalization + a `.`** and **drops** upstream's stutter + whitespace collapsing.
+
+### Root cause 2 — RC-2 (2 catalog failures)
+
+`catalog/catalog.json` was created **empty (`{}`, 3 bytes)** in the very commit that imported `catalog/mod.rs` containing `assert!(!CATALOG.is_empty(), "bundled catalog should contain models")` — a self-contradictory import. **First commit: `a156c8c9`** (2026-09-22), the only commit in the file's history. Upstream is **127,334 bytes at BOTH refs**. The same commit also added a literal `// Placeholder` VAD stub returning `false` — the integration pattern was *import structure and tests, leave payloads/bodies as placeholders, defer completion*. **Not intentional.**
+
+### The critical transcription determination — T30 is REFUTED
+
+**All seven failing tests are BYTE-IDENTICAL to upstream `cjpais/Handy` at BOTH `ba10ce19` AND `29bd2c0d`** (md5-verified on both sides). They are **HANDY-PRESERVED**, not stale.
+
+> **T30's classification of the 5 transcription tests as "D: Contradictory/stale tests (5/5)" is REFUTED by upstream evidence and must not be carried forward.** The tests are correct; the implementation is wrong.
+
+**Both behaviours the task asked about are confirmed ABSENT from upstream:**
+- `"um"` removed **universally** → upstream gates it behind English evidence. **HANDY-DIVERGENCE.**
+- `"eu vi um carro"` → `"Eu vi carro."` → upstream yields `eu vi um carro` (no capital, no period). **HANDY-DIVERGENCE.**
+
+### Upstream evidence (external source of truth)
+
+`https://github.com/cjpais/Handy` only. Pin `ba10ce1943ef34e93c09494027fc0b9ced2e8a44` **exists upstream** (2026-09-15). Current `main` `29bd2c0d6b4b705df5fd6d2f387e5db5ecc27480` (2026-09-28). The pin→main delta (10 files) **does not explain any failure** — the repair target is the **pin**, not `main`.
+
+### Quantified divergence
+
+vs pin, across `apps/desktop/src-tauri/src/` and `crates/audio/`: upstream `.rs` files 71 · **byte-identical 31 (43.7%)** · differing 24 (**17 mechanical glue/port/lint, 7 substantive**) · absent 16 · Soravo-only 9 (all correctly `C`). **2 files out of ~80 account for 100% of the CI failures.** `crates/audio` **predates the Handy integration by 3 days** (`0b5b3705`, 2026-09-19) → independent Soravo work, with VAD constants preserved exactly (450/450/1650/60).
+
+### V1 violations (four explicit v6 §04 Do-Not-Modify items)
+
+**Filler-word behavior · Normalization behavior · Punctuation behavior · Transcript post-processing** — all violated by `post_process.rs`, with **no requirement, ADR, or approval** justifying any of them. Additionally a **process violation**: `post_process.rs` carries no reuse classification, contrary to v6 §21.
+
+### Fresh-fork threshold — 0 of 4 criteria met
+
+Untraceable divergence **NO** · systematic corruption **NO** (2 files) · irrecoverable provenance **NO** (both artifacts available verbatim; the pin is *provably* the true source — `managers/transcription.rs` matches it byte-for-byte) · repair cost exceeds re-import **NO**. **A re-fork would discard a working majority to repair a two-file defect.**
+
+### Smallest recovery sequence (identified, NOT executed)
+
+1. Restore `text.rs` from `ba10ce19`, delete `post_process.rs`, re-point `mod.rs`, add `regex`/`once_cell`/`strsim`/`natural` → **fixes #3–#7**.
+2. Restore `catalog.json` from `ba10ce19` (zero code change) → **fixes #1–#2**; *shipping* its contents remains licence-gated (O-2).
+3. `cargo test` → expect `210 passed; 0 failed`.
+4. Separately: `macos_permissions` plugin restoration (macOS mic) + Silero VAD asset provenance.
+
+### Source-of-truth conflicts surfaced (NOT unilaterally resolved)
+
+**C-1** T30's stale-test classification — **refuted**. **C-2** ADR-019 `D-CATALOG = B` (catalog stays unpopulated) — **not overturned**; the evidence (omission + placeholder fingerprint + byte-recoverable upstream file) is **new material input to owner decision O-2**. **C-3** v6 §21 provenance `UNKNOWN` — **partially resolved**: the pin is provably the source for `managers/transcription.rs`; the rest of the tree remains `UNKNOWN`. **C-4** ADR-018 vs the actual `post_process.rs` state — **violation**.
+
+### Scope constraints honoured
+
+- ✅ **No production source modified.** **Zero test files touched.** No config, capability, migration, Edge Function, workflow, `Cargo.toml`/`Cargo.lock`, manifest, ADR, or index file modified.
+- ✅ **`catalog/catalog.json` untouched — still 3 bytes `{}`.** Not populated. No model id/hash/URL/licence/quant/mirror/score/provenance invented. No weight licence inferred from a software licence.
+- ✅ **No transcription behaviour modified. No post-processing added or removed.** No STT producer. No second STT or insertion path.
+- ✅ **No commit, push, merge, rebase, reset, stash, checkout, clean, restore, or fork created.** PR #63 untouched.
+- ✅ **No CI added; no workflow touched; no release created.** No cross-compilation attempted.
+- ✅ **Upstream: `cjpais/Handy` only.** No substitute fork consulted.
+- ✅ **No provider mutation.** No secret read or printed. No `unsafe` introduced. **MCP not used.**
+- ✅ **No `PROGRESS.md` historical entry rewritten** — one entry appended. The `Last audited` header **not** rewritten (O-6/G-4, still open, owner act).
+
+### Evidence (read-only commands run)
+
+`cargo test -p soravo-desktop --lib --no-fail-fast` (7 failures reproduced) · `git clone --filter=blob:none cjpais/Handy` · `git archive ba10ce19` + `git archive main` · per-file `diff` across all `.rs` · `git log -S` / `--follow` / `--diff-filter=A` / `cat-file -s` bisects · md5 body comparison of all 7 failing tests vs pin AND main · `gh run view 36648915127` (`rust` failure, 3 jobs pass) · `gh pr list` · `gh run list` · `sha256sum` of `paste_tx/` vs `git show 5f56260c` → **MATCH ×3** (T33's claim independently reconfirmed).
+
+### Blockers
+
+**Owner decisions:** **O-1** transcription-test treatment — **this audit supplies the closing evidence: the tests are correct, the implementation is divergent** · **O-2** the 9 catalogue data items — **this audit supplies the closing evidence: `catalog.json` is a verbatim upstream data artifact, distinct from per-model licence approval** · O-4 `app.tsx:190-200` truthfulness · O-5 `docs/spec-v3/` authority · O-6/G-4 the stale `Last audited` header · O-7 desktop account/auth/entitlement scope. **C-2** requires an explicit owner ruling on ADR-019 `D-CATALOG = B` given the new evidence. T33's F1–F8 all carried unchanged.
+
+### Next exact task
+
+**STOP. This audit is complete. The recovery implementation is NOT started and is owner-gated on O-1 and O-2.**
+
+**Explicitly NOT next tasks:** no `text.rs`/`post_process.rs` edit without the O-1 ruling · no `catalog.json` population · no test rewriting · no re-fork · no commit, push, or merge · **no merge of PR #63**.
+
+---
+
+*Entry: T33-HANDY-DIVERGENCE-FORENSIC-001 — Authority: root `SPEC_MANIFEST.json` + the canonical `docs/Soravo_Engineering_Docs_v6/` pack + `PROGRESS.md` in full (4,118 lines) + a fresh Git/VM/PR/CI audit + T29/T30/T32-A…X/T32-Y/Y2/T32-S/T33 + ADR-018 and accepted ADR-019. Upstream source of truth: `cjpais/Handy` at `ba10ce1943ef34e93c09494027fc0b9ced2e8a44` and `29bd2c0d6b4b705df5fd6d2f387e5db5ecc27480`. Every classification re-derived first-hand from source comparison, `git log -S` bisects, md5 body equality against both upstream refs, and a fresh `cargo test` run, 2026-09-30, `t31/soravo-wrapper-completion` @ `31fb920a`.*
+
+---
+
+## T33-HANDY-INTEGRATION-ORIGIN-002 — HISTORICAL AUDIT OF THE HANDY INTEGRATION ORIGIN (2026-09-30)
+
+**Report:** `T33-HANDY-INTEGRATION-ORIGIN-002-REPORT.md`
+**Type:** STOP-GATED HISTORICAL AUDIT — **NO SOURCE CHANGES**
+**Method:** Git history + upstream Handy history. `PROGRESS.md` and prior reports were **not** used as proof; every fact is established by Git object inspection or by executing the existing test suite.
+
+### Headline
+
+The integration did not diverge through a sequence of small edits. It diverged **once, at the first migration commit, by omission** — and the omission was made *compilable*, not *correct*, seven days later by a hand-written Soravo substitute. That substitute is what today's CI is measuring.
+
+### The upstream pin is now provable — and the provenance record is wrong
+
+| | |
+|---|---|
+| **Upstream** | `https://github.com/cjpais/Handy` |
+| **Actual source pin** | **`ba10ce1943ef34e93c09494027fc0b9ced2e8a44`** (2026-09-15) |
+| **Proof** | Blob identity, not inference. The blob of `managers/transcription.rs` as committed in `5f56260c` — `bed8d92c638d84378ed3c4cd8c1335ce0888fae7` — **is** the blob of `ba10ce19:src-tauri/src/managers/transcription.rs`. 26 of 32 imported `src-tauri` files are byte-identical to that pin; 6 differ (all entry points / settings / catalog); 0 absent. |
+
+**Three of the four declared Handy pins in this repository are wrong.** `2f96f3d21213bce24f049996d5ab897f16acd31b`, recorded in `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md:13` as the Handy "Research HEAD", is a **Soravo commit** (`2026-09-27 fix: update pnpm-lock.yaml to match payment-domain package.json`) and does not exist in `cjpais/Handy`. The reuse matrix declares `8f9cf53c…` (2026-09-19), which is not the source of the imported blobs. Only the STT-003/TYPE-002-003 audits declare `ba10ce19` — and they are correct. The chain-of-custody doc still records upstream identity as `UNKNOWN`, which Git resolves exactly.
+
+### The two files that were never imported
+
+Verified by a ref-wide scan of all 84 refs:
+
+| Upstream file @ `ba10ce19` | Lines / bytes | In this repo |
+|---|---|---|
+| `src-tauri/src/audio_toolkit/text.rs` | 828 / 29,496 | **0 refs — never existed here** |
+| `src-tauri/src/audio_toolkit/lang_id.rs` | 170 / 6,685 | **0 refs — never existed here** |
+| `src-tauri/src/catalog/catalog.json` | 2,238 / 127,334 (69 models, 367 quants, 367 sha256, 69 revisions, 1 mirror) | **0 refs — never imported on any branch** |
+| `scripts/gen_catalog.py` | 301 | **absent** — yet named by `catalog/mod.rs:3` as the generator |
+| `audio_toolkit/post_process.rs` (Soravo) | 280 / 8,157 | 5 refs, all descendants of the `fc56c31b` squash |
+
+### Origin timeline (all Git-established)
+
+| Date | Commit | Event |
+|---|---|---|
+| 2026-09-18 13:48:44 | `83a506e8` | First Handy-derived desktop code (shell only, no transcription). |
+| 2026-09-19 23:28:50 | **`c30c2663`** (STT-003) | First Handy-derived transcription code (`crates/stt/stream_*`, engines). Its own audit line 90 records post-processing as **"None (Soravo) … Handy wins"**, and line 201 claims the worker does it — but `stream_worker.rs` (224 lines) contains **zero** post-processing. **STT-003 documented the gap in writing and shipped without it.** `crates/stt` is not in the desktop build, so this path is inert. |
+| **2026-09-21 01:35:09** | **`5f56260c`** | **First migration commit. THE OMISSION.** Adds `managers/transcription.rs` (byte-identical to `ba10ce19`) which imports 5 symbols from `crate::audio_toolkit`, and adds **no `audio_toolkit` at all**. Adds a 413-byte *invented* 2-model `catalog.json`. Tree cannot compile. |
+| 2026-09-21 01:35:20 (+11 s) | `557cfb66` | Deletes `catalog.json`, `catalog/mod.rs`, `commands/transcription.rs`, `managers/transcription.rs`. |
+| **2026-09-21 01:36:50** | **`842acdf9`** | Re-adds all four. `catalog.json` = literal `{}`. **First `{}` in history.** |
+| 2026-09-21 01:56:22 | `27bc0bc0` | "add missing audio_toolkit module" → `mod.rs` containing only `pub mod vad;`. Gap still open. |
+| **2026-09-22 06:07:35** | **`a156c8c9`** | **The commit on `main`'s ancestry.** Re-imports `managers/transcription.rs` (identical blob) **including its five language-aware post-processing tests**, plus `catalog/mod.rs` **byte-identical to upstream** and `catalog.json` = `{}`. `audio_toolkit/mod.rs` re-exports only from `soravo_audio`. Its own body concedes the build/test pass was deferred. **This is Q8's answer: Handy tests arrived without their implementation.** |
+| **2026-09-28 22:04:11** | **`fc56c31b`** (T22) | **THE SUBSTITUTION.** Adds `audio_toolkit/post_process.rs` (280 lines, 100% this commit by `git blame`) — the rename+simplification of Handy's `text.rs` + `lang_id.rs`. Also adds `T13-HANDY-CORE-BOUNDARY-AUDIT-REPORT.md` asserting *"Handy core preserved … ✅ COMPLIANT"* while omitting the substituted file from its inventory (`grep -c post_process.rs` → 0). Commit message: *"Boundary: Handy-core preserved per T13 audit"*. **Q2 and Q3 answers.** |
+| 2026-09-28 22:04:29 | `8e6fdc76` | `audio_toolkit/mod.rs` export re-ordering only. |
+| 2026-09-29 05:31:17 | `6324dc59` | Adds `pub mod post_process;` + the 4 re-exports. **The substitution becomes load-bearing for the build.** |
+| 2026-09-30 03:40:44 | `27200173` (T32-X) | **The only ratified Handy-derived line:** `#[serde(default)]` on `CatalogRoot::models`. Converts a startup **panic** into a **silently empty registry**. A mask, not a fix — its own body says so. |
+
+### The three concrete behavior changes in `post_process.rs` (origin `fc56c31b`)
+
+| Soravo | Upstream equivalent @ `ba10ce19` | Altered Handy behavior | Explains CI failure |
+|---|---|---|---|
+| `remove_filler_words` (`:109-158`) — one flat 16-token English list incl. `like/so/well/right/okay/actually`; language argument literally named `_output_language` and never read; `split_whitespace` + exact `HashSet` match | `text.rs:300-322, 426-458` — two tiers: `UNIVERSAL_FILLER_WORDS` unconditional, `gated_filler_words_for_language` gated on positive evidence (`en → um/ah/eh/ha`, `de → äh/ähm`, `fr → euh`); regex `(?i)\b{w}\b[,.]?` with capital-debt transfer | **YES** | **YES — 4 of 5** |
+| `normalize_transcription_output` (`:161-184`) — **uppercases the first char and appends `.`**; `collapse_stutters` and whitespace collapse **absent** | `text.rs:424-434` — `collapse_stutters` + `\s{2,}` → `" "` + `.trim()`. **No capitalization, no punctuation, at any point in Handy's history.** | **YES** | **YES — visible in 3 assertion diffs** |
+| `detect_output_language` (`:50-106`) — CJK/Latin script-range counting; any Latin text is `"en"` with 100% confidence, no gate | `lang_id.rs:1-85` — `whatlang` with per-model allowlist, `is_reliable() && confidence >= 0.9`, fails closed to `None`; its own tests assert `"um ok"` → `None` and the long Portuguese sentence → `Some("pt")` | **YES** | **YES — 2 of 5** |
+| `apply_custom_words` (`:23-47`) — whole-word Levenshtein only | `text.rs:10-222` — 1–3-word n-grams, Soundex, case-pattern preservation, Unicode-correct punctuation | **YES** | **No — latent, and the one most likely to survive a test-green restoration check** |
+
+Direction-of-travel note: upstream **added** capital *preservation* in `eb49dc02` (2026-09-27, "keep the sentence capital after removing a leading filler"); `fc56c31b` **added** capital *injection* ~18 h later. Both are visible in the failure output.
+
+### Answers
+
+- **A — Yes.** Handy's language-aware filler implementation was replaced **in effect**, but by omission-then-substitution, not by an edit. Never present in 0/84 refs. `git blame` is 100% `fc56c31b`.
+- **B — Yes.** The capitalize/punctuation layer is **invented, with no upstream equivalent at any point in Handy's history**, and its own test (`post_process.rs:262-265`) ratifies it. It violates this repo's own written rule in `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md` (*"no filler removal, normalization, punctuation rewriting"*).
+- **C — Yes, completely, from the first commit.** 127,334 B → 413 B invented stub (`5f56260c`) → deleted (`557cfb66`) → `{}` (`842acdf9`) → `{}` on `main` since `a156c8c9` → `{}` at `HEAD` (sha256 `ca3d163b…`). The reader was adopted byte-identically; the generator its doc names was never imported.
+- **D — Yes. `a156c8c9` (2026-09-22).** Five Handy tests asserting language-aware filler semantics arrived with no `text.rs`/`lang_id.rs`; `fc56c31b` then satisfied the compiler without satisfying the tests. **The five tests have never been edited, deleted, ignored, or annotated** — they are still failing at `HEAD`, and they are the strongest evidence the divergence was unintentional.
+- **E — Both, with a sharp fault line. Three tiers.**
+  - **RELIABLE — the imported source ancestry.** `managers/transcription.rs` imported byte-identical; `catalog/mod.rs` byte-identical; 26/32 files byte-identical; the working tree's 74-line delta is a behavior-neutral `impl Drop` relocation. **The fork did not corrupt Handy's code.** A blob-level diff against `ba10ce19` is a sufficient verification method here — a reusable asset.
+  - **UNRELIABLE, but precisely bounded — the asset layer.** All 7 failures trace to exactly **two never-imported files** plus the three commits that papered over them. Self-limiting, because the upstream tests were preserved, so the correct behavior is still written down in this repository.
+  - **UNRELIABLE — the provenance/governance record.** 3 of 4 pins wrong, one a **Soravo commit recorded as Handy provenance**; the reuse matrix has **no row at all** for the omitted subsystem, says `ADOPT` for a half-adopted catalog, and **inverts** the `REPLACE` classification for the one file that turned out to be preserved verbatim — which is precisely the mechanism that let a `REPLACE`-classified Soravo file silently back a verbatim-`HANDY-REUSE` file. The boundary audit certifying "✅ COMPLIANT" was authored in the substitution commit.
+  - **Do not re-fork. Do not distrust `managers/transcription.rs`. Do not treat the governance documents as evidence.** Re-verify by blob-diff; fix the record separately from the code — they are independent failures with independent fixes.
+- **F — Eleven files.** **Restore byte-identical from `ba10ce19`:** `audio_toolkit/text.rs` (828 L), `audio_toolkit/lang_id.rs` (170 L), `audio_toolkit/utils.rs` (10 L, supplies `get_cpal_host`), `audio_toolkit/constants.rs` (1 L, parity), `catalog/catalog.json` (127,334 B), `scripts/gen_catalog.py` (301 L). **Delete:** `audio_toolkit/post_process.rs` (280 L, no upstream counterpart). **Edit:** `audio_toolkit/mod.rs` (module + re-export shape only); `Cargo.toml` (**5 deps currently ABSENT**: `regex`, `strsim`, `natural`, `whatlang`, `isolang` — the last three are also absent from `Cargo.lock`, so this is a supply-chain gate, not a mechanical step); `catalog/mod.rs:33` (**revert the ratified `#[serde(default)]` — an owner decision, not to be folded in silently**). **MUST NOT be touched:** `managers/transcription.rs` (**zero changes** — already upstream-equivalent, and any edit would *introduce* a divergence), `catalog/mod.rs` beyond the revert, entry points, session state machine, `settings.rs` Soravo fields, `audio.rs`/`wav.rs`/`vad/`, `paste_tx/`, all payment/auth/licensing code, all `crates/**`.
+
+### Reproduction
+
+`cargo test -p soravo-desktop --lib` → **`203 passed; 7 failed`**. Full log: `/tmp/opencode/t33-test-full.log`.
+
+1. `catalog::tests::catalog_parses_and_is_nonempty` — *"bundled catalog should contain models"* (`catalog/mod.rs:227`)
+2. `managers::model::tests::test_discover_catalog_alternate_quant_in_models_dir` — *"catalog has multi-quant models"* (`managers/model.rs:2986`)
+3. `…::auto_language_without_detection_skips_gated_filler_removal` — `"Uhm ok."` ≠ `"um ok"`
+4. `…::ignored_user_language_is_not_output_evidence` — `"Eu vi carro."` ≠ `"eu vi um carro"`
+5. `…::portuguese_transcription_does_not_use_english_ui_filler_words` — `"Eu vi carro."` ≠ `"eu vi um carro"`
+6. `…::unknown_evidence_with_confident_text_detection_removes_gated_fillers` — `"The weather forecast said it would probably rain throughout the whole weekend."` ≠ `"so the weather forecast said it would probably rain throughout the whole weekend"`
+7. `…::unknown_evidence_with_portuguese_text_preserves_um` — `"Eu vi carro na rua ontem de manhã quando fui ao mercado."` ≠ `"eu vi um carro na rua ontem de manhã quando fui ao mercado"`
+
+Every diff is diagnostic alone: 3/4/5/6/7 show the invented capitalization and trailing `.`; 3/4/5/6/7 show the English-only list deleting `um` (Portuguese) and `so` (English). `.github/workflows/ci.yml:56` runs `cargo test --workspace`, so all 7 are CI failures.
+
+### New material for existing owner gates
+
+- **C-3 (v6 §21 provenance `UNKNOWN`)** — **resolved as far as Git can resolve it.** The pin is `ba10ce19`, proved by blob identity; the `UNKNOWN` in that document is now incorrect, and the recorded "Research HEAD" `2f96f3d2` is a **Soravo commit**. This is a documentation defect requiring its own correction, independent of any code change.
+- **C-2 (ADR-019 `D-CATALOG = B`)** — **not overturned.** New material: `catalog.json` is a verbatim upstream *data artifact*, which is a different act from the invented data `27200173` correctly refused to produce. The two should be decided separately.
+- **O-1′** — the five transcription tests are correct and the implementation is divergent; restoration means restoring the implementation, not adjusting the tests.
+- **O-2′** — restoring the catalog asserts 367 sha256 hashes / 69 revisions / per-model licences from verbatim upstream data. Licence-gated.
+- **New** — reverting `27200173`'s `#[serde(default)]` reverses a ratified owner decision and must be an explicit ruling.
+
+### Scope constraints honoured
+
+- ✅ **No production source modified. Zero test files touched.** No `.rs`, `.toml`, `.json`, `.lock`, `.yml`, capability, migration, Edge Function, workflow, or manifest modified.
+- ✅ **`catalog/catalog.json` untouched — still 3 bytes `{}`.** Not populated. No model id, hash, URL, licence, quant, mirror, score, or provenance invented. No weight licence inferred from a software licence.
+- ✅ **No transcription behavior modified. No post-processing added or removed.** No STT producer. No second STT or insertion path. `managers/transcription.rs` read only.
+- ✅ **No commit, push, merge, rebase, reset, stash, checkout, clean, restore, tag, or branch created.** No CI added. No PR touched. No cross-compilation.
+- ✅ **Upstream consulted: `cjpais/Handy` only.** No substitute fork.
+- ✅ **No provider mutation, no secret read or printed, no `unsafe` introduced.**
+- ✅ **Only writes: `T33-HANDY-INTEGRATION-ORIGIN-002-REPORT.md` and this appended entry.** No historical `PROGRESS.md` entry rewritten; the `Last audited` header not rewritten.
+- ✅ **Sole write-side-effecting command: `cargo test -p soravo-desktop --lib`**, which writes only to `target/` (gitignored, `.gitignore:6`) and runs the existing suite unchanged.
+
+### Next exact task
+
+**STOP. This audit is complete. The recovery implementation is NOT started and is owner-gated on O-1′, O-2′, and the `#[serde(default)]` ruling.**
+
+**Explicitly NOT next tasks:** no `post_process.rs` deletion or `text.rs`/`lang_id.rs` addition · no `catalog.json` population · no `Cargo.toml` dependency addition (supply-chain review required for `whatlang`, `isolang`, `natural`) · no `#[serde(default)]` revert without a ruling · no governance-document edit · no commit, push, or merge.
+
+---
+
+*Entry: T33-HANDY-INTEGRATION-ORIGIN-002 — Authority: root `SPEC_MANIFEST.json` + the canonical `docs/Soravo_Engineering_Docs_v6/` pack + `PROGRESS.md` in full. Upstream source of truth: `cjpais/Handy` at `ba10ce1943ef34e93c09494027fc0b9ced2e8a44` (proved by blob identity) and `29bd2c0d6b4b705df5fd6d2f387e5db5ecc27480`. Every classification derived first-hand from Git object inspection (blob hashes, `--follow`, `-S`, `blame`, ref-wide tree scans over all 84 refs) and from a `cargo test -p soravo-desktop --lib` run, 2026-09-30, on `t31/soravo-wrapper-completion` @ `31fb920a`. Where this audit reaches a conclusion also recorded in `T30-HANDY-V1-FAILURE-RECLASSIFICATION-REPORT.md` or `T33-HANDY-DIVERGENCE-FORENSIC-001-REPORT.md`, it was re-derived from Git first and is cited as independent confirmation, not corroboration.*
+
+---
+
+## T33-HANDY-RECOVERY-PLAN-003 — DETERMINISTIC RECOVERY PLAN (DOCUMENTATION ONLY — NOTHING IMPLEMENTED)
+
+**Date:** 2026-09-30 · **Branch/HEAD:** `t31/soravo-wrapper-completion` @ `31fb920a2b54b6effe12c55ec63bfffb8a8db7ac`
+**PR #63** OPEN · **`origin/main`** `ede495b5`
+**Deliverable:** `T33-HANDY-RECOVERY-PLAN-003.md`
+**Type:** Stop-gated recovery plan. Documentation only.
+
+### Determination
+
+**The existing fork is RECOVERABLE. A fresh Handy re-fork is NOT justified.** Both forensic reports (T33-001, T33-002) agree on this and the evidence re-confirms it: the damage is **two files wide** (`audio_toolkit/{text,lang_id}.rs` never imported; `catalog/catalog.json` created as `{}`), both traceable to a single commit each, both recoverable byte-for-byte from `cjpais/Handy@ba10ce19`. 0 of 4 re-fork threshold criteria met.
+
+### Baseline re-verified this session
+
+`cargo test -p soravo-desktop --lib --no-fail-fast` → **`203 passed; 7 failed; 0 ignored`** (byte-identical to CI run `36648915127`; `desktop`/`e2e`/`web` success, **`rust` FAILURE**). `ci.yml:56` runs `cargo test --workspace`, so all 7 are CI failures. **2 catalog + 5 transcription = two independent root causes.**
+
+### Two material corrections to Report 001 (re-derived first-hand, not inherited)
+
+1. **§16.4 Step 1 / §12 are materially incomplete and would not compile.** They propose restoring `text.rs` alone with deps `regex`/`once_cell`/`strsim`/`natural`. **False:** `text.rs` at the pin **does not define `detect_output_language`** (verified: 0 occurrences) — the symbol lives in **`lang_id.rs`** and is re-exported by upstream `audio_toolkit/mod.rs:12`. `managers/transcription.rs:1-4` is byte-identical to upstream and imports **five** symbols including `detect_output_language`, so deleting `post_process.rs` without `lang_id.rs` removes that symbol's only provider. Test #4 (`"um uhm ok"` → `"um ok"`, evidence `Unknown`) is only reachable via the confidence gate in `lang_id.rs:105-110` (`short_ambiguous_text_returns_none`). **Report 002 §10-F is correct; this plan uses its file list.**
+2. **§7.6's "empty custom list deletes the entire transcript" is false.** Verified at `post_process.rs:150-155`: the guard is `if !filler_words.contains(&lower) { keep }`, so an empty `HashSet` **keeps every word** and the output matches upstream's no-pattern case. A design-fragility observation, **not** a data-loss defect. **Do not carry that claim forward.** Test counts were likewise corrected from the reports' figures to counts read from the pin: **43** `text.rs` tests, **8** `lang_id.rs` tests (not 44/10).
+
+### Transcription — the six specified areas, all determined **RESTORE UPSTREAM**
+
+Read from `text.rs`/`lang_id.rs` at the pin and compared to HEAD. Each is present upstream and absent in Soravo:
+
+| Area | Upstream | Soravo |
+|---|---|---|
+| **Language evidence** | `lang_id.rs:57-83` — `whatlang` allowlist from model metadata, `is_reliable() && confidence >= 0.9`, **fails closed** to `None` | `post_process.rs:50-106` — script counts, any Latin text → `Some("en")`, **no gate** |
+| **Universal fillers** | `text.rs:305-310` — 14 non-lexical interjections only, unconditional | flat 16-token set mixing interjections with real English words |
+| **Language-gated fillers** | `text.rs:312-322` — `en→[um,ah,eh,ha]`, `de→[äh,ähm]`, `fr→[euh]`, **`_→&[]`**; applied only when evidence `.language()` is `Some` | **does not exist at any tier** |
+| **Portuguese `um`** | consequence of `_→&[]`; `um` never a candidate | `um` in the flat set, **always removed**; observed `"eu vi um carro"` → `"Eu vi carro."` |
+| **Unknown-evidence handling** | `text.rs:399-406` — `None => UNIVERSAL_FILLER_WORDS` only, gated tier `unwrap_or_default()` ⇒ **fail-closed** | unknown treated as confident English |
+| **Normalization** | `text.rs:424-434` — `collapse_stutters()` + whitespace collapse + trim. **No capital, no punctuation.** | adds capital + `.`; **drops** stutter + whitespace collapse |
+
+**Do not special-case `pt`** — restore the mechanism; a special case would be a new Soravo divergence. A seventh divergence, `apply_custom_words` (n-gram + Soundex vs a 25-line whole-token Levenshtein loop), is **silent — no test detects it**, so green CI will not have exercised it.
+
+### Five sections delivered
+
+1. **HANDY SOURCE RESTORATION** — R-1 `text.rs`, R-2 `lang_id.rs` (**required, not optional**), R-3 `utils.rs`+`constants.rs` *(defer)*, R-4 `catalog.json`, R-5 `gen_catalog.py`, R-6 5 deps, R-7 `mod.rs` surgical edit, R-8 delete `post_process.rs`, R-9 revert `#[serde(default)]` *(defer)*. Each with exact file, upstream blob, reason, current divergence, CI failures resolved, behaviour change, approval, Soravo-functionality risk, tests, rollback.
+2. **SORAVO INTEGRATION GLUE** — 16 entries to preserve. **`managers/transcription.rs` gets zero changes** — the caller is correct; editing it would *introduce* a divergence. `audio_toolkit/mod.rs` is the highest-risk line: **surgical edit only, never replace wholesale** (upstream's `pub use audio::{…read_wav_samples…}` collides with Soravo's `wav`; upstream's `vad` re-export drops 4 live Soravo names).
+3. **SORAVO-OWNED FUNCTIONALITY** — account/session/events/IPC, `crates/audio` (predates integration, `0b5b3705`), `crates/stt` (inert), `hotkey.rs` (unwired, ADR-019 HELD), `wav.rs`. **No action.**
+4. **AUTHORITATIVE MODEL DATA** — **§5.1** what imports verbatim with no human decision (69 models, 367 sha256, 367 sizes, 69 revisions, 69 capabilities, 1 mirror; blob `64fc3482a8c7ff8b0a053a043e789b22113045ec` **identical at pin and main**) vs **§5.2** the **T28 §7 nine-item human checklist, 0 of 9 closed**. Per-licence distribution counted from the pin: `apache-2.0`×25, `mit`×21, `cc-by-4.0`×15, **`other`×7, `cc-by-nc-4.0`×1** — **8 of 69 not shippable as-is**; ADR-011 still blocking. **Software licence (code) and weight licence (models) are separate gates**; neither discharges the other.
+5. **HUMAN-APPROVAL GATES** — **GATE-1** transcription behaviour (closes O-1′; **mandatory**), **GATE-2** `get_cpal_host` *(defer)*, **GATE-3a** catalog bytes (closes O-2 / ADR-019 F7; **split from 3b**), **GATE-3b** per-model licensing, **GATE-4** supply chain for `natural`/`whatlang`/`isolang` (all three **absent from `Cargo.lock`**), **GATE-5** `#[serde(default)]` revert *(reverses ratified ADR-019 A5; defer)*, **GATE-6** `macos_permissions` (separate; macOS is `UNKNOWN` per ADR-019 §10).
+
+**Ordering constraint:** GATE-4 must close for GATE-1 to complete (R-6 is a compile prerequisite). GATE-3a is independent. GATE-3b does not block R-4 — only *shipping* models.
+
+### R-9 finding — it is NOT a prerequisite
+
+With R-4 landed, `#[serde(default)]` is inert; the 2 catalog tests go green because the **data exists**, not because the schema was relaxed. **R-4 is safe on its own** and R-9 need not be bundled. Reverting a ratified ADR-019 line to undo a *future* silent-empty-registry mode is a separate, gated act — **recommend deferring**.
+
+### Two limits recorded, not resolved
+
+- **Test-count figure (249) is an expectation, not a verification** — `#[test]` counts read from the pin; only confirmed when step 3 actually runs. A number other than 249/0 is a STOP in **either** direction.
+- **ADR-018 has no standalone text file** in this repository. Its operative content is v6 §04 *V1 HANDY-CORE PRESERVATION POLICY* and v6 §21 *V1 behavior preservation requirements*, and ADR-019 §15 records ADR-018 as *"formally unapproved (pending since T29)"*. Cited through those two authoritative documents plus accepted ADR-019, **not** as a standalone text.
+
+### Scope constraints honoured
+
+- ✅ **No production source modified. Zero test files touched.** `git status` over `apps/ crates/ packages/ services/ supabase/ .github/ Cargo.toml Cargo.lock` shows only the two untracked files that pre-existed this session.
+- ✅ **No test rewritten to match Soravo.** No test added, edited, removed, relocated, ignored, or annotated. The 5 transcription tests are upstream tests and stay unedited.
+- ✅ **`catalog/catalog.json` untouched — still 3 bytes `{}`**, sha256 `ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356`. **No model data invented.** No catalogue data authored anywhere in this plan.
+- ✅ **Nothing implemented.** Every step is a proposal behind a §5 gate. No transcription behaviour added or removed.
+- ✅ **No commit, push, merge, rebase, reset, stash, checkout, clean, restore, tag, or branch.** PR #63 untouched. No provider mutation, no secret read or printed, no `unsafe` introduced.
+- ✅ **Upstream consulted: `cjpais/Handy` only** at `ba10ce19` and `29bd2c0d`. No substitute fork.
+- ✅ **Only writes: `T33-HANDY-RECOVERY-PLAN-003.md` + this appended entry.** No historical `PROGRESS.md` entry rewritten; `Last audited` header not rewritten.
+- ✅ **Sole write-side-effecting command: `cargo test -p soravo-desktop --lib`**, writing only to gitignored `target/`.
+
+### Next exact task
+
+**STOP. The plan is complete and implements nothing. Implementation is owner-gated on GATE-1 (transcription behaviour, closes O-1′), GATE-3a (catalog bytes, closes O-2), and GATE-4 (supply chain, prerequisite to GATE-1).**
+
+**Explicitly NOT next tasks:** no `post_process.rs` deletion · no `text.rs`/`lang_id.rs` addition · no `catalog.json` population · no `Cargo.toml` dependency addition · no `#[serde(default)]` revert · no test edit · no governance-document edit · no commit, push, or merge.
+
+---
+
+*Entry: T33-HANDY-RECOVERY-PLAN-003 — Authority: root `SPEC_MANIFEST.json` + the canonical `docs/Soravo_Engineering_Docs_v6/` pack (esp. §04 V1 preservation policy, §20 ADR index of record, §21 chain of custody) + `PROGRESS.md` + T28 §7 catalog checklist + T30 + T32-I + T32-Y accepted ADR-019 + `T33-HANDY-DIVERGENCE-FORENSIC-001-REPORT.md` + `T33-HANDY-INTEGRATION-ORIGIN-002-REPORT.md` + live `cjpais/Handy` at pin and current `main` + a fresh `cargo test` and Git/CI audit, 2026-09-30, on `t31/soravo-wrapper-completion` @ `31fb920a`. Two claims inherited from Report 001 were re-tested and **corrected** (§1.3 and §7.1 of the plan); test counts and the licence distribution were measured from the pin rather than taken from either report.*
+
+---
+
+## T33-I — HANDY PROVENANCE + V6 DOCUMENTATION RECONCILIATION (2026-09-30)
+
+**Status:** COMPLETE — **STOP-GATED DOCUMENTATION TASK ONLY.** No production
+source, test, catalog data, `Cargo.lock`, workflow, or UI was modified. No Handy
+restoration was started. No fresh Handy fork was created. No ADR was ratified.
+
+**Branch/HEAD (start = end of work):** `t31/soravo-wrapper-completion` @
+`31fb920a2b54b6effe12c55ec63bfffb8a8db7ac` (0/0 vs `origin/t31/soravo-wrapper-completion`).
+**`origin/main`** `ede495b55efd95cedd882d90a19d12b4777da852` — branch **18 ahead / 0 behind**.
+**PR #63** OPEN, head identical to local HEAD, `mergeStateStatus: BLOCKED`,
+`reviewDecision: REVIEW_REQUIRED` (0 of 1).
+
+### Reading gate — COMPLETED, in the mandated order
+
+`docs/Soravo_Engineering_Docs_v6/SPEC_MANIFEST.json` → **all 24 canonical v6
+documents in manifest order, full text** (00–21, `DESIGN.md`, manifest) →
+`PROGRESS.md` **in full (4,410 lines)** → **fresh Git/VM/PR/CI audit** → only
+then T32-W (spec + ADR draft), T32-X (audit), T32-Y (report + accepted ADR-019),
+T32-Y2 (no report file; the `PROGRESS.md` entry is the record), T32-S-RECOVERY,
+`T33-DESKTOP-V1-FUNCTIONAL-GAP-AUDIT.md`, and the three T33 Handy reports
+(`T33-HANDY-DIVERGENCE-FORENSIC-001`, `T33-HANDY-INTEGRATION-ORIGIN-002`,
+`T33-HANDY-RECOVERY-PLAN-003`). **No prior report was used as a substitute for
+the pack, and no prior report's conclusion was accepted on report** — every
+provenance fact below was re-derived first-hand.
+
+### Fresh state audit (run this session, before any edit)
+
+| Field | Value |
+|---|---|
+| Local HEAD | `31fb920a` — **identical** to `origin/t31/soravo-wrapper-completion`, 0/0 |
+| `origin/main` | `ede495b5`; 18 ahead / 0 behind; is an ancestor of HEAD |
+| Worktrees | 1 main + 3 in `.swarm-worktrees/` (`83a506e8`, `7eaea96f`, `d5a1f846`) — untouched |
+| `git diff --check` (pre-change) | exit **0** |
+| Tracked modifications at start | **1** — `PROGRESS.md` only (previous-task entries, uncommitted); classified `previous-task`, preserved, extended, **not** rewritten |
+| Untracked at start | **34**, all pre-existing, preserved untouched |
+| PR #63 | OPEN · `headRefOid` == local HEAD · **BLOCKED** · REVIEW_REQUIRED 0/1 |
+| CI @ `31fb920a` | `CI 36648915127` **FAILURE** — `web` pass 1m0s · `e2e` pass 57s · `desktop` pass 9m22s · **`rust` FAIL 8m35s**; `Security Audit 36648915113` **SUCCESS** (cargo-audit 11s · cargo-deny 38s · npm-audit 17s) |
+| Branch protection (`main`) | checks `web`/`e2e`/`rust`/`desktop`, `strict`, 1 review — read-only GET |
+
+### GitHub verification of every upstream claim — FIRST-HAND, all PASSED
+
+| Claim | Verification | Result |
+|---|---|---|
+| Upstream repo is `https://github.com/cjpais/Handy` | `gh api repos/cjpais/Handy` | ✅ `full_name: cjpais/Handy`, MIT, not archived, not a fork, default `main` |
+| Pin `ba10ce1943ef34e93c09494027fc0b9ced2e8a44` exists | `gh api …/commits/ba10ce19…` | ✅ exists |
+| Date `2026-09-15T05:29:06Z` | same call, `.commit.committer.date` | ✅ **exact match** |
+| Upstream tree at pin contains `audio_toolkit/text.rs` | `gh api …/contents/…` | ✅ 29,496 B · blob `82d45b5aced133ae5424365a707017cbf69cff98` |
+| … `audio_toolkit/lang_id.rs` | same | ✅ 6,685 B · blob `82834bdb7eb2196664fa999774c4678cb2c8534b` |
+| … `catalog/catalog.json` | same | ✅ 127,334 B · blob `64fc3482a8c7ff8b0a053a043e789b22113045ec` |
+| … `resources/models/silero_vad_v4.onnx` | same | ✅ 1,807,522 B (dir listing also shows `gigaam_vocab.txt`) |
+| … `src/paste_tx/{mod,macos,windows}.rs` | same | ✅ 11,071 / 13,036 / 22,234 B |
+| … Handy `managers/transcription.rs` | same | ✅ 100,389 B · blob `bed8d92c638d84378ed3c4cd8c1335ce0888fae7` |
+| Upstream `main` | `gh api …/commits/main` | ✅ `29bd2c0d6b4b705df5fd6d2f387e5db5ecc27480`, `2026-09-28T07:02:36Z`; `ba10ce19` **is an ancestor** |
+
+**Blob-identity proof (the load-bearing fact), confirmed two independent ways:**
+
+```
+Soravo  a156c8c9:apps/desktop/src-tauri/src/managers/transcription.rs
+        = bed8d92c638d84378ed3c4cd8c1335ce0888fae7
+Upstream ba10ce19:src-tauri/src/managers/transcription.rs
+        = bed8d92c638d84378ed3c4cd8c1335ce0888fae7      <- IDENTICAL
+```
+
+Obtained (a) from the GitHub Contents API and (b) from a local `cjpais/Handy`
+clone — same four blob SHAs both ways. `catalog/mod.rs` also identical at
+`a156c8c9` and at the pin (`fb11df0fe0a3d581e9d1d86e5b99299c733cc760`).
+
+### Local verification, first-hand
+
+- `2f96f3d21213bce24f049996d5ab897f16acd31b` → **`fix: update pnpm-lock.yaml to
+  match payment-domain package.json`, 2026-09-27** — a **Soravo** commit, an
+  ancestor of HEAD. **It is not a Handy source SHA.**
+- `842acdf9` → `Migrate to Handy desktop foundation (HANDY-MIGRATION-001)`, a
+  Soravo commit, **not** an ancestor of `origin/main`.
+- Ref-wide scan of all **84** refs: `audio_toolkit/text.rs` → **0 refs**;
+  `lang_id.rs` → **0 refs**; `post_process.rs` → 5 refs, all descendants of
+  `fc56c31b`.
+- `git log --all -S 'UNIVERSAL_FILLER_WORDS'` → **empty**.
+- Sole add commit for `post_process.rs` → `fc56c31b` (2026-09-28).
+- `git log --follow catalog/catalog.json` → **1 commit** (`a156c8c9`); local file
+  is 3 bytes `{}`, sha256 `ca3d163b…`.
+- `find … -name '*.onnx'` → empty. `find … -type d -name resources` → empty.
+- Upstream `src-tauri/src/audio_toolkit/post_process.rs` → **404**. No upstream
+  counterpart exists.
+
+### Two corrections this task made to the record — prior claims withdrawn
+
+1. **The `8f9cf53c…` "not the source" claim is WITHDRAWN as unproven.** `8f9cf53c`
+   carries the *same* `transcription.rs` blob as the pin, so blob identity
+   **cannot exclude it**. Additionally, blob identity proves upstream origin and
+   exact bytes but does **not** uniquely select one commit — that blob is
+   unchanged upstream from `e4ae0d44` (2026-09-10) through the pin to current
+   `main`. `ba10ce19` is recorded as the **pin of record** because it is the
+   commit this repository's own STT-003 / TYPE-002-003 audits declared and is a
+   dated immutable point on the upstream mainline — not because a blob uniquely
+   selects it. This limitation is now written into `21`.
+2. **The 26/32 byte-identical figure is frame-specific.** Re-deriving it over
+   *all* upstream `.rs` files under `src-tauri/src` at the pin, compared against
+   the same paths at `a156c8c9`, gives **61 files: 34 byte-identical · 7 differ ·
+   20 never imported**. Both figures are correct inside their own frame; they are
+   not the same count. `21` now records the frame explicitly. Also recorded in
+   `21`: `git rev-parse <rev>:<path>` echoes unresolved paths back and exits `0`,
+   so provenance re-checks must use `git ls-tree` — otherwise every absent file
+   silently reads as "differing". (A first attempt of this task's own probe used
+   `rev-parse` and produced exactly that false result; it was caught and redone.)
+
+### Files changed — exactly 9 documentation files
+
+- `docs/Soravo_Engineering_Docs_v6/21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`
+- `docs/Soravo_Engineering_Docs_v6/04_HANDY_FORK_AND_REUSE_POLICY.md`
+- `docs/Soravo_Engineering_Docs_v6/07_IMPLEMENTATION_PLAN.md`
+- `docs/Soravo_Engineering_Docs_v6/08_TASK_BREAKDOWN.md`
+- `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md`
+- `Soravo_Engineering_Docs_v6/{21,04,07,08}_…md` — 4 mirrored byte-for-byte to
+  the non-authoritative root mirror
+- `PROGRESS.md` — this entry
+
+### Files deliberately unchanged (protected, verified)
+
+**All production source** (`crates/**`, `apps/desktop/src-tauri/**`,
+`apps/desktop/src/**`) · **every test file** (0 touched) · **`catalog/catalog.json`**
+(still 3 bytes `{}`) · **`Cargo.toml` / `Cargo.lock`** · **`.github/workflows/**`**
+(T1 boot gate and T2 macOS/Windows jobs still absent) · **`post_process.rs`**,
+**`text.rs`, `lang_id.rs`** (not added) · **`app.tsx` / `ui/`** · **`00_README.md`,
+`09_AI_AGENT_INSTRUCTIONS.md`, `18_INTERRUPTION_AND_HANDOFF.md`** ·
+**`SPEC_MANIFEST.json` (both)** — `file_count: 24` NOT amended ·
+**`DESIGN.md`** · **`docs/archive/spec-v3/**`** and **`docs/spec-v3/`** (neither
+deleted nor declared nonexistent) · **the root stale authority declaration
+(`PROGRESS.md:6`) — NOT silently restored; still open item O-5** ·
+**`T32-W-ADR-019-…-DRAFT.md` and `T32-X-…-AUDIT.md`** retained unmodified ·
+**every historical `PROGRESS.md` entry** and the `Last audited` header (O-6/G-4,
+still open) · **all 34 pre-existing untracked paths** — none staged, modified,
+deleted or moved.
+
+### Tests / CI — OBSERVED ONLY, not executed by this task
+
+**No test was run. This is a documentation task; its change set contains zero
+source and zero test files.** The Rust/desktop baseline is therefore **carried,
+not re-measured**, and is `HISTORICAL/STALE` as a *current* claim:
+`203 passed / 7 failed` (2 catalogue-content + 5 transcription), measured by
+T32-X/T33 and confirmed in CI `36648915127`, which reports
+`test result: FAILED. 203 passed; 7 failed`. **CI state at audit time, before
+this change was committed:** `rust` **FAIL 8m35s**; `web`/`e2e`/`desktop` pass;
+`Security Audit 36648915113` SUCCESS. Post-push CI for this task's own commit is
+recorded in the follow-up entry below. **A documentation commit that does not
+turn `rust` green is the correct outcome**; clearing it by editing a test is
+prohibited.
+
+### Invariants verified
+
+| Invariant | Result |
+|---|---|
+| **Manifest** `file_count` == `files[]` == `read_order` == README table | **24 / 24 / 24 / 24 — HOLD**; all 24 entries present on disk; 2 disclosed `22_IMPLEMENTATION_COMPLETION_MATRIX*` extras unchanged; **manifest NOT amended** |
+| **Canonical/mirror** — only `00_README.md` and `20_ADR_INDEX.md` differ (both banner-bearing) + the 2 disclosed artifacts | **HOLD** — unchanged from T32-Y/T32-Y2 |
+| **No source/test/catalog/workflow/UI file changed** | **HOLD** — the change set is 9 Markdown files |
+| `git diff --check` | **exit 0** |
+| v6 pack merged into `main`? | **NO — verified.** `origin/main`'s `00_README.md` still reads *"Pack **v5**"*, has **0** hits for `PERMANENT READING GATE`, its `20_ADR_INDEX.md` has **no ADR-019 entry**, its `21` still records provenance `UNKNOWN`, and it lacks the two `22_*` artifacts. 9 pack files differ between `origin/main` and this branch. **v6 is NOT merged into `main` and is not claimed to be.** |
+| No conflict remained after verification | **NONE** — every claim in the task brief was corroborated; nothing was guessed |
+
+### Determinations
+
+1. **Purely corrective.** The change records a provenance fact and adds a
+   process control. No ADR trigger in `20_ADR_INDEX.md` fires. ADR-019 stays
+   accepted on its existing terms and `D-CATALOG = B` stays in force. The
+   correction supplies *evidence* for the open owner decisions; it does not make
+   them.
+2. **RESTORE-NOT-REFORK is additive.** It narrows the default action for a
+   traced, bounded, byte-recoverable omission. It relaxes nothing: V1 preservation,
+   stop conditions, no-duplicate-stacks, owner-gating, and the model-licensing
+   gate are all unchanged.
+3. **Two separations recorded explicitly** — source recovery is not model/weight
+   licensing (restoring bytes grants no distribution right; ADR-011 still
+   blocks), and missing runtime assets are not source recovery (the absent
+   `silero_vad_v4.onnx` is an asset gate a restore does not satisfy). No model,
+   licence, hash, mirror, or download URL was fabricated.
+4. **Mirror receives a pointer-free copy of the four edited files**, preserving
+   the invariant. The mirror's `20_ADR_INDEX.md` banner is untouched and was
+   **not** given a second ADR entry.
+5. **Scope disclosure on the commit.** `PROGRESS.md` carried 503 lines of
+   *previous* tasks' uncommitted entries (T32-S-RECOVERY, T33, T33-001, T33-002,
+   T33-003) at session start. Those were preserved, not rewritten. Because
+   `PROGRESS.md` is a single file and partial staging was not used, the
+   documentation commit necessarily carries them too. **They are documentation
+   only** — no source, test, config, or data. No stash, reset, or clean was used.
+
+### Security
+
+**Provider mutations: ZERO.** No Razorpay, Supabase, Cloudflare, or GitHub write
+API. All GitHub access read-only (`gh api repos/cjpais/Handy*`, `gh run`, `gh pr`,
+`gh pr checks`). No secret read, printed, or committed; secret state was not
+inspected because it was not needed. No `unsafe`. No security boundary moved —
+CSP, `capabilities/default.json`, RLS, webhook HMAC and `verify_jwt` untouched.
+Branch protection read-only. **MCP not used.** Only Markdown was written.
+
+### Commit / push / PR state
+
+Recorded in the follow-up entry below after the commit and push actually
+occurred. **PR #63 is not merged and not retitled.**
+
+### Next exact task
+
+**STOP. T33-I is complete. The Handy restoration is NOT started and is not
+started here.**
+
+1. **[OWNER]** GATE-1 — the transcription-behaviour ruling: restore upstream
+   `text.rs` + `lang_id.rs`, delete `post_process.rs`, which **changes live
+   user-facing output**. O-1′ remains open.
+2. **[OWNER]** GATE-3a — restore `catalog.json` bytes (provenance, reversible),
+   **separately** from GATE-3b — per-model licence and shipping approval (0 of 9
+   checklist items closed; ADR-011 still blocking).
+3. **[OWNER]** GATE-4 — supply-chain review of any dependency absent from
+   `Cargo.lock`; a compile prerequisite for step 1.
+4. **[OWNER]** The `#[serde(default)]` ruling (reverses a ratified ADR-019 line;
+   recommend defer).
+5. **Tier 1, agent-executable, no external input:** T1 boot gate · T2
+   macOS/Windows compile jobs · commit the 34 untracked `T*.md` reports ·
+   PR #63 retitle (**do not merge**) · add the missing `## T32-U` entry ·
+   O-6/G-4 stale `Last audited` header.
+6. Still open and unchanged: O-4 `app.tsx:190-200` · O-5 the `docs/spec-v3/`
+   authority declaration · O-7 desktop account/auth scope · F1–F8 · T32-S-1/2.
+
+**Explicitly NOT next tasks:** no `text.rs`/`lang_id.rs` addition · no
+`post_process.rs` deletion · no `catalog.json` population · no dependency
+addition · no `#[serde(default)]` revert · no test edit · no re-fork · no Handy
+behaviour change · no transcript/session layer · no `injectText()` caller · no
+`onTypingResult()` subscription · no `crates/transcript`/`soravo-stt`/
+`soravo-licensing` wiring · no `hotkey.rs` · no second STT or insertion path ·
+no VAD backend switch · no frontend redesign · **no merge of PR #63**.
+
+---
+
+*Entry: T33-I — Authority: `docs/Soravo_Engineering_Docs_v6/SPEC_MANIFEST.json` + all 24
+canonical v6 documents in manifest order + `PROGRESS.md` in full (4,410 lines) + a fresh
+Git/VM/PR/CI audit + T32-W/X/Y/Y2/S + T33 + T33-001/002/003, with every provenance fact
+re-derived first-hand from the GitHub Contents API, a local `cjpais/Handy` clone, and Git
+object inspection. Upstream source of truth: `https://github.com/cjpais/Handy` at
+`ba10ce1943ef34e93c09494027fc0b9ced2e8a44` (2026-09-15T05:29:06Z) and
+`29bd2c0d6b4b705df5fd6d2f387e5db5ecc27480`. Two inherited claims were tested and
+**withdrawn as unproven** (`8f9cf53c` exclusion; the frame of the 26/32 count), and a
+probe error of this task's own making (`git rev-parse` on unresolvable paths) is recorded
+rather than hidden. 2026-09-30, on `t31/soravo-wrapper-completion` @ `31fb920a`.*

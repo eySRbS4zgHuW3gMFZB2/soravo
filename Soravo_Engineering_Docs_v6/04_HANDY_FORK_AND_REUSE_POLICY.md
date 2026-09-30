@@ -111,6 +111,81 @@ Unless required for security boundary, platform/build compatibility, or explicit
 3. DO NOT change Handy behavior merely to satisfy the test
 4. Document the conflict in PROGRESS.md
 
+**Before concluding "stale test", check the other direction.** A failing test
+that is byte-identical to an upstream Handy test is evidence about the
+*implementation*, not about the test. Do not classify a preserved upstream test
+as stale or incorrect merely because the current Soravo implementation
+disagrees with it. Verify the upstream test's identity at the pinned Handy
+commit before choosing either classification.
+
+---
+
+## Recovery rule — RESTORE, DO NOT RE-FORK
+
+**RESTORE-NOT-REFORK** governs recovery of accidentally omitted or replaced
+Handy-derived source. Full detail, boundary and evidence requirements:
+`21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`.
+
+### The trigger
+
+Exact upstream omission or accidental replacement: the intended Handy subsystem
+exists, byte-for-byte, at the verified pinned upstream commit
+(`https://github.com/cjpais/Handy` @
+`ba10ce1943ef34e93c09494027fc0b9ced2e8a44`), and the Soravo migration either
+never imported it or substituted a Soravo-authored replacement for it.
+
+### The rule
+
+1. **Restore the exact pinned Handy source.** Byte-for-byte from the verified
+   upstream commit.
+2. **Prove blob identity / SHA-256** for every restored file, before and after.
+3. **Identify the minimum required dependency declarations** and record each
+   with evidence. A dependency change is a supply-chain decision and is never a
+   silent appendix to a restore.
+4. **Do not create a replacement implementation.** A Soravo-authored substitute
+   for source that exists upstream is itself the defect; authoring a second one
+   compounds it.
+5. **Do not re-fork** unless a documented fresh-fork threshold is actually met.
+6. **Do not special-case a language** to reach the required behaviour. Restore
+   the upstream mechanism.
+7. **Do not rewrite, remove, relocate, ignore, or annotate the Handy tests.**
+8. **Do not add Soravo post-processing.**
+9. **Do not perform an automatic Handy synchronization.** Restoration to the pin
+   is not synchronization with upstream `main`.
+
+### Fresh-fork threshold
+
+A fresh Handy fork is justified only when at least one of the following is
+established and recorded:
+
+1. substantial **untraceable** divergence — divergence that cannot be attributed
+   to identifiable commits;
+2. **systematic corruption** — whole subsystems rewritten or semantically
+   scrambled beyond mechanical reconstruction;
+3. **irrecoverable provenance** — upstream artifacts unavailable, ambiguous, or
+   unreproducible;
+4. **repair cost exceeding safe incremental repair**.
+
+Damage that is traced to identifiable commits, bounded in scope, and
+byte-recoverable from a verified upstream commit meets **none** of these and
+MUST NOT be used to justify a re-fork. A re-fork discards the working majority
+of the fork to repair a bounded defect.
+
+### What restoration does not decide
+
+Restoration is owner-gated where it alters live user-facing behaviour or
+reverses a ratified ADR decision. It does not by itself authorize:
+
+- shipping any model named by a restored data file (see
+  `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md` *Two separations that must never be
+  collapsed*);
+- acquiring any missing runtime asset;
+- any test, dependency, CI, or release change beyond what is listed above.
+
+This recovery rule is **additive**. It does not relax the V1 HANDY-CORE
+PRESERVATION POLICY above, the stop conditions in
+`09_AI_AGENT_INSTRUCTIONS.md`, or the no-duplicate-stacks rule.
+
 ---
 
 ## No duplicate stacks

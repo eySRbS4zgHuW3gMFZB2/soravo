@@ -27,7 +27,47 @@ Current known migration families:
 - `rodio` 0.22 / CPAL 0.17 compatibility;
 - Tauri tray/image API;
 - missing workspace crate membership/dependencies;
-- missing modules/functions created during the integration.
+- missing modules/functions created during the integration;
+- **Handy subsystems omitted or replaced during the original integration.**
+
+### Recovery order — RESTORE BEFORE ANY FRESH FORK
+
+When a Handy-derived subsystem is found to be missing, substituted, or
+divergent, recovery is attempted in exactly this order:
+
+1. **Establish upstream identity.** Resolve the exact upstream repository and
+   commit, proved by blob identity rather than inference. Record it in
+   `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`. The current verified pin is
+   `https://github.com/cjpais/Handy` @
+   `ba10ce1943ef34e93c09494027fc0b9ced2e8a44`.
+2. **Determine whether the damage is traced, bounded, and byte-recoverable.**
+   If it is, the correct action is **RESTORE, DO NOT RE-FORK** — see
+   `04_HANDY_FORK_AND_REUSE_POLICY.md` *Recovery rule* and
+   `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md` *RECOVERY RULE*.
+3. **Restore the exact pinned upstream bytes** and prove blob identity /
+   SHA-256 for every restored file, before and after.
+4. **Identify the minimum required dependency declarations.** Record each one
+   explicitly with its evidence. Anything absent from the lockfile is a
+   supply-chain gate requiring its own review, not a mechanical step.
+5. **Only then** consider whether a fresh fork is justified — and only against
+   the documented four-criterion fresh-fork threshold. A traced, bounded,
+   byte-recoverable omission meets none of the criteria and MUST NOT trigger a
+   re-fork.
+
+**Accidental omission is repaired by exact pinned-source restoration, not by
+re-fork and not by authoring a replacement.** A Soravo-authored substitute for
+source that exists upstream is itself the defect.
+
+**Restoration is owner-gated** where it alters live user-facing behaviour or
+reverses a ratified ADR decision, and it must be carried out without:
+
+- introducing a second STT pipeline;
+- special-casing any language to reach the required behaviour;
+- rewriting, removing, relocating, ignoring, or annotating the Handy tests;
+- adding Soravo post-processing;
+- performing an automatic Handy synchronization;
+- treating a restored data file as licence approval to ship its contents, or
+  treating a missing runtime asset as something a source restore supplies.
 
 Dependency rule:
 

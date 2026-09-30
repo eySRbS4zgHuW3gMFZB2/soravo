@@ -28,6 +28,38 @@ ADR-016 Documentation authority: GitHub implementation truth + this pack intent/
 ADR-018 V1 Handy-core preservation policy.
 ADR-019 **ACCEPTED (with recorded amendments)** — Handy V1 runtime restoration (minimum integration boot). Text: `T32-Y-ADR-019-HANDY-V1-RUNTIME-RESTORATION-ACCEPTED.md`. Shipped on PR #63 in `5649411d` and `27200173`. Decides `D-CATALOG = B` (schema tolerance only; `catalog.json` stays authoritative and unpopulated) and ratifies the `paste_tx/` restoration as restoration of existing source. Outstanding obligations recorded in the ADR: T1 boot gate, T2 macOS/Windows build jobs, `app.tsx` truthfulness. macOS/Windows compilation is `UNKNOWN`; only `x86_64-unknown-linux-gnu` was compiled and launched. **ADR-019 is the only current entry for this decision.**
 
+### Provenance correction note (documentary — not an ADR)
+
+Recorded by T33-I. **This note creates, accepts, amends, or ratifies nothing.**
+No ADR text was created, accepted, amended, or rejected. No trigger in
+*Create/update an ADR when* below fires, and no entry above or below this note
+changed status. ADR-019 remains accepted on exactly the terms already recorded,
+and `D-CATALOG = B` remains in force.
+
+What changed is the **provenance record only**:
+
+- The upstream Handy source identity is now resolved and recorded as
+  `https://github.com/cjpais/Handy` @ `ba10ce1943ef34e93c09494027fc0b9ced2e8a44`
+  (pin of record), with upstream origin and exact bytes established by blob
+  identity. See `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`, which previously recorded
+  upstream identity as `UNKNOWN`. That earlier state is `HISTORICAL/STALE`.
+  Blob identity establishes upstream origin and byte content; it does not
+  uniquely select a single upstream commit, and `21` records that limitation
+  explicitly.
+- A `RESTORE-NOT-REFORK` recovery rule was recorded in
+  `04_HANDY_FORK_AND_REUSE_POLICY.md` and `21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`.
+  It is a **process control**, not an architecture decision. It narrows the
+  default action for a traced, bounded, byte-recoverable omission and it does
+  not authorize any code, test, catalog, dependency, CI, or release change.
+- The owner decisions previously recorded as open are **unchanged and still
+  open** — the transcription-test treatment and the per-model catalog data and
+  licensing checklist. The provenance correction supplies evidence for those
+  decisions; it does not make them. It also does not overturn ADR-019's
+  `D-CATALOG = B`, which remains the governing position.
+- No ADR was required for this correction because a process control is not an
+  architecture decision. T32-Y set the same precedent for a control-plane
+  change.
+
 ## Numbering note
 
 `ADR-017` is absent from this sequence. ADR numbers in the v2 sequence
