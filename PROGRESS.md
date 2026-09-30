@@ -5458,8 +5458,63 @@ occurs.
 
 ## T33-O — POST-PUSH VERIFICATION (2026-09-30, follow-up)
 
-*(Recorded after the commit and push actually occur, per the permanent
+*Recorded after the commit and push actually occurred, per the permanent
 implementation discipline: CI state is recorded after push, not assumed from
-the commit succeeding.)*
+the commit succeeding.*
 
-**STOP. T33-O is complete. T33-P is NOT started. PR #63 is NOT merged.**
+**Commit** `cfa009f5d8b19ab1c3e58686246dd83bdc8d5167` —
+`docs(t33-o): verify T33-N CI green, PR #63 unmerged, and Handy readiness`.
+**2 files, both Markdown, 0 non-Markdown:**
+`T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md` (new, 692 lines) +
+`PROGRESS.md` (T33-O entry + `Last audited (T33-O)` header block). Staged
+numstat verified pre-commit as `279/1` + `692/0`. Staged non-Markdown filter
+**empty**; staged `.github/ crates/ apps/ services/ packages/ supabase/ Cargo.*
+pnpm-lock` filter **empty**. No production code, test, catalog, model asset,
+dependency, workflow, UI, licence file, or v6 pack/mirror file was modified.
+
+**Push** `df527558..cfa009f5 → origin/t31/soravo-wrapper-completion`. Local and
+upstream identical afterwards; **0 ahead / 0 behind**.
+
+**Worktree after commit:** **0 tracked modifications.** All **36** pre-existing
+untracked paths (31 prior-task `T*.md` reports + 5 other) preserved untouched —
+none staged, none reset, none cleaned. The 31 untracked reports remain a
+**separate** task and are **not** bundled into T33-O.
+`git diff --check` reports 2 trailing-whitespace notices on the two
+`Last audited` blockquote lines; these are **intentional Markdown hard line
+breaks** matching the file's pre-existing convention (HEAD lines 3/5/6/7 all
+carry the same two-space terminator). No source, test, or config file is
+affected.
+
+### CI — OBSERVED AFTER PUSH, NOT ASSUMED
+
+| Run | Workflow | Head | Status | Conclusion |
+|---|---|---|---|---|
+| `36675485952` | CI | `cfa009f5` | completed | **success** |
+| `36675485950` | Security Audit | `cfa009f5` | completed | **success** |
+
+`CI 36675485952` jobs: `web` success 1m2s · `e2e` success 49s ·
+`rust` success 9m11s · `desktop` success 7m50s.
+`Security Audit 36675485950` jobs: `npm-audit` success 22s ·
+`cargo-deny` success 42s · `cargo-audit` success 12s.
+
+**`gh pr checks 63` on head `cfa009f5` — all 7 PASS:**
+`web` · `e2e` · `rust` · `desktop` · `npm-audit` · `cargo-audit` ·
+`cargo-deny`.
+
+### PR #63 — OPEN, NOT MERGED
+
+Head `cfa009f5d8b19ab1c3e58686246dd83bdc8d5167` · `state: OPEN` ·
+`mergedAt: null` · `mergeStateStatus: BLOCKED` ·
+`reviewDecision: REVIEW_REQUIRED` (0 of 1). **Not merged, not retitled, not
+touched by this task.** The sole remaining blocker is the outstanding human
+approval; all four required CI contexts are green.
+
+**T33-O is complete. T33-P is NOT started. PR #63 is NOT merged.**
+
+---
+
+*Final head for the next agent:* `cfa009f5d8b19ab1c3e58686246dd83bdc8d5167`
+on `t31/soravo-wrapper-completion`. **Next exact task: T33-P — T2
+macOS/Windows build verification gate (ADR-019).** Read
+`T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md` §7 for its full
+rationale and explicit non-goals before starting it.
