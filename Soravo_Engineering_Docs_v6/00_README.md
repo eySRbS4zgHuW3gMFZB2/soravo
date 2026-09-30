@@ -72,6 +72,14 @@ security controls.
 > steps, substitution bans, `PROGRESS.md` governance, and the repeat-on-resume
 > rule — from `docs/Soravo_Engineering_Docs_v6/00_README.md`. Duplicating control
 > text here is the drift hazard the canonical/mirror split exists to prevent.
+>
+> **The Skill Selection Gate is part of that gate and is likewise a pointer
+> only.** It runs after the state audit and before planning, and no substantive
+> task may be planned or implemented until it has been run, its mandatory skills
+> loaded, and its `## Skill Selection` record written. Read it from
+> `docs/Soravo_Engineering_Docs_v6/10_AI_SKILLS.md` and
+> `docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` — this mirror
+> carries byte-identical copies of both.
 
 1. `00_README.md`
 2. `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md`

@@ -136,6 +136,60 @@ Freezing behavior is not endorsing it. Where the frozen behavior is itself
 undesirable, that is an owner product decision to be recorded — never a silent
 fix, and never a test edit that launders the defect into the specification.
 
+## Permanent Skill Selection Gate (non-negotiable)
+
+**No substantive task may be planned or implemented until the Skill Selection
+Gate has been run, its skills loaded, and its result recorded.** The gate is
+defined in full — classification, inventory, mandatory/optional, loading,
+tool/MCP selection, authority boundary, conflict check, record schema,
+re-evaluation, and the no-skill rule — in `10_AI_SKILLS.md`. This file makes it
+a permanent, STOP-grade control; `10_AI_SKILLS.md` is the single skill registry
+of record.
+
+The mandatory order is:
+
+```text
+READING GATE
+  → TASK CLASSIFICATION
+  → SKILL INVENTORY
+  → SKILL SELECTION
+  → SKILL LOADING
+  → MCP / TOOL SELECTION
+  → AUTHORITY + CONFLICT CHECK
+  → PLAN → IMPLEMENT → TEST → AUDIT → COMMIT / PUSH
+```
+
+Rules:
+
+- **Never skip from the reading gate to planning.** `READING GATE → PLAN →
+  IMPLEMENT → discover a relevant skill later` is forbidden. A task that reaches
+  planning without a recorded skill selection is not ready to start.
+- **Never carry a skill across tasks.** A task does not proceed because the
+  agent "knows" a skill's contents from a previous task, a previous session, a
+  report, or a summary. Reload every mandatory skill for the current task, in
+  the same way the reading gate is repeated on every task.
+- **Skills and tools are separate obligations.** A loaded skill is never
+  evidence that a tool or MCP was called; an available MCP is never evidence
+  that a skill was loaded. Select a tool because the task requires that action,
+  not because the tool exists.
+- **Never invent a skill.** If no skill exists for a task, that is not
+  permission to improvise: determine whether this pack already covers the task,
+  and if not, STOP and record the missing capability.
+- **Re-run the gate when scope changes.** If execution introduces a new
+  domain — frontend, workflows, licensing, model downloads, Supabase, or any
+  other — pause the implementation path, select and load the additional
+  mandatory skills and tools, and record the re-evaluation. Scope is never
+  silently expanded.
+- **Record it.** Every substantive task report carries a `## Skill Selection`
+  section with the schema in `10_AI_SKILLS.md`: task classification, mandatory
+  skills, optional skills considered, MCP/tools selected, skills deliberately
+  not selected, authority/source boundary, conflicts found, and
+  `Result: CLEAR | STOP`. Omitting it is a report defect.
+- **A mark is not a load.** A `## Skill Selection` block in `PROGRESS.md` or in
+  any prior report is evidence that a gate was run, never that a skill was read
+  in the current task. See `10_AI_SKILLS.md` *A skill mark is not a loaded
+  skill*.
+
 ## Mandatory first sequence
 
 1. read the entire engineering pack;
@@ -144,7 +198,10 @@ fix, and never a test edit that launders the defect into the specification.
 4. classify dirty/untracked work;
 5. inspect only task-relevant source;
 6. inspect Handy-derived equivalent before creating desktop abstractions;
-7. load the narrowest applicable skill;
+7. run the Skill Selection Gate: classify domains, inventory, select the
+   narrowest applicable skill set, **load every mandatory applicable skill**,
+   select tools/MCPs, and check the authority boundary and skill conflicts
+   (`10_AI_SKILLS.md`);
 8. verify fast-moving official APIs;
 9. write a bounded implementation plan;
 10. implement minimally;
@@ -231,6 +288,8 @@ Every task report MUST contain:
 - ADR/docs updated;
 - commit;
 - PR;
+- `## Skill Selection` (schema in `10_AI_SKILLS.md`; mandatory for every
+  substantive task);
 - next exact task.
 
 ## Stop conditions
@@ -252,7 +311,21 @@ Stop rather than inventing information when any of the following holds:
 - security would have to be weakened;
 - a dependency change crosses subsystem boundaries;
 - the first compiler error indicates a wider migration than the task scope;
-- **V1 HANDY-CORE PRESERVATION VIOLATIONS** (STOP and request product decision):
+- **SKILL SELECTION FAILURES** (STOP, document, and escalate):
+  - the skill registry cannot be located, or a second registry is found;
+  - a named skill's `SKILL.md` is absent from the live store;
+  - a selected skill conflicts with this pack, an accepted ADR, the V1
+    Handy-core preservation policy, the source boundary, the security baseline,
+    licensing requirements, CI/CD policy, the definition of done, or a stop
+    condition in this list;
+  - a mandatory applicable skill cannot be loaded, and no substitute evidence
+    is available for the claim it governs;
+  - a task domain has no covering skill **and** no covering instruction in this
+    pack — the missing capability is recorded, never improvised;
+  - the canonical pack and a root mirror of a skill document disagree
+    materially;
+  - MCP/tool ownership for a required action is ambiguous;
+  - **V1 HANDY-CORE PRESERVATION VIOLATIONS** (STOP and request product decision):
   - Changing Handy core STT behavior (audio, VAD, transcription, language detection, normalization, punctuation)
   - Adding Soravo transcription post-processing layer (filler removal, normalization, rewriting)
   - Creating duplicate STT/typing/clipboard implementations

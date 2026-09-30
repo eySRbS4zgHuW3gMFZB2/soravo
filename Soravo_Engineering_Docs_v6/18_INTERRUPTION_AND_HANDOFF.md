@@ -6,13 +6,16 @@ An interruption, restart, resume, handover, or context compaction **invalidates
 a previously completed reading gate**. On resume, repeat the **entire** permanent
 reading gate before any other action: read `SPEC_MANIFEST.json` and every
 authoritative document in read order from `docs/Soravo_Engineering_Docs_v6/` ·
-read `PROGRESS.md` in full · run a fresh Git/VM/PR/CI state audit · and only
-then read task-specific reports.
+read `PROGRESS.md` in full · run a fresh Git/VM/PR/CI state audit · **re-run the
+Skill Selection Gate and reload every mandatory applicable skill**
+(`10_AI_SKILLS.md`) · and only then read task-specific reports.
 
 A carried summary, a compacted context, a previous task report, chat history,
 agent memory or a condensed recap is **not** a completed gate and may not
 substitute for it. The recorded resume point tells you *where* work stopped; it
-does not tell you *what the rules are*.
+does not tell you *what the rules are*. The same is true of skills: a skill
+loaded before the interruption is **not** loaded for the resumed task, and a
+`## Skill Selection` block in `PROGRESS.md` is never evidence of a load.
 
 Re-verify the invariants that a resume can silently invalidate — one STT path,
 one insertion path, no Handy behavior change, no unedited test made green.

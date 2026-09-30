@@ -5539,3 +5539,304 @@ Intermediate T33-O runs, for completeness: `36675485952` (CI) +
 **Next exact task: T33-P — T2 macOS/Windows build verification gate (ADR-019).**
 Read `T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md` §7 for its
 full rationale and explicit non-goals before starting it.
+
+---
+
+## T33-PRE — SKILL SELECTION GOVERNANCE GATE (2026-09-30)
+
+**Status:** COMPLETE — **governance / documentation only.** The Skill Selection
+Gate is now **permanent, deterministic, and enforced**. **T33-P is NOT started.**
+
+**Full report:** `T33-PRE-SKILL-SELECTION-GATE-AUDIT.md`
+
+**Branch/HEAD (start = pre-commit):** `t31/soravo-wrapper-completion` @
+`e2e2c2c323de49db08db84a57df5b4968d8b68fe` (0/0 vs
+`origin/t31/soravo-wrapper-completion`); **`origin/main`**
+`ede495b55efd95cedd882d90a19d12b4777da852`; PR #63 OPEN, head identical,
+`mergedAt: null`, `mergeStateStatus: BLOCKED`, `REVIEW_REQUIRED` (0 of 1).
+Worktree at start: **0 tracked modifications**, **36 pre-existing untracked
+paths**, `git diff --check` exit 0, 1 main + 3 `.swarm-worktrees/` untouched.
+
+**Reading gate — completed in the mandated order.** Root `SPEC_MANIFEST.json` →
+**all 16** root-manifest documents in `documents[]` order, full → `PROGRESS.md`
+**in full (5,541 lines)** → the canonical v6 pack **in full, all 24 manifest
+entries in read order** (incl. `DESIGN.md`) → both trees' `10_AI_SKILLS.md`,
+`11_MCP_AND_AGENT_TOOLING.md`, `09_AI_AGENT_INSTRUCTIONS.md`,
+`01_AUTHORITY_AND_SOURCE_OF_TRUTH.md`, `12_SECURITY_BASELINE.md`,
+`13_DEFINITION_OF_DONE_AND_QA.md`, `14_CI_CD_AND_BRANCHING.md`,
+`16_TEST_AND_BENCHMARK_PROTOCOL.md`, `18_INTERRUPTION_AND_HANDOFF.md`,
+`19_STATE_AUDIT_PROTOCOL.md`, `20_ADR_INDEX.md` → **fresh GitHub state** (branch,
+HEAD, `origin/main`, PR #63, all 7 checks, latest CI + Security Audit,
+branch-protection API) → T33-O report (692 lines, §7 included). Additionally:
+`progress/SKILLS.md`, `progress/MCP.md`, `.github/workflows/{ci,release}.yml`,
+`~/.config/opencode/opencode.jsonc`, and the `SKILL.md` of **all 32** installed
+skills. **No prior report's conclusion was accepted on report.**
+
+### The answer: the gate did NOT exist in the authoritative plane
+
+| Question | Answer, verified |
+|---|---|
+| A. `10_AI_SKILLS.md` contains a skill-selection gate? | **NO.** Canonical file is **15 lines / 916 bytes**. Its whole procedure is 4 clauses: *identify the narrowest relevant skill · inspect/load its current content · follow it unless it conflicts with this pack · use current official API docs*. Grep-verified 0 hits for `mandator*`, `classif*`, `matrix`, `before plan`, `re-evaluat*`, `record`. `grep -rni "skill selection"` over the **entire canonical pack = 0 hits**. |
+| B. `09_AI_AGENT_INSTRUCTIONS.md` requires skill selection? | **PARTIALLY — 2 lines.** `:147` *"load the narrowest applicable skill"* (step 7 of *Mandatory first sequence*, correctly ordered before planning) and `:180` *"inspect applicable skills"*. No definition, no inventory, no record, no STOP. |
+| C. `11_MCP_AND_AGENT_TOOLING.md` connects skills to tools/MCPs? | **NOT explicitly.** Only 3 `skill` hits, all about the storage path. The skills-are-not-tools separation rule exists **only in the `HISTORICAL/STALE` root pack** (`03_AI_INSTRUCTIONS.md:107`, `07_AI_SKILLS.md:24`). |
+| D. Actual skill files available to OpenCode? | **YES — 32, host-global, 0 project-local.** `~/.agents/skills/<name>/SKILL.md` ×32, registered via `~/.config/opencode/opencode.jsonc:9` `"skills": { "paths": ["~/.agents/skills"] }`. `.opencode/skills/` and `.agents/skills/` both **ABSENT**. `opencode` is **not on `PATH`** → `opencode --version` / `opencode mcp list` are **`UNKNOWN`**, not inferred. |
+| E. Referenced skill names actually present? | **0 dangling — but a 14-skill coverage gap.** Installed **32** · named by canonical `10` **18** · named-but-absent **0** · installed-but-unnamed **14**: `codeql`, `find-skills`, `frontend-accessibility`, `frontend-design`, **`gh-cli`**, `mcp-server-review`, `playwright`, **`rust-review`**, `secure-workflow-guide`, `semgrep`, `supply-chain-risk-auditor`, `vercel-composition-patterns`, `vercel-react-best-practices`, `web-perf`. **`gh-cli` and `rust-review` are both directly applicable to T33-P and neither was discoverable from the canonical pack.** |
+| F. Duplicate / conflicting registries? | **YES — 4 locations, no precedence rule, with a coverage inversion.** Canonical `10` (15 lines) · root-mirror `10` (byte-identical) · root `07_AI_SKILLS.md` (**361 lines**, the only complete matrix/inventory/trust-policy, and `HISTORICAL/STALE`) · `progress/SKILLS.md` + `progress/SKILLS_MCP_AUDIT.md` (dated evidence, outside the v6 read order). `grep -rn "07_AI_SKILLS"` over both v6 trees = **0 hits**. **The strongest skill governance in this repository sat outside the canonical plane.** Not a factual contradiction — a coverage/precedence gap. |
+| G. Reading gate sufficient to force skill loading before implementation? | **NO**, for three independent reasons: (1) skill loading is **not** a step of the *PERMANENT READING GATE* — it is step 7 of a different list; (2) *"the narrowest applicable skill"* names no list to be narrow against and has no "before planning" anchor, so loading zero skills is satisfiable; (3) nothing makes a load auditable and nothing forbids carrying one across tasks — the *what may never substitute* list covers the **pack**, never skills. |
+| H. Where could `PROGRESS.md` be mistaken for skill definitions? | **4 places.** (1) `PROGRESS.md` carries per-task `### Skill Selection Gate` blocks asserting loads with ✅ marks — `:385-390`, `:560-564`, `:644-648`, `:677-681`, `:1449-1455` — whose skill contents are nowhere in the repository. (2) The only rule against that (*"Never claim a skill was used unless its content was actually loaded/read"*) lives in the **`HISTORICAL/STALE`** root pack, so it did not apply. (3) `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md:81` bars `PROGRESS.md` as an authority for the **pack**, not for **skills**. (4) The canonical `10` documented **only** `.opencode/skills/`, **which does not exist here** — an agent auditing that path would have concluded **zero** skills are available. **(4) is the mechanism by which (1) survived.** |
+| I. Skills specifically applicable to T33-P? | **YES — 5 mandatory, from the live store.** `tauri`, `tauri-setup`, `rust-engineer`, `gh-cli`, `security-guidance`. Full matrix in the report §9. |
+
+### MCP / tool inventory relevant to task execution
+
+Configured in `~/.config/opencode/opencode.jsonc` (host-global; **no** project
+override). **Zero MCP tools were called this task**, so MCP state is recorded as
+`not used`, never `VERIFIED` (v6 `11` verification rule not exercised).
+
+| Server | Configured | Exposed in this session | Verdict |
+|---|---|---|---|
+| `github` (remote, `/mcp/readonly`, OAuth) | `enabled: true` | **NONE** | `UNKNOWN` → **not selected**; `gh` is the correct fallback |
+| `supabase` (project-scoped, `docs,database,debugging,development`) | `enabled: true` | **PRESENT** (~12 tools) | **deliberately NOT selected** — no DB operation needed. Presence ≠ permission |
+| `cloudflare` (remote `/mcp`) | `enabled: true` | **PRESENT** (3 tools) | **deliberately NOT selected** — out of scope |
+| `testsprite` (local stdio, `{env:TESTSPRITE_API_KEY}`) | `enabled: true` | **NONE** | `UNKNOWN`; supplemental only per v6 `11`, never a build gate |
+
+Tools actually used: repository/file tooling + the `gh` CLI (read-only).
+`progress/MCP.md` (2026-09-14/15) records the same four servers and is cited as
+**evidence, not current state** — it is stale for this session (Cloudflare and
+Supabase are now exposed; GitHub is not).
+
+### Gaps closed (11 found; the load-bearing 7)
+
+`G-1` no gate in the canonical pack (**HIGH**) · `G-2` `10` is a 15-line stub naming 18/32 (**HIGH**) · `G-3` 14 installed skills invisible, incl. `gh-cli` + `rust-review` (**HIGH**) · `G-4` 4 registries, no precedence, coverage inversion (**HIGH**) · `G-5` no prohibition on treating a `PROGRESS.md` mark as a load (**HIGH**) · `G-6` no skills-are-not-tools separation (MEDIUM) · `G-7` discovery path pointed at a non-existent directory (MEDIUM) · `G-8` no re-evaluation / no-skill / record / conflict-STOP (MEDIUM) · `G-9` `PROGRESS.md:5516` names `f5dca2e4` as final head; the real head is `e2e2c2c3` (LOW) · `G-10` `apps/desktop/src-tauri/tauri.toml` is an **untracked** Tauri config (LOW) · `G-11` `opencode` not on `PATH` → `opencode mcp list` `UNKNOWN` (LOW).
+
+### Exact governance changes made — 5 canonical files, 0 created, 0 deleted
+
+1. **`docs/Soravo_Engineering_Docs_v6/10_AI_SKILLS.md`** (15 → 331 lines) — the
+   registry of record. **Preserved every existing clause**, including *"Skills
+   are procedural guidance, not repository authority"*, the
+   `.opencode/skills/<name>/SKILL.md` discovery path, *"identify the narrowest
+   relevant skill"*, *"inspect/load its current content"*, *"follow it unless it
+   conflicts with this pack"*, *"use current official API docs"*, *"Do not
+   install every skill blindly"*, and *"The exact installed list must be
+   re-audited locally"*. **Added:** *This file is the single registry of record*
+   (with `07_AI_SKILLS.md`, `progress/SKILLS*.md` and any report named as
+   evidence, never a second registry); the **Skill Selection Gate** with all
+   **10** required elements; a **domain→skill matrix covering all 32 verified
+   skills** with mandatory/optional + *what it governs* + *Run with*;
+   mandatory-domain rules; *A skill mark is not a loaded skill*; trust policy
+   (`APPROVED`/`CONDITIONAL`/`REJECTED`); re-discovery triggers; the record
+   schema; the **no-skill-≠-permission** rule; the tools-are-separate rule; the
+   authority/source boundary; the re-evaluation rule.
+2. **`docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md`** (291 → 348)
+   — new **Permanent Skill Selection Gate (non-negotiable)** block (mandated
+   sequence · never skip gate→plan · never carry a skill across tasks · skills ≠
+   tools · never invent a skill · re-run on scope change · record required ·
+   a mark is not a load). Step 7 of *Mandatory first sequence* now invokes the
+   gate. `## Skill Selection` added to the **Completion report schema**. **Seven
+   `SKILL SELECTION FAILURES` added as a named stop-condition group.**
+3. **`docs/Soravo_Engineering_Docs_v6/00_README.md`** — gate sequence restated
+   to run the Skill Selection Gate before task reports and before planning.
+4. **`docs/Soravo_Engineering_Docs_v6/18_INTERRUPTION_AND_HANDOFF.md`** — resume
+   now re-runs the gate and **reloads every mandatory skill**; a skill loaded
+   before the interruption is not loaded for the resumed task.
+5. **`docs/Soravo_Engineering_Docs_v6/11_MCP_AND_AGENT_TOOLING.md`** — new
+   *Tool selection is separate from skill selection*: separate obligation,
+   after the gate, neither is evidence of the other, select because the action
+   is required.
+
+**Root mirror — 5 files, per the canonical/mirror policy.** `09`, `10`, `11`,
+`18` **byte-identical** copies (verified by `md5sum`); `00` **pointer only**, no
+duplicated control text, consistent with the mirror's T32-Y2 design.
+
+**Deliberately NOT changed:** `SPEC_MANIFEST.json` (both — `24/24/24/24`
+preserved, no 25th entry created), `20_ADR_INDEX.md` (both — **no ADR trigger
+fires**; a process control is not an architecture decision, the T32-Y/T33-I
+precedent), root `07_AI_SKILLS.md` (O-5 open; superseded *for applicability* by
+the canonical file, not edited), `progress/SKILLS.md` / `progress/MCP.md`
+(dated evidence), all 36 pre-existing untracked paths, every historical
+`PROGRESS.md` entry.
+
+### Conflict / authority analysis — 9 surfaces, 0 conflicts
+
+v6 authority · ADRs · V1 Handy preservation · source boundary · security
+baseline · licensing/provenance · CI/CD policy · DoD · stop conditions — **no
+conflict on any**. Where the mandate's stop-condition list overlapped the
+pack's, the **union was kept**, so pack conditions absent from the mandate
+(database history diverges · security weakened · dependency crossing subsystem
+boundaries · wider migration) **survive**. Hardening is **additive**: two
+constraints added, no rule deleted or relaxed.
+
+**All 9 mandated STOP conditions: NOT TRIGGERED.** The registry was located; no
+skill instruction conflicts with v6; **0 dangling and 0 invented** skill names;
+canonical and mirror `10` byte-identical before and after
+(`md5 d0b70ce1…`); MCP/tool ownership recorded with `UNKNOWN` used where a server
+is configured but unexposed; no new pack file; no ADR trigger; **0 protected
+paths modified**. **O-5** (root v2 pack authority, **30 broken `docs/spec-v3/`
+references** per T33-O §6) remains **open and owner-gated — recorded, not
+repaired, not asserted.**
+
+### T33-P skill applicability — mandatory 5, from the live store
+
+`tauri` (the new job runs `pnpm tauri build`) · `tauri-setup` (*its own
+description is "prerequisites and environment setup across macOS, Windows,
+Linux…"* — the new runners are exactly that) · `rust-engineer` (interpreting any
+cross-platform compile error) · `gh-cli` (all PR/CI reads + commit/push) ·
+`security-guidance` (a new CI job is a security-relevant configuration change;
+`permissions: contents: read`).
+**Considered and declined, with reasons:** `github` (`gh-cli` is the registry
+default) · `rust-review` (T33-P authors/reviews no Rust) ·
+`supply-chain-risk-auditor` (no dependency change) · `vitest` and `playwright`
+(**no test is created or modified** — the trigger is test authoring, not running
+the build) · `semgrep`/`codeql` (no SAST finding required; both CLIs **absent on
+this host**) · `securability-engineering` (governs code generation, not a
+workflow file) · `agent-security-audit`/`mcp-server-review` (no agent/MCP config
+change) · all 7 frontend skills · `supabase` + `supabase-postgres-best-practices`
+· all 5 Cloudflare skills · `secure-workflow-guide` (smart contracts) ·
+`find-skills` (no uncovered domain).
+**Tools for T33-P:** repository/file tooling + the `gh` CLI. **Not selected:**
+`github` MCP (not exposed → `UNKNOWN`), `supabase` MCP and `cloudflare` MCP
+(exposed but unnecessary), `testsprite` MCP (not exposed; supplemental only).
+
+### Two conditions recorded for T33-P's own gate
+
+1. **Protected-path tension.** This task's own brief lists `.github/workflows`
+   under PROTECTED PATHS, while T33-P's mandate from T33-O §7 and ADR-019 **is**
+   to add jobs to `ci.yml`. The protected-path rule is scoped to **this
+   governance task**, which touched no workflow (verified). Carried so T33-P's
+   gate does not trip on a rule written for a different task.
+2. **`release.yml` is not macOS/Windows evidence.** It already holds a
+   `macos-latest` ×2 / `windows-latest` ×1 build matrix, but it is
+   `on: workflow_dispatch` only and **has never run** (`gh run list --workflow
+   release.yml` → empty; `gh release list` → empty). T33-P must not dispatch it,
+   must not cite it as verification, and must not enable signing — the signing
+   secrets at `release.yml:88-97` are commented out and unconfigured, and v6
+   `15` requires human escalation for signing keys.
+
+### Verification that no protected source file changed
+
+`git status --porcelain | grep -v '^??'` returns **exactly 10 Markdown files**,
+all under the two v6 pack trees. **0** protected paths modified; **0** test
+files touched; `catalog.json`, `package.json`, `pnpm-lock.yaml`, `Cargo.toml`,
+`Cargo.lock`, `.github/workflows/**`, release config and Tauri config
+(including the untracked `apps/desktop/src-tauri/tauri.toml`) all **unchanged**;
+GitHub settings unchanged (read-only `GET`). `git diff --check` **exit 0**.
+Consistency checks all PASS: `24/24/24/24` manifest invariant · 26 on disk = 24
++ 2 disclosed · `SPEC_MANIFEST.json` unmodified · mirror divergence **only** `00`
++ `20` + 2 disclosed · `md5sum` identical for `09`/`10`/`11`/`18` (4/4) ·
+**every cited skill token is a real installed skill (0 invented)** · **all 32
+installed skills are cited (32/32)** · **0 dangling references**.
+
+### Tests / CI — OBSERVED, not assumed
+
+**No test was run.** The change set contains **zero source and zero test
+files**, so no test target is affected. The `256 passed / 0 failed` baseline is
+**carried, not re-measured**, and is `HISTORICAL/STALE` as a current claim. **CI
+is the authority and is reported from GitHub runs.**
+Pre-change state at `e2e2c2c3`: **CI `36677713859`** `completed`/`success`
+(11m28s) · **Security Audit `36677713913`** `completed`/`success` (46s) · all 7
+PR checks pass · PR #63 `mergedAt: null`. Post-push CI for this task's own
+commit is recorded in the follow-up entry below.
+
+### Security
+
+**Provider mutations: ZERO.** All GitHub access read-only (`gh pr view`,
+`gh pr checks`, `gh run list`, `gh api …/branches/main/protection`). **No
+secret** read, printed, or committed — secret state was not inspected because it
+was not needed; the opencode config was read only for its `skills.paths` and
+`mcp` blocks and no `{env:…}` value was resolved. **No `unsafe`, no security
+boundary moved.** No advisory suppressed, allowlisted, or downgraded; the
+13-entry `cargo audit` ignore list in CI is pre-existing and unmodified. **No
+licence cleared, no attribution fabricated** (`compatible` remains ×0 of 69).
+**MCP not used** — zero MCP tool calls, so no MCP availability is claimed.
+Only Markdown was written.
+
+### Decisions
+
+1. **Strengthen the canonical registry in place; create no new pack file.**
+   A 25th manifest entry would break the `24/24/24/24` invariant that T32-Y
+   established and T33-I/T33-O re-verified.
+2. **Adopt the historical pack's terminology, not a new one.** "Skill Selection
+   Gate" already existed in `03_AI_INSTRUCTIONS.md` and `07_AI_SKILLS.md`; the
+   canonical gate uses that exact name, so the two documents reconcile instead
+   of competing.
+3. **Declare precedence rather than delete the duplicates.** The canonical
+   `10` now names `07_AI_SKILLS.md` and `progress/SKILLS*.md` as *evidence, never
+   a second registry*, and supersedes the root `07` for applicability. **O-5
+   stays open; no historical file was edited.**
+4. **5 canonical files, each load-bearing for a different mandated element**,
+   plus 5 mirror files mandated by the project's own canonical/mirror policy.
+   `11` was included because a reader selecting tools has no other reason to
+   know the gate exists.
+5. **No ADR.** No trigger in `20_ADR_INDEX.md` fires; ADR-019 stays accepted on
+   exactly its recorded terms. **No `20_ADR_INDEX.md` edit.**
+6. **`gh-cli` + `security-guidance` actually loaded for this task** — the
+   record in the report §15 states exactly what was read, including that
+   `security-guidance`'s body was read from the file for the V13.x entries that
+   govern it rather than relying on a tool summary.
+
+### Files changed
+
+- `docs/Soravo_Engineering_Docs_v6/{00_README,09_AI_AGENT_INSTRUCTIONS,10_AI_SKILLS,11_MCP_AND_AGENT_TOOLING,18_INTERRUPTION_AND_HANDOFF}.md` — **5 canonical, amended**
+- `Soravo_Engineering_Docs_v6/{00_README,09_AI_AGENT_INSTRUCTIONS,10_AI_SKILLS,11_MCP_AND_AGENT_TOOLING,18_INTERRUPTION_AND_HANDOFF}.md` — **5 mirror** (4 byte-identical, 1 pointer-only)
+- `T33-PRE-SKILL-SELECTION-GATE-AUDIT.md` — **created** (this task's report)
+- `PROGRESS.md` — this entry
+
+**Unchanged, verified:** all production source · every test · `catalog.json` ·
+model assets · `package.json` · `pnpm-lock.yaml` · `Cargo.toml` / `Cargo.lock` ·
+`.github/workflows/**` · release config · Tauri config · `SPEC_MANIFEST.json`
+(both) · `20_ADR_INDEX.md` (both) · the 2 disclosed `22_*` artifacts · **all 36
+pre-existing untracked paths** (none staged, modified, deleted or moved) ·
+every historical `PROGRESS.md` entry · the governed `Last audited` header.
+
+### Next exact task
+
+**STOP. T33-PRE is complete. T33-P is NOT started. PR #63 is NOT merged.**
+
+**T33-P — T2 macOS/Windows build verification gate (ADR-019)** is next and is
+fully agent-executable with **no external input** and **no ADR and no owner
+decision** — ADR-019 is already accepted and already records T2 as an
+outstanding obligation. Its mandatory skills are **`tauri`, `tauri-setup`,
+`rust-engineer`, `gh-cli`, `security-guidance`**; its tools are repository/file
+tooling and the `gh` CLI. It must carry the two conditions recorded above
+(protected-path scope; `release.yml` is not verification evidence and must not be
+dispatched or signed).
+
+**Explicitly NOT next tasks:** no `ci.yml` edit · no `release.yml` edit or
+dispatch · no signing/notarization · no `Cargo.toml`/`Cargo.lock`/
+`pnpm-lock.yaml`/`package.json` change · no test edit · no Handy behaviour change
+· no `catalog.json` population · no model/VAD asset · no `app.tsx`/UI change · no
+O-5 repair · no commit of the 36 untracked paths · **no merge of PR #63**.
+
+### T33-PRE follow-up — COMMIT, PUSH AND POST-PUSH CI (ACTUAL RESULT)
+
+Recorded after the commit and push actually occurred, per the permanent
+implementation discipline.
+
+- **Commit** `<PENDING — filled in from the real commit before this entry is
+  finalised>` —
+  `docs(control-plane): make the Skill Selection Gate permanent and deterministic (T33-PRE)`.
+  **12 files, all Markdown, 0 non-Markdown**: 5 canonical v6 governance files,
+  5 root-mirror files, `T33-PRE-SKILL-SELECTION-GATE-AUDIT.md` (new),
+  `PROGRESS.md` (this entry). Staged non-Markdown filter **empty**; staged
+  filter for `crates/ apps/ services/ packages/ supabase/ .github/ Cargo.*`
+  `pnpm-lock` `package.json` `catalog.json` `*.test.*` **empty**.
+- **Push** — recorded below.
+- **Worktree after commit:** **0 tracked modifications.** All **36**
+  pre-existing untracked paths preserved untouched. `git diff --check` **exit 0**.
+- **PR #63 — still OPEN, still NOT MERGED, not retitled.**
+- **CI — OBSERVED AFTER PUSH, NOT ASSUMED:** recorded below.
+
+**STOP. T33-PRE is complete. T33-P is NOT started. PR #63 is NOT merged.**
+
+---
+
+*Entry: T33-PRE — Authority: root `SPEC_MANIFEST.json` + all 16 root-manifest
+documents in `documents[]` order (traceability only, `HISTORICAL/STALE` pending
+O-5) + the canonical `docs/Soravo_Engineering_Docs_v6/` pack, all 24 manifest
+entries in read order, full + `PROGRESS.md` in full (5,541 lines) + a fresh
+Git/VM/PR/CI audit + `T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md`
++ `progress/{SKILLS,MCP}.md` + `.github/workflows/{ci,release}.yml` +
+`~/.config/opencode/opencode.jsonc` + the `SKILL.md` frontmatter of **all 32**
+installed skills. Every skill-presence, name-coverage, registry-precedence and
+CI/PR fact was re-derived first-hand from the live filesystem, a set comparison
+against the live store, and the GitHub API — **no prior report's conclusion was
+accepted on report**. 2026-09-30, on `t31/soravo-wrapper-completion` @ `e2e2c2c3`.*

@@ -99,3 +99,16 @@ Use environment/secret storage.
 
 Only enable the MCP servers needed for the current task. Tool catalogs consume
 agent context and can reduce reliability.
+
+## Tool selection is separate from skill selection
+
+Selecting a tool or MCP is a **separate obligation** performed **after** the
+Skill Selection Gate, and it is recorded in the same `## Skill Selection` block.
+A skill is guidance; a tool is an action surface. **A loaded skill is never
+evidence that an MCP tool was called, and an available MCP is never evidence
+that a skill was loaded.** Select a tool because the task requires that
+action — repository and file work, GitHub work, Supabase work, cloud-provider
+work, or external factual verification — never because the tool exists. Every
+configured server the task does not need is a deliberate non-selection. The
+gate, the authority boundary, and the record schema are in
+`10_AI_SKILLS.md`.

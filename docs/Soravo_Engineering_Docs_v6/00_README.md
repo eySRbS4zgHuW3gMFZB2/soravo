@@ -82,7 +82,11 @@ being asked.
 | 12 | `11_MCP_AND_AGENT_TOOLING.md` | 24 | `SPEC_MANIFEST.json` |
 
 Then, in order: read `PROGRESS.md` in full · perform a fresh Git/VM/PR/CI state
-audit · and only then read task-specific reports.
+audit · run the **Skill Selection Gate** (`10_AI_SKILLS.md`, and the permanent
+control in `09_AI_AGENT_INSTRUCTIONS.md`) · and only then read task-specific
+reports and plan. Skill selection and loading are part of the gate: no
+substantive task may be planned or implemented until the gate has been run, its
+mandatory skills loaded, and its `## Skill Selection` record written.
 
 **Which manifest.** The gate is driven by this directory's `SPEC_MANIFEST.json`.
 A second, older `SPEC_MANIFEST.json` exists at the repository root; read it and
