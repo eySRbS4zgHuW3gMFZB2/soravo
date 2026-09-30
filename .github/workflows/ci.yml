@@ -79,3 +79,88 @@ jobs:
       - name: Build Tauri desktop
         working-directory: apps/desktop
         run: pnpm tauri build
+  # ADR-019 T2: cross-platform build verification for the two declared
+  # primary_platforms (SPEC_MANIFEST.json: macOS, Windows).
+  #
+  # Compile verification only. `--no-bundle` produces no installer, no
+  # notarisation request, no updater manifest and no signed artifact, so
+  # this gate can never constitute or substitute for a release. It does not
+  # use, dispatch or modify release.yml, and it reads no secret.
+  #
+  # Targets mirror the existing repository matrix in release.yml exactly
+  # (macos-latest x aarch64-apple-darwin, macos-latest x x86_64-apple-darwin,
+  # windows-latest x x86_64-pc-windows-msvc). No target is invented here.
+  desktop-macos:
+    name: desktop build (macOS, ${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      # Never cancel the sibling leg: both macOS results are required evidence.
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Record host toolchain (diagnostics)
+        run: |
+          echo "runner_os=${{ runner.os }} runner_arch=${{ runner.arch }}"
+          echo "--- rustc -vV ---"
+          rustc -vV
+          echo "--- rustup target list --installed ---"
+          rustup target list --installed
+      - run: pnpm install --frozen-lockfile
+      - name: Compile Tauri desktop (no bundle, no signing)
+        working-directory: apps/desktop
+        run: pnpm tauri build --no-bundle --target ${{ matrix.target }}
+      - name: Assert lockfiles unchanged
+        shell: bash
+        run: |
+          if ! git diff --quiet -- Cargo.lock pnpm-lock.yaml; then
+            echo "::error::A build step modified a lockfile:" >&2
+            git diff -- Cargo.lock pnpm-lock.yaml >&2
+            exit 1
+          fi
+          echo "Cargo.lock and pnpm-lock.yaml unchanged"
+  desktop-windows:
+    name: desktop build (Windows, x86_64-pc-windows-msvc)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Record host toolchain (diagnostics)
+        shell: bash
+        run: |
+          echo "runner_os=${{ runner.os }} runner_arch=${{ runner.arch }}"
+          echo "--- rustc -vV ---"
+          rustc -vV
+          echo "--- rustup target list --installed ---"
+          rustup target list --installed
+      - run: pnpm install --frozen-lockfile
+      - name: Compile Tauri desktop (no bundle, no signing)
+        working-directory: apps/desktop
+        run: pnpm tauri build --no-bundle --target x86_64-pc-windows-msvc
+      - name: Assert lockfiles unchanged
+        shell: bash
+        run: |
+          if ! git diff --quiet -- Cargo.lock pnpm-lock.yaml; then
+            echo "::error::A build step modified a lockfile:" >&2
+            git diff -- Cargo.lock pnpm-lock.yaml >&2
+            exit 1
+          fi
+          echo "Cargo.lock and pnpm-lock.yaml unchanged"
