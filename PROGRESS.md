@@ -4809,3 +4809,148 @@ catalog or editing a test remains prohibited in this task.
 **STOP. T33-J is complete.** PR #63 is not merged. No catalog licensing, no
 model selection, no macOS/Windows builds, no UI truthfulness, no release
 work was started here.
+
+---
+
+## T33-K — CATALOG CI FAILURE FORENSICS AND RESTORATION DECISION (2026-09-30)
+
+**Status:** FORENSICS COMPLETE — STOP-GATED AUDIT ONLY. Zero source, test,
+catalog.json, Cargo, workflow, UI, or release-config modification. No commit.
+No push.
+
+**Reading gate:** v6 SPEC_MANIFEST + all 24 canonical v6 docs in manifest
+order → PROGRESS.md in full (4,811 lines) → fresh Git/PR/CI audit → T33-I +
+T33-J reports (facts re-derived first-hand) → ADR-019 ACCEPTED + v6 ADR-011 /
+T10 + T32-I + T28 + root ADR-011 (noted as different sequence: auth/session,
+not the model-licensing gate) → actual CI rust logs via
+`gh run view --log-failed` (not PROGRESS.md alone).
+
+**State audit:** branch `t31/soravo-wrapper-completion` @ `0cb38fdc` (T33-J
+code `12b569fa` + docs `0cb38fdc`), 0/0 vs origin apart from pre-existing
+untracked `T*.md` reports. PR #63 OPEN/BLOCKED (required `rust` red + 0/1
+review). CI `36659943960` FAILURE (`web`/`e2e`/`desktop` pass, `rust` FAIL
+8m: `254 passed; 2 failed`); Security Audit `36659943972` SUCCESS.
+`catalog.json` still 3 bytes `{}` (blob `0967ef42…`, sha256 `ca3d163b…`).
+
+**Local reproduction:** full suite `254 passed / 2 failed` (matches CI
+exactly). Failure 1: `catalog_parses_and_is_nonempty` (`mod.rs:227`,
+`bundled catalog should contain models` — CATALOG parses empty, assertion
+needs ≥1 model). Failure 2:
+`test_discover_catalog_alternate_quant_in_models_dir` (`model.rs:2986`,
+`catalog has multi-quant models` — needs ≥1 model with >1 quant file; panics
+before discovery logic). Both are content assertions, not deserialization
+panics (the T32-I `Lazy` poison is gone via ADR-019 A5). Neither is stale.
+
+**Byte/hash comparison (re-derived):** Soravo 3 B vs pin `ba10ce19`
+127,334 B blob `64fc3482…` (CONFIRMS T33-J); pin vs Handy main `29bd2c0d`
+IDENTICAL (same blob/size). Restoration = pure 127,334-byte copy, zero
+fabrication — technically feasible.
+
+**Test provenance:** failure-1 test fn byte-identical to upstream
+(`catalog/mod.rs` diff vs pin = ONLY the 5-line ADR-019 A5 insertion);
+failure-2 45-line test body diffs CLEAN (surrounding `model.rs` diffs are
+Soravo download-plumbing only, off the tested path). Preserved integrity
+witnesses per v6 §04; not stale; T33-J not reverted; no re-fork.
+
+**GATE-A (source/data recovery):** YES feasible byte-for-byte — but NOT
+AUTHORIZED (see below). **GATE-B (schema):** `{}` parses; use needs the
+T32-I §6 field set (ids, revisions, arches, quants, sha256/sizes, mirrors,
+scores); production consumers (`seed_catalog_models`, `file_in_catalog`,
+`mirror_fallbacks`, `rank_of`) degrade silently, none panic. **GATE-C
+(distribution):** BLOCKED — 69 upstream models (`handy-computer/*`, mirror
+`blob.handy.computer`); licenses 25× apache-2.0 / 21× mit / 15× cc-by-4.0 /
+1× cc-by-nc-4.0 (`canary-1b-gguf`) / 7× other; per-model commercial/
+redistribution verdicts UNKNOWN (0/9 T28 §7 items closed); v6 §02/§04/§05:33/
+§07/T10 + ADR-011 + §21 separations all in force. **GATE-D (assets):** no
+`resources/` dir, no `*.onnx` repo-wide, no `selected_model` — ADR-019 I4
+holds. **GATE-E (CI sufficiency):** restoration almost certainly turns both
+tests green (69 models; multi-quant throughout) with no other integration
+work expected — 8 vacuous passes have all prerequisites met (17/17 arches ∈
+`KNOWN_ARCHES`; 367/367 sha256 present; 0 null rev; 0 sortformer; https
+mirror) — but proof requires the post-restoration run, prohibited here.
+
+**ADR-019 coverage:** `D-CATALOG = B` (§2.1 A5 + §5) mandates
+*"catalog.json remains authoritative and unpopulated… 3 bytes: {}"* with F7
+deferring population to the ten-item checklist. Restoration would REVERSE a
+ratified decision (v6 §04: owner-gated). **NOT authorized. STOP.**
+
+**Owner decision required:** O-K1 (amend/except D-CATALOG=B for exact byte
+restoration, CI vs release scope) · O-K2 (per-model distribution approval:
+cc-by-nc + 7× other, HF org, mirror host, T10 checklist) · O-K3 (bytes-only
+scope). Smallest next task post-O-K1: **T33-L exact byte restoration**
+(blob-equality proof + full suite + fmt/clippy + push + CI observe).
+
+**Full report:** `T33-K-CATALOG-CI-FAILURE-FORENSICS-AND-DECISION-REPORT.md`.
+**STOP. No modifications. No commit. No push.**
+
+---
+
+## T33-L — HANDY CATALOG RESTORATION (2026-09-30)
+
+**Status:** COMPLETE — exact byte restoration + inventory + full verification.
+No test, implementation, model-manager, transcription, weight, VAD, UI, or
+workflow modification.
+
+**Owner authorization:** O-K1 (reverse ADR-019 `D-CATALOG=B`; restore exact
+upstream catalog) · O-K2 (full catalog scope; preserve per-model
+attribution/license/restriction metadata; no blanket license grant; no
+ownership claims; weights must not be redistributed against their terms) ·
+O-K3 (byte-for-byte from `cjpais/Handy @ ba10ce19`; no synthesis/reorder).
+ADR-019 D-CATALOG=B recorded as SUPERSEDED for catalog population only; rest
+of ADR-019 (I1–I5, F1–F8, T1/T2/app.tsx) untouched and in force.
+
+**Reading gate:** root `SPEC_MANIFEST.json` + all 24 canonical v6 docs in
+manifest order (00–21 + DESIGN sampled + manifest) → `PROGRESS.md`
+(head + all T33 sections + T33-K tail) → fresh Git/PR/CI audit → T33-K report
+in full → ADR-019 ACCEPTED (D-CATALOG=B supersession recorded) → T10/ADR-011
+licensing + §21 separations → live `gh` CI log evidence.
+
+**State audit (pre-implementation):** branch `t31/soravo-wrapper-completion`
+@ `0cb38fdc`, 0/0 vs origin apart from pre-existing untracked `T*.md` reports
++ uncommitted 73-line T33-K PROGRESS entry (preserved, not reset). PR #63
+OPEN/BLOCKED (required `rust` red + 0/1 review). CI `36660978480` FAILURE with
+byte-identical `254 passed; 2 failed` (same two catalog tests).
+`catalog.json` 3 bytes `{}` (blob `0967ef42…`).
+
+**Upstream fetch:** `cjpais/Handy @
+ba10ce1943ef34e93c09494027fc0b9ced2e8a44` (commit date `2026-09-15T05:29:06Z`
+verified via API). API metadata: size `127334`, blob
+`64fc3482a8c7ff8b0a053a043e789b22113045ec` — both match T33-K exactly. Raw
+bytes to `/tmp` (outside repo), then `cp` to
+`apps/desktop/src-tauri/src/catalog/catalog.json`.
+
+**Byte/hash proof (post-copy):** size `127334` ✓ · SHA-256
+`063dfdd5ec56867e863fb362110a90611a00ef38ba41fe4d0c08f23f8776a94e` ✓ ·
+`git hash-object` `64fc3482a8c7ff8b0a053a043e789b22113045ec` = upstream pin
+blob ✓. 2,238 lines. Zero bytes invented.
+
+**Diff:** exactly 2 paths — `catalog.json` (3 B → 127,334 B) + `PROGRESS.md`
+(this entry + T33-K entry). No test/impl/manager/transcription/weight/VAD/
+UI/workflow/Cargo change.
+
+**Tests:** targeted catalog tests both PASS · lib suite **256 passed / 0
+failed** (exact predicted `254/2 → 256/0`; baseline not regressed) ·
+`cargo test --workspace` all-green repo-wide (355 passed total, 0 failed) ·
+`cargo fmt --all -- --check` PASS · `cargo clippy --workspace --all-targets
+-- -D warnings` PASS · `cargo audit --deny warnings` (CI ignore list) exit 0
+· `cargo deny check` all-ok.
+
+**Inventory:** 69 models / 367 files / all multi-quant. Declared licenses:
+25× apache-2.0 / 21× mit / 15× cc-by-4.0 / 1× cc-by-nc-4.0
+(`canary-1b-gguf` → `restricted`) / 7× other (→ `unknown`); 61× `requires
+notice`; **0 marked compatible/distributable-approved**. Intent for all 69:
+reference/download only — no weights bundled, none downloaded. Catalog =
+metadata; weight redistribution rights NOT granted by this restoration.
+
+**Asset blockers (unchanged):** no `resources/` dir · no `*.onnx` repo-wide ·
+`selected_model` still `""` · ADR-019 I4 holds · mirror host
+`blob.handy.computer` needs trust approval · T28 §7/T10 checklist still 0/9
+for distribution.
+
+**Future release work:** (§10 of report) canary-1b NC carve-out/permission
+decision · 7× `other` per-model source-license review · 61× weight-level
+license confirmation + attribution/notice satisfaction · website + docs
+attribution pages (Handy MIT + per-publisher, no ownership claims) ·
+HF-org/mirror-host approval.
+
+**Full report:** `T33-L-HANDY-CATALOG-RESTORATION-REPORT.md`.
