@@ -2,6 +2,7 @@
 
 > **Canonical status for AI agents**  
 > **Last audited:** 2026-09-30 (**T32-X — POST-RUNTIME-RESTORATION AUDIT.** Full audit report: `T32-X-POST-RUNTIME-RESTORATION-AUDIT.md`. **All 14 T32-W implementation checks VERIFIED** at HEAD `27200173` — commits present and pushed, PR #63 head identical, app boots (15 s launch, exit 124, 0 panics, 0 `PluginInitialization`), `.setup()` constructs S3–S10 in the ADR-019 order, `initialize_shortcuts` registered (16 commands), the 7 `hotkey_*` + `retry_history_entry_transcription` still unregistered, **one** reachable STT path, **one** insertion path, `injectText()` 0 `.tsx` callers, `typing://result` 0 subscribers, `paste_tx/` **byte-identical** to `5f56260c` (SHA-256 ×3), catalog change exactly the ratified 1-line `#[serde(default)]` with **zero** model data invented, **zero** Handy behaviour files edited, **zero** post-processing added. **Test baseline 203 passed / 7 failed — confirmed twice (local + CI run `36638028609`), the expected 188/15 → 203/7 transition.** Remaining 7 classified: **2 = missing authoritative catalog data**, **5 = frozen-V1 transcription disagreement**, **0** Soravo defects, **0** build/env, **0** unknown. `rust` remains the only red required check, so **PR #63 is `BLOCKED` (0 of 1 review also outstanding) and was NOT merged.** **STOP — two governance conflicts escalated, not resolved:** (1) **ADR-019 is `DRAFT — NOT RATIFIED`, its ratification table is entirely unchecked, `20_ADR_INDEX.md` has no ADR-019 entry, and it states *"No implementation is authorized"* — yet the implementation is committed and pushed.** Four ADR claims are now factually wrong (T3's `188/15` requirement would misclassify a correct implementation as a regression; D5.6; D7-B's "the other 9 continue to fail"; Security-impact "Cargo.lock unchanged") and two obligations are unfulfilled (T1/T2, `app.tsx` truthfulness). The ADR is also **narrower than what shipped** (`paste_tx` + 2 macOS deps are outside its scope). **The exact documentation changes are prepared (R-1…R-11) and were NOT applied — acceptance is the owner's act.** (2) **The authoritative docs contradict the implementation:** `docs/spec-v3/` — named authoritative by this file's line 6, `README.md` and `SORAVO_PLAN.md` — **does not exist as a directory** (0 tracked files), and **two tracked, divergent `20_ADR_INDEX.md` files** exist while the v6 read order names the file without a path. **macOS and Windows have NEVER been compiled** — only `x86_64-unknown-linux-gnu` is installed and `release.yml` (the sole workflow with those runners) is `workflow_dispatch`-only and **has never run**; both targets are `UNKNOWN`, not supported. Dictation still cannot produce text: no model, no `selected_model`, no Silero VAD asset — assets, not code. `app.tsx:190-200` is **stale** (global shortcuts false, two clauses misattributed) → separate Soravo-owned UI follow-up. Full test evidence, exact blockers, and next tasks in the report.)
+> **Last audited (T33-N, 2026-09-30):** Web/Security-Audit dependency forensics + minimal remediation. HEAD `a8a4d151` = PR #63 head. `rust`/`e2e`/`desktop` GREEN; `web` + Security Audit RED on 6 prod-audit findings (2 HIGH + 4 MODERATE, all `shadcn`-rooted transitives). Remediation applied: `pnpm-lock.yaml`-only 3-snapshot refresh (`brace-expansion@5.0.12`, `fast-uri@3.1.8`, `ip-address@10.7.1`); local `pnpm audit --prod` + `--audit-level=high` both exit 0 with 0 vulnerabilities; lint/typecheck/test/build all pass. Prior `Last audited` line above is HISTORICAL/STALE (T32-X era). Full record: `T33-N-WEB-DEPENDENCY-AUDIT-AND-REMEDIATION-REPORT.md` + T33-N entry at end of this file.  
 > **Main SHA:** ede495b55efd95cedd882d90a19d12b4777da852  
 > **Authority:** SORAVO_PLAN.md, docs/spec-v3/  
 > **Razorpay 018–026:** committed to `feature/razorpay-payments-021-026` at
@@ -4966,3 +4967,151 @@ live-registry advisory, zero JS files changed — external (C), separate
 follow-up, not improvised here). Security Audit `36667412081` fails on the
 same npm cause. PR #63 OPEN/BLOCKED on `web` + 0/1 review; merge is a human
 decision.
+
+## T33-M — WEB CI BRACE-EXPANSION FORENSICS (audit only, 2026-09-30)
+
+**Scope:** STOP-gated forensics. No dependency/package.json/lockfile/source/
+test/workflow/config modification. T33-L catalog restoration NOT reverted.
+Branch `t31/soravo-wrapper-completion` @ `a8a4d151`, PR #63 OPEN/BLOCKED.
+
+**Failing job:** CI run `36668791974`, job `web` (109739124578), step
+`pnpm audit --prod` (ci.yml:26) — lint/typecheck/test/build all passed.
+Same shape on runs `36667412074` + Security Audit `36668791999`/`36667412081`.
+
+**Failure output:** 6 vulns (2 high + 4 moderate), exit 1. HIGHs: (1)
+`GHSA-qhr7-859c-m2p7` brace-expansion nested-recursion DoS, vuln
+`>=4.0.0 <5.0.11`, fixed `>=5.0.11`; (2) `GHSA-6j4f-fj2g-mc7p`
+parseCommaParts DoS, vuln `>=4.0.0 <5.0.10`, fixed `>=5.0.10`. Plus moderate
+`GHSA-q2hr-2g5m-vwhr` (vuln `<5.0.12`, fixed `>=5.0.12`) and moderate
+fast-uri/ip-address strays. Single fix line `brace-expansion >= 5.0.12`.
+
+**Chain (lockfile @ failing commit):** `@soravo/desktop|website`
+(dependencies) > `shadcn@4.21.0` > `ts-morph@26.0.0` >
+`@ts-morph/common@0.27.0` > `minimatch@10.2.6` > `brace-expansion@5.0.9`
+(integrity `sha512-ScQ4I…/Wxg==`). Transitive, NOT direct; prod-DECLARED
+(`shadcn` in `dependencies`, hence in `--prod` graph) but functionally a
+dev CLI (`bin ./dist/index.js`, zero `src` imports). No `package.json`
+declares brace-expansion; no `pnpm.overrides` exists.
+
+**Parent comparison:** `git diff 0cb38fdc..a8a4d151 -- package.json
+apps/*/package.json pnpm-lock.yaml` EMPTY; T33-L touched only `catalog.json`
++ docs. `brace-expansion@5.0.9` byte-identical before/after T33-L.
+
+**Origin:** first present in foundation `739ea664` (2026-09-14) with the
+identical range + integrity. Fixes `5.0.10/11/12` published 2026-09-14;
+`web` flipped SUCCESS (`36660978480`, ~02:41 UTC) → FAILURE (`36667412074`,
+~04:06 UTC) on the IDENTICAL lockfile — live-registry exposure.
+
+**Classification: A (pre-existing) + D (newly exposed by registry
+advisory).** NOT introduced/changed by T33-L (B/C excluded).
+
+**Reachability:** NOT reachable in shipped artifacts — `shadcn` never
+imported/bundled; `brace-expansion` runs only on `shadcn` codegen globs with
+no attacker-controlled input path. CI-gating HIGH, runtime LOW/NONE.
+
+**Remediation (NOT executed):** R1 refresh to `5.0.12` (parent range
+`^5.0.8` allows, minimal) vs R2 `pnpm.overrides` pin vs R4 move `shadcn` to
+devDeps (owner/ADR decision) — see §15–17 of full report. R5/R6
+(suppress/weaken gate) REJECTED.
+
+**Full report:** `T33-M-WEB-CI-BRACE-EXPANSION-FORENSICS.md`.
+**Smallest next task:** T33-N pin/refresh brace-expansion to `>=5.0.12`
+with full `web`-gate proof. No commit/push by this task.
+
+---
+
+## T33-N — WEB DEPENDENCY AUDIT FORENSICS + MINIMAL REMEDIATION (2026-09-30)
+
+**Scope:** STOP-gated forensics first (read-only), then the report-authorized
+minimal remediation. Branch `t31/soravo-wrapper-completion` @ `a8a4d151`
+(= PR #63 head, OPEN/BLOCKED, 0/1 review).
+
+**Reading gate (mandated order):** root `SPEC_MANIFEST.json` → all 24
+canonical v6 docs (`docs/Soravo_Engineering_Docs_v6/`, incl. 00 canonical
+README + 20 ADR index of record) → `PROGRESS.md` in full (5,018 lines)
+→ fresh Git/PR/CI audit → T33-M/L/K/J in full + T33-I (`PROGRESS.md`
+§T33-I; no standalone file exists) → `package.json` (root + both apps)
++ `pnpm-lock.yaml` + `ci.yml` + `security-audit.yml`. No prior report
+accepted on report; every dependency fact re-derived first-hand.
+
+**CI evidence:** Latest failing runs `36668791974` (CI, `web` FAILURE at
+`pnpm audit --prod`, siblings SUCCESS) + `36668791999` (Security Audit,
+same npm cause). Output: `6 vulnerabilities found / 4 moderate | 2 high`,
+exit 1. Prior run `36660978480` was `web`-SUCCESS on the IDENTICAL
+lockfile — live-advisory surfacing, zero manifest/lockfile delta.
+
+**Local reproduction (pinned `pnpm@11.17.0`):** `pnpm audit --prod` →
+identical 6 findings, exit 1. `pnpm why` → single resolved versions:
+`brace-expansion@5.0.9`, `fast-uri@3.1.7`, `ip-address@10.7.0`, all paths
+under `shadcn@4.21.0` (in `dependencies` of both apps, hence `--prod`).
+
+**Inventory (all 6):** HIGH `GHSA-qhr7-859c-m2p7` + `GHSA-6j4f-fj2g-mc7p`
+(brace-expansion, fix `>=5.0.11`/`>=5.0.10`); MODERATE
+`GHSA-q2hr-2g5m-vwhr` (brace, fix `>=5.0.12`), `GHSA-hrr3-gc8f-f4qj`
+(fast-uri `3.1.7`, fix `>=3.1.8`), `GHSA-j6r3-76f7-8jcv` +
+`GHSA-h3mg-xc3c-68pw` (ip-address `10.7.0`, fix `>=10.7.1`). Chains:
+`shadcn → ts-morph → @ts-morph/common → minimatch → brace-expansion`;
+`shadcn → dotenvx/conf/ajv + MCP-sdk/ajv → fast-uri`;
+`shadcn → MCP-sdk/express-rate-limit + socks → ip-address`. All
+CLI-only (zero `src` imports; sole `shadcn` hit is a CSS `@import`;
+`vite build` never bundles CLI dep trees) — CI-gating HIGH, runtime
+LOW/NONE. Suppression prohibited and NOT invoked.
+
+**Parent-range proof (`npm view`, this session):** `minimatch@10.2.6`
+wants `brace-expansion ^5.0.8`; `ajv@8.20.0` wants `fast-uri ^3.0.1`;
+`express-rate-limit@8.7.0` wants `ip-address ^10.2.0`; `socks@2.8.10`
+wants `ip-address ^10.1.1`. All fixed versions satisfy existing ranges —
+NO parent upgrade needed. `shadcn` latest IS `4.21.0` (no upstream
+re-pin to wait for).
+
+**Candidates:** R-A transitive-only refresh (SELECTED) vs R-B
+`pnpm.overrides` pin (larger + maintenance burden; v6 §07.8 prefers
+smallest-compatible first) vs R-C parent upgrade (not viable, largest
+blast radius) vs R-D `shadcn`→devDeps (dependency-STRATEGY change,
+needs ADR + owner decision) vs R-E suppression (REJECTED, prohibited).
+T33-M's open question answered: brace-only fix is INSUFFICIENT for the
+bare `pnpm audit --prod` gate (moderates remain) — all three bumps
+required.
+
+**Selected R-A, why policy-compliant:** v6 §07 dependency rule
+(smallest compatible change; pinning only afterwards); NO §01 ADR
+trigger (no range widened, no dep/devDep move, no strategy pinned);
+zero Handy/Rust/STT/catalog/test/workflow/runtime changes; same-line
+DoS-hardening patches, licenses unchanged (MIT / BSD-3-Clause / MIT).
+Routine implementation — NO owner decision, NO ADR (owner-decision rule:
+no product-behavior, licensing, security-policy, architecture,
+credential, or policy-exception effect).
+
+**STOP-condition trip (recorded):** first attempt via `pnpm update`
+re-resolved `latest`-pinned `typescript-eslint 8.70.1→8.71.0` (broad
+churn) — REVERTED per §11.2, replaced with a surgical 10-site
+`pnpm-lock.yaml` hand-edit (3 snapshot version+integrity bumps using
+registry `dist.integrity` values + 4 parent refs + 3 snapshot headers).
+
+**Files changed:** `pnpm-lock.yaml` ONLY (13 lines: 3 version+integrity
+bumps, 4 parent refs, 3 snapshot headers; 0 new / 0 removed packages).
+Deliberately unchanged: every `package.json` (no overrides key), all
+source/tests/workflows/config, Rust/Handy/STT/catalog, secrets.
+Deliverables: `T33-N-WEB-DEPENDENCY-AUDIT-AND-REMEDIATION-REPORT.md`
+(new) + this entry.
+
+**Tests/evidence (all this session, post-change):** `pnpm install
+--frozen-lockfile` exit 0 · `pnpm why` shows ONLY `5.0.12`/`3.1.8`/
+`10.7.1` · `pnpm audit --prod` exit 0, 0 vulnerabilities ·
+`--audit-level=high` exit 0 · `pnpm lint`/`typecheck`/`test`
+(website+desktop+license-api+payment-domain+supabase: all suites pass,
+incl. 200 supabase + 71 license-api shown)/`build` all pass ·
+`shadcn --help` smoke (exercises refreshed import chain) + minimatch
+glob-expansion check `GLOB-EXPANSION-OK` (temp script removed).
+Registry-network `shadcn add --diff` dry-run skipped (external-service
+dependence; CLI load + glob proof suffice).
+
+**Security:** no advisory suppressed/allowlisted/downgraded; gate NOT
+weakened; no secret read/printed/committed; no boundary moved.
+
+**Full report:** `T33-N-WEB-DEPENDENCY-AUDIT-AND-REMEDIATION-REPORT.md`
+(§12: implementation AUTHORIZED as bounded above; no merge — PR #63
+merge remains human).
+
+**Commit/push/CI:** recorded in the follow-up entry below after push +
+GitHub verification (CI success NEVER claimed from local runs alone).
