@@ -5513,8 +5513,29 @@ approval; all four required CI contexts are green.
 
 ---
 
-*Final head for the next agent:* `cfa009f5d8b19ab1c3e58686246dd83bdc8d5167`
-on `t31/soravo-wrapper-completion`. **Next exact task: T33-P — T2
-macOS/Windows build verification gate (ADR-019).** Read
-`T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md` §7 for its full
-rationale and explicit non-goals before starting it.
+*Final head for the next agent:* `f5dca2e43354ce97a9f15c7ee621327aefd3c3f6`
+on `t31/soravo-wrapper-completion`. *(Corrected: the line above first named
+`cfa009f5`, which was true when written; the post-push record itself was then
+committed as `f5dca2e4`, a Markdown-only change.)*
+
+**Final CI on the true final head `f5dca2e4` — OBSERVED, not assumed:**
+
+| Run | Workflow | Status | Conclusion | Jobs |
+|---|---|---|---|---|
+| `36676638094` | CI | completed | **success** | `web` 55s · `e2e` 55s · `rust` 9m40s · `desktop` 11m3s — all **success** |
+| `36676638103` | Security Audit | completed | **success** | `npm-audit` 19s · `cargo-deny` 40s · `cargo-audit` 10s — all **success** |
+
+`gh pr checks 63` on `f5dca2e4` — **all 7 PASS**. PR #63 `state: OPEN`,
+`mergedAt: null`, `mergeStateStatus: BLOCKED`, `reviewDecision:
+REVIEW_REQUIRED` (0 of 1). **NOT merged.**
+
+Intermediate T33-O runs, for completeness: `36675485952` (CI) +
+`36675485950` (Security Audit) on `cfa009f5`, both **success**.
+
+**T33-O is complete. T33-P is NOT started. PR #63 is NOT merged.**
+
+---
+
+**Next exact task: T33-P — T2 macOS/Windows build verification gate (ADR-019).**
+Read `T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md` §7 for its
+full rationale and explicit non-goals before starting it.
