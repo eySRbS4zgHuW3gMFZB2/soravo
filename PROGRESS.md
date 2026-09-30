@@ -4652,3 +4652,67 @@ object inspection. Upstream source of truth: `https://github.com/cjpais/Handy` a
 **withdrawn as unproven** (`8f9cf53c` exclusion; the frame of the 26/32 count), and a
 probe error of this task's own making (`git rev-parse` on unresolvable paths) is recorded
 rather than hidden. 2026-09-30, on `t31/soravo-wrapper-completion` @ `31fb920a`.*
+
+### T33-I follow-up — COMMIT, PUSH AND POST-PUSH CI (ACTUAL RESULT)
+
+Recorded **after** the commit and push actually occurred, per the
+implementation-discipline rule *"CI state is recorded after push, not assumed
+from the commit succeeding."*
+
+**Commit** `640157aa366877e643027e25e8fef47cd83d3a40` —
+`docs(control-plane): record the verified Handy pin + RESTORE-NOT-REFORK
+recovery rule (T33-I)`. **10 files, all Markdown, 0 non-Markdown**: the 5
+canonical v6 documents, the 4 byte-identical root-mirror copies, and
+`PROGRESS.md`. Staged-path filter for non-`.md` was **empty**; staged-path
+filter for `crates/ apps/ services/ packages/ supabase/ .github/ Cargo.toml
+Cargo.lock` was **empty**. No path under `apps/desktop/src-tauri/` was staged.
+
+**Push** `31fb920a..640157aa → origin/t31/soravo-wrapper-completion`. Local and
+upstream identical afterwards; **0 ahead / 0 behind**.
+
+**PR #63 — OPEN, NOT MERGED, NOT RETITLED.** Head now `640157aa`;
+`mergeStateStatus: BLOCKED`; `reviewDecision: REVIEW_REQUIRED` (0 of 1). The
+same two independent gates stand: required check `rust` red, and 0 of 1
+required approving review.
+
+**CI — OBSERVED, NOT ASSUMED.**
+
+| Run | Workflow | Result |
+|---|---|---|
+| `36657041713` | CI | **FAILURE — by design** |
+| `36657041700` | Security Audit | **SUCCESS** |
+
+`CI 36657041713` jobs: `web` **success** · `e2e` **success** · `desktop`
+**success** · **`rust` FAILURE**.
+
+`rust` verified from **this run's own log**, not carried forward:
+`test result: FAILED. 203 passed; 7 failed; 0 ignored`, plus two green sibling
+binaries (`27 passed`, `3 passed`). The seven failures are the **byte-identical**
+STOP-gated set, read from that log:
+
+1. `catalog::tests::catalog_parses_and_is_nonempty` — `catalog/mod.rs:227`
+2. `managers::model::tests::test_discover_catalog_alternate_quant_in_models_dir`
+   — `managers/model.rs:2986`
+3. `managers::transcription::tests::auto_language_without_detection_skips_gated_filler_removal`
+   — `transcription.rs:2320`
+4. `managers::transcription::tests::ignored_user_language_is_not_output_evidence`
+   — `transcription.rs:2445`
+5. `managers::transcription::tests::portuguese_transcription_does_not_use_english_ui_filler_words`
+   — `transcription.rs:2281`
+6. `managers::transcription::tests::unknown_evidence_with_confident_text_detection_removes_gated_fillers`
+   — `transcription.rs:2339`
+7. `managers::transcription::tests::unknown_evidence_with_portuguese_text_preserves_um`
+   — `transcription.rs:2360`
+
+→ **2 catalogue-content + 5 frozen-V1 transcription. 0 new failure. 0
+regression.** `203/7` is confirmed again, now on a documentation-only commit.
+**A documentation commit that leaves `rust` red is the correct outcome**;
+turning it green by editing a test remains prohibited.
+
+**Worktree after commit:** 0 tracked modifications. All 34 pre-existing
+untracked paths preserved untouched. `git diff --check` **exit 0**. Manifest
+invariant **24/24/24/24** holds; canonical/mirror invariant holds (only `00` and
+`20` banners + the 2 disclosed artifacts differ).
+
+**STOP. T33-I is complete. The Handy restoration is NOT started.** PR #63 is not
+merged.
