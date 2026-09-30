@@ -3718,8 +3718,14 @@ push."*
 |---|---|---|
 | `c6af1055` | `docs(control-plane): … permanent (T32-Y2)` — the 6 control-plane files | `61de5411..c6af1055` |
 | `494f521a` | `docs(progress): correct the T32-Y2 untracked-path count to 29 and record commit … CI` | `c6af1055..494f521a` |
+| `268cde1a` | `docs(progress): record the actual post-push CI result for T32-Y2` | `494f521a..268cde1a` |
 
-- **Local/upstream after push: `0` ahead / `0` behind.**
+- **Local/upstream after the final push: `0` ahead / `0` behind.**
+- **Worktree after the final commit: `0` tracked modifications, 29 untracked —
+  the identical pre-existing set captured before the first edit.**
+- **Mirror invariant re-verified at `268cde1a`:** `diff -rq` → only `00`/`20`
+  (banners) + the 2 disclosed `22_*` artifacts.
+
 - **CI `36646785895` (at `494f521a`) — `FAILURE`, by design.**
   `web` ✅ · `e2e` ✅ · `desktop` ✅ · **`rust` ❌**.
 - **Security Audit `36646786032` — SUCCESS** (43 s).
@@ -3754,6 +3760,20 @@ approving review. Not retitled, not merged.
 `PROGRESS.md` commit of this task stated **30** pre-existing untracked paths; the
 audited set is **29**, and the enumeration is now inline so the figure is
 checkable rather than asserted (`494f521a`).
+
+**Final commit `268cde1a` — CI observed, not assumed.**
+
+- **CI `36647828968` — `FAILURE`, by design.** `web` ✅ · `e2e` ✅ ·
+  `desktop` ✅ · **`rust` ❌**.
+- **Security Audit `36647828972` — SUCCESS** (45 s).
+- `rust`: `test result: FAILED. 203 passed; 7 failed; 0 ignored` — and the seven
+  names read from **this** run's log are byte-identical to the list above
+  (2 catalogue-content + 5 frozen-V1 transcription).
+
+⇒ **`203/7` is now confirmed on both `494f521a` and `268cde1a`, a fourth and
+fifth independent confirmation that a documentation-only change does not turn
+`rust` green and does not introduce a single new failure.**
+
 
 
 ### Security
