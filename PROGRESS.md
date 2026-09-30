@@ -5809,21 +5809,40 @@ O-5 repair · no commit of the 36 untracked paths · **no merge of PR #63**.
 ### T33-PRE follow-up — COMMIT, PUSH AND POST-PUSH CI (ACTUAL RESULT)
 
 Recorded after the commit and push actually occurred, per the permanent
-implementation discipline.
+implementation discipline. **Every value below was observed, not assumed.**
 
-- **Commit** `<PENDING — filled in from the real commit before this entry is
-  finalised>` —
+- **Commit** `eb4771547cbbd44a26add7d2a078859c143e024e` —
   `docs(control-plane): make the Skill Selection Gate permanent and deterministic (T33-PRE)`.
-  **12 files, all Markdown, 0 non-Markdown**: 5 canonical v6 governance files,
-  5 root-mirror files, `T33-PRE-SKILL-SELECTION-GATE-AUDIT.md` (new),
-  `PROGRESS.md` (this entry). Staged non-Markdown filter **empty**; staged
-  filter for `crates/ apps/ services/ packages/ supabase/ .github/ Cargo.*`
-  `pnpm-lock` `package.json` `catalog.json` `*.test.*` **empty**.
-- **Push** — recorded below.
+  **12 files, all Markdown, 0 non-Markdown**, **2184 insertions / 31 deletions**:
+  5 canonical v6 governance files, 5 root-mirror files,
+  `T33-PRE-SKILL-SELECTION-GATE-AUDIT.md` (new), `PROGRESS.md` (this entry).
+  `git show --stat` was inspected before this entry was written. Staged
+  non-Markdown filter **empty**; staged filter for
+  `crates/ apps/ services/ packages/ supabase/ .github/ Cargo.* pnpm-lock
+  package.json catalog.json *.test.* *.spec.*` **empty**;
+  `git diff --cached --check` **exit 0**.
+- **Push** `e2e2c2c3..eb477154` → `origin/t31/soravo-wrapper-completion`. Local
+  and upstream identical afterwards; **0 ahead / 0 behind**.
 - **Worktree after commit:** **0 tracked modifications.** All **36**
-  pre-existing untracked paths preserved untouched. `git diff --check` **exit 0**.
-- **PR #63 — still OPEN, still NOT MERGED, not retitled.**
-- **CI — OBSERVED AFTER PUSH, NOT ASSUMED:** recorded below.
+  pre-existing untracked paths preserved untouched — none staged, none
+  modified, none reset, none cleaned. `git diff --check` **exit 0**.
+- **PR #63 — still OPEN, still NOT MERGED, not retitled.** Head now `eb477154`;
+  `state: OPEN`; `mergedAt: null`; `mergeStateStatus: BLOCKED`;
+  `reviewDecision: REVIEW_REQUIRED` (0 of 1). The sole remaining blocker is the
+  outstanding human approval; all four required CI contexts are green.
+
+- **CI — OBSERVED AFTER PUSH, NOT ASSUMED:**
+
+| Run | Workflow | Head | Status | Conclusion | Jobs |
+|---|---|---|---|---|---|
+| `36680702309` | CI | `eb477154` | `completed` | **`success`** | `web` 1m0s · `e2e` 1m14s · `rust` 8m0s · `desktop` 10m57s — all **`success`** |
+| `36680702406` | Security Audit | `eb477154` | `completed` | **`success`** | `npm-audit` 22s · `cargo-deny` 38s · `cargo-audit` 9s — all **`success`** |
+
+- `gh pr checks 63` on `eb477154` — **all 7 PASS**: `web` · `e2e` · `rust` ·
+  `desktop` · `npm-audit` · `cargo-audit` · `cargo-deny`.
+- A documentation-only commit that leaves **every** gate green is the
+  **correct** outcome: the change set contains **zero source and zero test
+  files**, so no test target is affected and no new failure is possible.
 
 **STOP. T33-PRE is complete. T33-P is NOT started. PR #63 is NOT merged.**
 

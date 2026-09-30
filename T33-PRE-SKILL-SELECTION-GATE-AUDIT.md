@@ -753,6 +753,7 @@ skimmed. A future agent tightening this pack must do the same.
 
 ```text
 $ git status --porcelain | grep -v '^??'
+ M PROGRESS.md
  M Soravo_Engineering_Docs_v6/00_README.md
  M Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md
  M Soravo_Engineering_Docs_v6/10_AI_SKILLS.md
@@ -763,18 +764,31 @@ $ git status --porcelain | grep -v '^??'
  M docs/Soravo_Engineering_Docs_v6/10_AI_SKILLS.md
  M docs/Soravo_Engineering_Docs_v6/11_MCP_AND_AGENT_TOOLING.md
  M docs/Soravo_Engineering_Docs_v6/18_INTERRUPTION_AND_HANDOFF.md
+?? T33-PRE-SKILL-SELECTION-GATE-AUDIT.md      <- this task's new report
 
-$ git diff --check
-exit=0
+$ git diff --check ; git diff --cached --check
+exit=0 / exit=0
+
+$ git diff --cached --name-only | grep -v '\.md$'
+(empty — 0 non-Markdown files)
+
+$ git diff --cached --name-only | grep -E 'crates/|apps/|services/|packages/|supabase/|\.github/|Cargo\.|pnpm-lock|package\.json|catalog\.json|\.test\.|\.spec\.'
+(empty — 0 protected paths)
 
 $ git status --porcelain | grep -c '^??'
-36                      # all pre-existing, none staged/modified/deleted
+37    # 36 pre-existing, preserved; + this task's new report
 ```
 
-`numstat` before commit, the commit SHA, the push result, and the post-push CI
-run IDs are recorded in `PROGRESS.md` after the commit and push actually occur
-— per the permanent implementation-discipline rule *"CI state is recorded after
-push, not assumed from the commit succeeding."*
+**Final commit** `eb4771547cbbd44a26add7d2a078859c143e024e` — 12 files,
+**2184 insertions / 31 deletions**, **all Markdown**. The 31 deletions were each
+individually accounted for: every removed clause is either a line re-wrap, the
+`step 7` rewrite that preserves *"narrowest applicable skill"*, the V1
+stop-condition heading that was re-inserted below the new group, or content
+restated in a strictly stronger form (the 18-name "known families" line is now a
+32-row matrix — all 18 verified present in it).
+
+**Push** `e2e2c2c3..eb477154` → `origin/t31/soravo-wrapper-completion`; **0 ahead
+/ 0 behind** afterwards.
 
 ---
 
@@ -809,19 +823,21 @@ push, not assumed from the commit succeeding."*
 | **Objective** | Establish and enforce a permanent Skill Selection Gate for all future OpenCode work on Soravo; audit whether one existed; do not start T33-P |
 | **Branch** | `t31/soravo-wrapper-completion` |
 | **Start SHA** | `e2e2c2c323de49db08db84a57df5b4968d8b68fe` |
-| **End SHA** | recorded in `PROGRESS.md` after commit |
+| **End SHA** | **`eb4771547cbbd44a26add7d2a078859c143e024e`** |
 | **Changed files** | 10 Markdown files: canonical `docs/Soravo_Engineering_Docs_v6/{00,09,10,11,18}` + root mirror `Soravo_Engineering_Docs_v6/{00,09,10,11,18}`; plus this report and `PROGRESS.md` |
 | **Deliberately unchanged** | All production source; every test; `catalog.json`; model assets; `package.json`; `pnpm-lock.yaml`; `Cargo.toml`; `Cargo.lock`; `.github/workflows/**`; release config; Tauri config; `SPEC_MANIFEST.json` (both); `20_ADR_INDEX.md` (both); the 2 disclosed `22_*` artifacts; all 36 pre-existing untracked paths; every historical `PROGRESS.md` entry |
 | **Commands** | `git fetch/status/log/worktree/diff --check` · `ls ~/.agents/skills` · `grep`/`comm` set comparison of the registry against the live store · `md5sum` canonical vs mirror · `diff -rq` mirror census · `gh pr view/check` · `gh run list` · `gh api …/branches/main/protection` · `rustup target list --installed` |
 | **Exact results** | see §11; all consistency checks PASS, `git diff --check` exit 0 |
 | **Tests** | **None run.** The change set contains **zero source and zero test files**, so no test target is affected. The `256 passed / 0 failed` baseline is **carried, not re-measured**, and is `HISTORICAL/STALE` as a current claim. **CI is the authority and is reported from GitHub runs.** |
 | **Security** | see §13 |
-| **CI** | pre-change: CI `36677713859` success, Security Audit `36677713913` success (head `e2e2c2c3`). Post-push runs recorded in `PROGRESS.md` |
+| **CI** | pre-change at `e2e2c2c3`: `36677713859` success, `36677713913` success. **Post-push at `eb477154`: `36680702309` CI `completed`/`success`** (`web` 1m0s · `e2e` 1m14s · `rust` 8m0s · `desktop` 10m57s) **and `36680702406` Security Audit `completed`/`success`** (`npm-audit` 22s · `cargo-deny` 38s · `cargo-audit` 9s). All 7 PR checks **pass** |
 | **Deployment** | none — not requested, not performed |
 | **External configuration** | none changed |
 | **Blockers** | PR #63 needs 1 human approval. **O-5** (root v2 pack authority, 30 broken `docs/spec-v3/` references) remains open — recorded, not repaired |
 | **ADR/docs updated** | this report + `PROGRESS.md` + the 10 governance files. **No ADR required and none created**; `20_ADR_INDEX.md` not touched |
-| **Commit** | recorded in `PROGRESS.md` after commit |
+| **Commit** | **`eb4771547cbbd44a26add7d2a078859c143e024e`** — 12 files, all Markdown, 0 non-Markdown, 2184 insertions / 31 deletions |
+| **Push** | `e2e2c2c3..eb477154` → `origin/t31/soravo-wrapper-completion`; 0 ahead / 0 behind afterwards |
+| **CI (observed)** | **`36680702309`** CI `completed`/`success` (`web` 1m0s · `e2e` 1m14s · `rust` 8m0s · `desktop` 10m57s) · **`36680702406`** Security Audit `completed`/`success` (`npm-audit` 22s · `cargo-deny` 38s · `cargo-audit` 9s) — all 7 PR checks **pass** |
 | **PR** | #63 — remains **OPEN and UNMERGED**, not retitled |
 | **Stop conditions** | **None triggered** — see §10, assessed one by one |
 | **Next exact task** | **T33-P — T2 macOS/Windows build verification gate (ADR-019). NOT started.** Its mandatory skills are `tauri`, `tauri-setup`, `rust-engineer`, `gh-cli`, `security-guidance` (§9.2); its tools are repository/file tooling and the `gh` CLI (§9.3); and the two pre-recorded conditions in §9.4 must be carried into its own gate. |
