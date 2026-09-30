@@ -830,15 +830,16 @@ restated in a strictly stronger form (the 18-name "known families" line is now a
 | **Exact results** | see §11; all consistency checks PASS, `git diff --check` exit 0 |
 | **Tests** | **None run.** The change set contains **zero source and zero test files**, so no test target is affected. The `256 passed / 0 failed` baseline is **carried, not re-measured**, and is `HISTORICAL/STALE` as a current claim. **CI is the authority and is reported from GitHub runs.** |
 | **Security** | see §13 |
-| **CI** | pre-change at `e2e2c2c3`: `36677713859` success, `36677713913` success. **Post-push at `eb477154`: `36680702309` CI `completed`/`success`** (`web` 1m0s · `e2e` 1m14s · `rust` 8m0s · `desktop` 10m57s) **and `36680702406` Security Audit `completed`/`success`** (`npm-audit` 22s · `cargo-deny` 38s · `cargo-audit` 9s). All 7 PR checks **pass** |
+| **CI** | pre-change at `e2e2c2c3`: `36677713859` success, `36677713913` success. **Post-push at `eb477154`: `36680702309` CI `completed`/`success`** (`web` 1m0s · `e2e` 1m14s · `rust` 8m0s · `desktop` 10m57s) **and `36680702406` Security Audit `completed`/`success`** (`npm-audit` 22s · `cargo-deny` 38s · `cargo-audit` 9s). All 7 PR checks **pass**. **A second documentation commit `41644e94` then replaced a `<PENDING>` placeholder with these observed values; its own CI `36682017811` (CI) and `36682017805` (Security Audit) are also `completed`/`success`, all 7 checks pass. The placeholder was removed before any value was asserted, so no fabricated SHA or run ID was ever committed.** |
 | **Deployment** | none — not requested, not performed |
 | **External configuration** | none changed |
 | **Blockers** | PR #63 needs 1 human approval. **O-5** (root v2 pack authority, 30 broken `docs/spec-v3/` references) remains open — recorded, not repaired |
 | **ADR/docs updated** | this report + `PROGRESS.md` + the 10 governance files. **No ADR required and none created**; `20_ADR_INDEX.md` not touched |
 | **Commit** | **`eb4771547cbbd44a26add7d2a078859c143e024e`** — 12 files, all Markdown, 0 non-Markdown, 2184 insertions / 31 deletions |
 | **Push** | `e2e2c2c3..eb477154` → `origin/t31/soravo-wrapper-completion`; 0 ahead / 0 behind afterwards |
-| **CI (observed)** | **`36680702309`** CI `completed`/`success` (`web` 1m0s · `e2e` 1m14s · `rust` 8m0s · `desktop` 10m57s) · **`36680702406`** Security Audit `completed`/`success` (`npm-audit` 22s · `cargo-deny` 38s · `cargo-audit` 9s) — all 7 PR checks **pass** |
-| **PR** | #63 — remains **OPEN and UNMERGED**, not retitled |
+| **Follow-up commit** | **`41644e94c7252b2bca49379dc1bb5ace0b35a9bd`** — 2 Markdown files; replaced a `<PENDING>` placeholder in this report and `PROGRESS.md` with observed values. Pushed `eb477154..41644e94`; 0/0 |
+| **CI (observed)** | on `eb477154`: **`36680702309`** CI `completed`/`success` · **`36680702406`** Security Audit `completed`/`success`. **On the true final head `41644e94`: `36682017811` CI `completed`/`success`** (`web` 1m2s · `e2e` 55s · `rust` 9m11s · `desktop` 9m5s) **and `36682017805` Security Audit `completed`/`success`** (`npm-audit` 15s · `cargo-deny` 37s · `cargo-audit` 11s) — all 7 PR checks **pass** |
+| **PR** | #63 — head `41644e94`, **OPEN and UNMERGED** (`mergedAt: null`), not retitled |
 | **Stop conditions** | **None triggered** — see §10, assessed one by one |
 | **Next exact task** | **T33-P — T2 macOS/Windows build verification gate (ADR-019). NOT started.** Its mandatory skills are `tauri`, `tauri-setup`, `rust-engineer`, `gh-cli`, `security-guidance` (§9.2); its tools are repository/file tooling and the `gh` CLI (§9.3); and the two pre-recorded conditions in §9.4 must be carried into its own gate. |
 

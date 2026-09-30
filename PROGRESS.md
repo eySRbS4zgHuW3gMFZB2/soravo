@@ -5843,6 +5843,23 @@ implementation discipline. **Every value below was observed, not assumed.**
 - A documentation-only commit that leaves **every** gate green is the
   **correct** outcome: the change set contains **zero source and zero test
   files**, so no test target is affected and no new failure is possible.
+- **Commit 2** `41644e94c7252b2bca49379dc1bb5ace0b35a9bd` —
+  `docs(progress): record the actual T33-PRE commit SHA, push and post-push CI`
+  (`PROGRESS.md` + this report, 2 Markdown files only). It **replaces a
+  `<PENDING>` placeholder** with observed values; it invents nothing. Push
+  `eb477154..41644e94`; **0 ahead / 0 behind** afterwards.
+- **CI on the true final head `41644e94` — OBSERVED, not assumed:**
+
+| Run | Workflow | Status | Conclusion | Jobs |
+|---|---|---|---|---|
+| `36682017811` | CI | `completed` | **`success`** | `web` 1m2s · `e2e` 55s · `rust` 9m11s · `desktop` 9m5s — all `success` |
+| `36682017805` | Security Audit | `completed` | **`success`** | `npm-audit` 15s · `cargo-deny` 37s · `cargo-audit` 11s — all `success` |
+
+- `gh pr checks 63` on `41644e94` — **all 7 PASS**. PR #63 `state: OPEN`,
+  `mergedAt: null`, `mergeStateStatus: BLOCKED`, `reviewDecision:
+  REVIEW_REQUIRED` (0 of 1), head `41644e94`. **NOT merged, not retitled.**
+- Worktree after commit 2: **0 tracked modifications**, **36** pre-existing
+  untracked paths preserved untouched. `git diff --check` **exit 0**.
 
 **STOP. T33-PRE is complete. T33-P is NOT started. PR #63 is NOT merged.**
 
