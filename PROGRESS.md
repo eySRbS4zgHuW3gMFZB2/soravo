@@ -5115,3 +5115,33 @@ merge remains human).
 
 **Commit/push/CI:** recorded in the follow-up entry below after push +
 GitHub verification (CI success NEVER claimed from local runs alone).
+
+---
+
+## T33-N — POST-PUSH VERIFICATION (2026-09-30, follow-up)
+
+**Commit:** `0913e7c54d935afa411deb281fca75a2c240245e`
+(`fix(web): refresh transitive audit findings to fixed versions (T33-N)`,
+2026-09-30) — pushed to `t31/soravo-wrapper-completion` (= PR #63 head).
+**Diff:** `pnpm-lock.yaml` (3 snapshot bumps + 4 parent refs + 3 headers,
+26 lines; 0 new/removed packages) + T33-N report (new, +§13 post-push
+evidence) + this entry. No manifest/override, source, test, workflow,
+config, or secret change. Override determined NOT minimum (refresh is
+lockfile-only; v6 §07 smallest-first).
+
+**Exact versions:** `brace-expansion` 5.0.9→5.0.12 ·
+`fast-uri` 3.1.7→3.1.8 · `ip-address` 10.7.0→10.7.1 (all within existing
+parent ranges; `shadcn@4.21.0` and all parents unchanged).
+
+**Local (HEAD, pnpm@11.17.0, node 22):** frozen-lockfile install exit 0 ·
+`pnpm audit --prod` exit 0 (0 vulns) · `--audit-level=high` exit 0 ·
+`pnpm why` single fixed versions · lint/typecheck/test/build exit 0 ·
+`shadcn --help` smoke pass · `git diff --check` clean.
+
+**GitHub (from run logs):** CI `36672260194` (head `0913e7c5`) —
+`completed`/`success`
+(`https://github.com/eySRbS4zgHuW3gMFZB2/soravo/actions/runs/36672260194`,
+`--log-failed` empty, `web` green) · Security Audit `36672260245` —
+`completed`/`success`. PR #63 OPEN/BLOCKED only on 0/1 review; NOT
+merged (human decision). No remaining unrelated failures in these
+gates. **STOP after T33-N. T33-O NOT begun.**

@@ -372,4 +372,52 @@ decision; 0/1 review still outstanding).
 workflow, config, Rust/Handy/STT/catalog, or secret change; any broad
 upgrade; any suppression.
 
-**STOP. Forensics complete; remediation authorized as bounded above.**
+---
+
+## 13. Post-push verification (2026-09-30, follow-up)
+
+**Commit:** `0913e7c54d935afa411deb281fca75a2c240245e`
+(`fix(web): refresh transitive audit findings to fixed versions (T33-N)`).
+**Files:** `pnpm-lock.yaml` (26 diff lines: 3 version+integrity bumps +
+4 parent refs + 3 snapshot headers) + this report (new) + `PROGRESS.md`
+entry. No manifest, source, test, workflow, config, or secret change.
+No `pnpm.overrides` added — override determined NOT the minimum:
+transitive-only refresh is smaller (lockfile only, no permanent pin
+burden) and fully deterministic under `--frozen-lockfile`; v6 §07
+prescribes smallest-compatible first, pinning only afterwards.
+
+**Scope note vs brace-only scoping:** the remediation covers all three
+vulnerable transitives (`brace-expansion` 5.0.9→5.0.12,
+`fast-uri` 3.1.7→3.1.8, `ip-address` 10.7.0→10.7.1), not brace alone.
+Rationale: CI `web` runs bare `pnpm audit --prod` (ci.yml:26), which
+exits 1 on ANY finding — the 3 moderate rows fail the SAME step as the
+2 HIGHs and share the SAME `shadcn@4.21.0`-rooted production path
+family, so they are related, not unrelated. A brace-only fix would
+leave `web` red. All three bumps are patch-line, within existing
+parent ranges (`minimatch ^5.0.8`, `ajv ^3.0.1`,
+`express-rate-limit ^10.2.0`, `socks ^10.1.1`), with zero parent,
+manifest, or unrelated-package change.
+
+**Local validation (current HEAD, `pnpm@11.17.0`, node 22):**
+`pnpm install --frozen-lockfile` exit 0 · `pnpm audit --prod` exit 0
+("No known vulnerabilities found") · `--audit-level=high` exit 0 ·
+`pnpm why` shows ONLY `brace-expansion@5.0.12` / `fast-uri@3.1.8` /
+`ip-address@10.7.1` (single versions, same `shadcn` parents) ·
+`pnpm lint` / `typecheck` / `test` / `build` all exit 0 ·
+`shadcn --help` smoke passes via local `pnpm --filter` exec ·
+`git diff --check` clean · no `package.json`/workspace/workflow delta.
+
+**GitHub CI (verified from run logs, never claimed from local runs):**
+- CI `36672260194` (head `0913e7c5`) — `completed` / `success`
+  (`https://github.com/eySRbS4zgHuW3gMFZB2/soravo/actions/runs/36672260194`);
+  `--log-failed` empty — `web` (incl. `pnpm audit --prod`) green.
+- Security Audit `36672260245` — `completed` / `success` (43 s).
+- PR #63 OPEN, `mergeStateStatus: BLOCKED` only on the outstanding
+  0/1 review; NOT merged (merge is a human decision).
+
+**Remaining unrelated failures:** none in the `web` / Security Audit
+gates for this remediation. Sibling `rust`/`e2e`/`desktop` outcomes are
+covered by the CI run record above; no unrelated failure was fixed or
+masked in this task.
+
+**STOP. T33-N complete. Do not begin T33-O.**
