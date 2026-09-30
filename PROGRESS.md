@@ -5145,3 +5145,43 @@ parent ranges; `shadcn@4.21.0` and all parents unchanged).
 `completed`/`success`. PR #63 OPEN/BLOCKED only on 0/1 review; NOT
 merged (human decision). No remaining unrelated failures in these
 gates. **STOP after T33-N. T33-O NOT begun.**
+
+---
+
+## T33-N — ADDENDUM: mid-task worktree incident + job-level CI detail (2026-09-30)
+
+**Incident (process evidence, cause UNKNOWN — no inference):** after the
+10-site surgical `pnpm-lock.yaml` edit was verified in the worktree
+(stale-ref grep clean, 13+/13- diff) and AFTER full local verification
+passed (frozen install 0, both audits 0 vulns, `why` single fixed
+versions, lint/typecheck/test/build green), the staged + worktree
+lockfile edits vanished: `git diff --cached` and `git diff` both empty,
+worktree grep showed all-OLD versions, while `PROGRESS.md` edits and the
+new report survived and `node_modules/.pnpm` retained BOTH old and new
+package dirs. No commit had occurred; no revert/checkout/stash was
+issued by this session in that window. Recovery: all 10 sites
+re-applied, verified (0 old refs, 10 new-ref lines, 13+/13-), staged
+(numstat confirmed 13/13 + 149/0 + 375/0), and committed IMMEDIATELY as
+`0913e7c5` with no intervening command — the commit seal held
+(`git status` clean afterwards; post-commit frozen install left the
+lockfile untouched). Lesson for future tasks: re-verify the exact
+staged diff (numstat, not truncated stat) immediately before committing
+a hand-edited lockfile; a prior `pnpm update` attempt in the same task
+had already been reverted once for broad churn (`typescript-eslint`
+`latest` float 8.70.1→8.71.0, STOP §11.2). No evidence was fabricated:
+every green claim above was re-observed against the committed state
+(post-commit `pnpm install --frozen-lockfile` exit 0, both audits
+"No known vulnerabilities found") before push.
+
+**Job-level CI detail (run `36672260194`, head `0913e7c5`, from the jobs
+API this session):** `web` success (all 10 steps incl.
+`pnpm audit --prod`) · `e2e` success · `rust` success (fmt, clippy
+`-D warnings`, workspace tests, cargo audit, cargo deny) · `desktop`
+success (Tauri build). Determination: the T33-N remediation turns all
+four required CI jobs green with zero unrelated change.
+
+**Newest runs noted (not load-bearing):** CI `36673230042` + Security
+Audit `36673230041` on head `218752d4` (docs-only delta); Security
+Audit already `success`, CI in progress at time of writing. The T33-N
+verdict rests on runs `36672260194`/`36672260245` at `0913e7c5` and is
+not conditional on the newer runs.
