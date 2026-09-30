@@ -4954,3 +4954,15 @@ attribution pages (Handy MIT + per-publisher, no ownership claims) ·
 HF-org/mirror-host approval.
 
 **Full report:** `T33-L-HANDY-CATALOG-RESTORATION-REPORT.md`.
+
+**Commit/push:** `c693dea9` (catalog only) + `1c850af4` (docs) pushed to
+`origin/t31/soravo-wrapper-completion` (was `0cb38fdc`).
+
+**Post-push CI (run `36667412074`):** `rust` **SUCCESS** (fmt, clippy,
+workspace tests with lib **256/0 in CI**, audit, deny — the red required job
+is GREEN) · `e2e` SUCCESS · `desktop` SUCCESS · `web` FAILURE at `pnpm audit
+--prod` only (HIGH `brace-expansion` advisories via shadcn>ts-morph>minimatch;
+live-registry advisory, zero JS files changed — external (C), separate
+follow-up, not improvised here). Security Audit `36667412081` fails on the
+same npm cause. PR #63 OPEN/BLOCKED on `web` + 0/1 review; merge is a human
+decision.

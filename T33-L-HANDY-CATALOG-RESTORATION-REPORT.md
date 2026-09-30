@@ -278,7 +278,26 @@ all-ok. Web/e2e/desktop jobs are unaffected by this data-only change (no
 source, UI, workflow, or dependency delta); post-push CI observation will
 confirm.
 
-Post-push CI run: *to be recorded after push* (see PROGRESS.md T33-L entry).
+Post-push CI (run `36667412074`, commits `c693dea9` + `1c850af4`):
+
+- `rust`: **SUCCESS** — fmt, clippy, `cargo test --workspace` (lib
+  **256 passed / 0 failed** in CI, every other binary `ok`), cargo audit,
+  cargo deny. The previously-red required job is now GREEN.
+- `e2e`: SUCCESS. `desktop`: SUCCESS (Tauri build passes with the restored
+  catalog).
+- `web`: FAILURE at the `pnpm audit --prod` step only (lint, typecheck,
+  test, build all passed). Cause: HIGH `brace-expansion` advisories
+  (GHSA-qhr7-859c-m2p7 et al.) via `shadcn > ts-morph > @ts-morph/common >
+  minimatch > brace-expansion` — a live-registry JS advisory surfacing
+  between runs, on zero JS files changed by this task. Classification:
+  external (C), out of T33-L scope; a dependency update would violate this
+  task's minimal-scope rule and is recorded as a separate follow-up, not
+  improvised here.
+- Security Audit run `36667412081`: FAILURE on the same `brace-expansion`
+  `pnpm audit` cause; likewise unrelated to this task.
+
+PR #63 therefore remains OPEN/BLOCKED on the `web` job + 0/1 review (not on
+`rust`, which this task turned green). Merge remains a human decision.
 
 ---
 
