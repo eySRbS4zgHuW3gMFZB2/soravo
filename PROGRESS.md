@@ -2,7 +2,8 @@
 
 > **Canonical status for AI agents**  
 > **Last audited:** 2026-09-30 (**T32-X — POST-RUNTIME-RESTORATION AUDIT.** Full audit report: `T32-X-POST-RUNTIME-RESTORATION-AUDIT.md`. **All 14 T32-W implementation checks VERIFIED** at HEAD `27200173` — commits present and pushed, PR #63 head identical, app boots (15 s launch, exit 124, 0 panics, 0 `PluginInitialization`), `.setup()` constructs S3–S10 in the ADR-019 order, `initialize_shortcuts` registered (16 commands), the 7 `hotkey_*` + `retry_history_entry_transcription` still unregistered, **one** reachable STT path, **one** insertion path, `injectText()` 0 `.tsx` callers, `typing://result` 0 subscribers, `paste_tx/` **byte-identical** to `5f56260c` (SHA-256 ×3), catalog change exactly the ratified 1-line `#[serde(default)]` with **zero** model data invented, **zero** Handy behaviour files edited, **zero** post-processing added. **Test baseline 203 passed / 7 failed — confirmed twice (local + CI run `36638028609`), the expected 188/15 → 203/7 transition.** Remaining 7 classified: **2 = missing authoritative catalog data**, **5 = frozen-V1 transcription disagreement**, **0** Soravo defects, **0** build/env, **0** unknown. `rust` remains the only red required check, so **PR #63 is `BLOCKED` (0 of 1 review also outstanding) and was NOT merged.** **STOP — two governance conflicts escalated, not resolved:** (1) **ADR-019 is `DRAFT — NOT RATIFIED`, its ratification table is entirely unchecked, `20_ADR_INDEX.md` has no ADR-019 entry, and it states *"No implementation is authorized"* — yet the implementation is committed and pushed.** Four ADR claims are now factually wrong (T3's `188/15` requirement would misclassify a correct implementation as a regression; D5.6; D7-B's "the other 9 continue to fail"; Security-impact "Cargo.lock unchanged") and two obligations are unfulfilled (T1/T2, `app.tsx` truthfulness). The ADR is also **narrower than what shipped** (`paste_tx` + 2 macOS deps are outside its scope). **The exact documentation changes are prepared (R-1…R-11) and were NOT applied — acceptance is the owner's act.** (2) **The authoritative docs contradict the implementation:** `docs/spec-v3/` — named authoritative by this file's line 6, `README.md` and `SORAVO_PLAN.md` — **does not exist as a directory** (0 tracked files), and **two tracked, divergent `20_ADR_INDEX.md` files** exist while the v6 read order names the file without a path. **macOS and Windows have NEVER been compiled** — only `x86_64-unknown-linux-gnu` is installed and `release.yml` (the sole workflow with those runners) is `workflow_dispatch`-only and **has never run**; both targets are `UNKNOWN`, not supported. Dictation still cannot produce text: no model, no `selected_model`, no Silero VAD asset — assets, not code. `app.tsx:190-200` is **stale** (global shortcuts false, two clauses misattributed) → separate Soravo-owned UI follow-up. Full test evidence, exact blockers, and next tasks in the report.)
-> **Last audited (T33-N, 2026-09-30):** Web/Security-Audit dependency forensics + minimal remediation. HEAD `a8a4d151` = PR #63 head. `rust`/`e2e`/`desktop` GREEN; `web` + Security Audit RED on 6 prod-audit findings (2 HIGH + 4 MODERATE, all `shadcn`-rooted transitives). Remediation applied: `pnpm-lock.yaml`-only 3-snapshot refresh (`brace-expansion@5.0.12`, `fast-uri@3.1.8`, `ip-address@10.7.1`); local `pnpm audit --prod` + `--audit-level=high` both exit 0 with 0 vulnerabilities; lint/typecheck/test/build all pass. Prior `Last audited` line above is HISTORICAL/STALE (T32-X era). Full record: `T33-N-WEB-DEPENDENCY-AUDIT-AND-REMEDIATION-REPORT.md` + T33-N entry at end of this file.  
+> **Last audited (T33-N, 2026-09-30) — HISTORICAL/STALE, superseded by T33-O below:** Web/Security-Audit dependency forensics + minimal remediation. HEAD `a8a4d151` = PR #63 head. `rust`/`e2e`/`desktop` GREEN; `web` + Security Audit RED on 6 prod-audit findings (2 HIGH + 4 MODERATE, all `shadcn`-rooted transitives). Remediation applied: `pnpm-lock.yaml`-only 3-snapshot refresh (`brace-expansion@5.0.12`, `fast-uri@3.1.8`, `ip-address@10.7.1`); local `pnpm audit --prod` + `--audit-level=high` both exit 0 with 0 vulnerabilities; lint/typecheck/test/build all pass. **The HEAD SHA, the "`web` + Security Audit RED" state, and the "PR #63 BLOCKED (required `rust` red)" state recorded here are all superseded** — T33-N CI is now verified green and `rust` is no longer red. Retained verbatim as history; not rewritten. Prior `Last audited` line above is HISTORICAL/STALE (T32-X era). Full record: `T33-N-WEB-DEPENDENCY-AUDIT-AND-REMEDIATION-REPORT.md` + T33-N entry at end of this file.  
+> **Last audited (T33-O, 2026-09-30):** POST-T33-N CI BASELINE + HANDY READINESS AUDIT. HEAD **`df527558`** = PR #63 head (this is **one T33-N docs commit newer than the `218752d4` reported at T33-N hand-off** — `df527558` is the worktree-incident addendum commit). **T33-N IS FULLY GREEN AND FINAL:** CI `36673230042` (`218752d4`) `completed`/`success` — `web` 47s · `e2e` 52s · `rust` 6m24s · `desktop` 10m50s; Security Audit `36673230041` success. **Current-head runs: CI `36673473955` success** (`web` 1m0s · `e2e` 57s · `rust` 8m45s · `desktop` 10m50s) **+ Security Audit `36673473744` success** (`npm-audit` 17s · `cargo-deny` 41s · `cargo-audit` 11s). **All 7 PR checks PASS. The previous `254/2` catalog state is GONE — CI itself reports `256 passed; 0 failed`. The `brace-expansion` web failure is GONE — CI `web` reports `No known vulnerabilities found` at bare `pnpm audit --prod`. Zero failures remain; nothing fixed, masked or retried.** **PR #63: OPEN, `mergeable: MERGEABLE`, `mergeStateStatus: BLOCKED`, `reviewDecision: REVIEW_REQUIRED`, 0 of 1 approvals, 0 reviews, `mergedAt: null` — NOT MERGED.** The `rust`-red blocker is **cleared**; the only remaining blocker is 1 human approval. Branch protection behaving per spec: required contexts `[web, e2e, rust, desktop]` all green, `strict: true`, `required_approving_review_count: 1`, `allow_force_pushes: false`, `allow_deletions: false`. **Invariants ALL HOLD:** `catalog.json` 127,334 B / blob `64fc3482…` / SHA-256 `063dfdd5…76a94e` (exact T33-L Handy catalog); `text.rs` blob `82d45b5…` 29,496 B (exact upstream); `lang_id.rs` blob `82834bdb…` 6,685 B (exact upstream); `post_process.rs` REMOVED; `transcription.rs` UNTOUCHED (last touched `fc56c31b`); **0 test files** changed across the whole T33 window; all 8 non-Markdown changes attributed to T33-J/T33-L/T33-N; `pnpm-lock.yaml` exactly 13 lines / 0 packages added or removed with all 3 integrity hashes **independently re-verified against the live npm registry**; **0 `package.json` changes**; v6 canonical/mirror invariant holds (only the 2 banner-bearing files differ). **v6 IS NOT ON `main`:** `main` @ `ede495b5` `00_README.md` still reads *"Pack v5"*, has **0** hits for `PERMANENT READING GATE`, `20_ADR_INDEX.md` has **no ADR-019**, `21` still records provenance `UNKNOWN`, and it lacks both `22_*` artifacts (13 pack files now differ from the branch vs 9 at T33-I — fully explained by T33-I's own authorized commits). **O-5 IS OPEN AND MATERIAL: `docs/spec-v3/` DOES NOT EXIST** (replaced by `docs/spec-v3.zip`), leaving **30 broken authority references** across root `README.md` and `SORAVO_PLAN.md`. **Licensing evidence INTACT and NO model cleared:** 69-model histogram independently re-derived (`apache-2.0`×25 / `mit`×21 / `cc-by-4.0`×15 / `other`×7 / `cc-by-nc-4.0`×1), 61 `requires notice` · 1 `restricted` (`canary-1b-gguf`, non-commercial) · 7 `unknown` (`other`) · **0 approved for distribution**; T28 §7 / T10 still **0/9**. **9 V1 GATES REMAIN OPEN — green Linux CI closes none:** model/weight licensing · Silero VAD (0 `*.onnx` repo-wide) · selected model (`selected_model` empty) · **macOS build (NEVER BUILT)** · **Windows build (NEVER BUILT)** · T1 boot gate · release exercise · UI truthfulness (O-4, `app.tsx:191-197` still says STT is *"deliberately unavailable"*) · T32/T33 governance (O-4, O-5, 31 untracked prior-task reports, PR #63 title still "T31 + T32"). **EXACT NEXT TASK: T33-P — T2 macOS/Windows build verification gate (ADR-019). NOT started.** Full record: `T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md` + T33-O entry at end of this file.  
 > **Main SHA:** ede495b55efd95cedd882d90a19d12b4777da852  
 > **Authority:** SORAVO_PLAN.md, docs/spec-v3/  
 > **Razorpay 018–026:** committed to `feature/razorpay-payments-021-026` at
@@ -5185,3 +5186,280 @@ Audit `36673230041` on head `218752d4` (docs-only delta); Security
 Audit already `success`, CI in progress at time of writing. The T33-N
 verdict rests on runs `36672260194`/`36672260245` at `0913e7c5` and is
 not conditional on the newer runs.
+
+---
+
+## T33-O — POST-T33-N CI BASELINE AND HANDY READINESS AUDIT (2026-09-30)
+
+**Status:** AUDIT + DOCUMENTATION COMPLETE. **T33-N IS FULLY GREEN AND FINAL.**
+PR #63 verified OPEN and UNMERGED. No regression. All repository invariants
+hold. No production code, test, catalog, model-asset, dependency, workflow, or
+UI change. **T33-P NOT started.**
+
+**Reading gate (mandated order):** root `SPEC_MANIFEST.json` → **all 16
+documents it names, in manifest order** (`README.md`, `01_PRD.md`, `02_TDD.md`,
+`03_AI_INSTRUCTIONS.md`, `04_IMPLEMENTATION_PLAN.md`, `05_TASK_BREAKDOWN.md`,
+`06_DOD_QA.md`, `07_AI_SKILLS.md`, `08_MCP_AND_AGENT_TOOLING.md`,
+`09_SECURITY_BASELINE.md`, `10_ADR_INDEX.md`, `11_INTERRUPTION_HANDOFF.md`,
+`12_BENCHMARK_PROTOCOL.md`, `13_RELEASE_RUNBOOK.md`,
+`14_ENVIRONMENT_AND_SECRETS.md`) → `PROGRESS.md` (full heading index; head
+lines 1–385 and the complete T33-I/J/K/L/M/N sequence read verbatim; 5,187
+lines) → **fresh GitHub state** (branch, HEAD, `origin/main`,
+`origin/t31/soravo-wrapper-completion`, PR #63, all checks on the current head,
+latest CI + Security Audit runs, job-level results, raw job logs, branch
+protection API) → T33-N (423 L) → T33-M (415 L) → T33-K (329 L) / T33-L
+(346 L) / T33-J (224 L) → v6 authority (`SPEC_MANIFEST.json`, `00`, `08`,
+`09`, `20`, `21`). **No prior report's conclusion was accepted on report.**
+
+### Correction to the task brief (recorded)
+
+The brief reported the T33-N documentation commit as `218752d4` and implied PR
+#63 sat there. **The actual head is `df527558`** — one T33-N *Markdown-only*
+documentation commit newer, the worktree-incident addendum. It was pushed; both
+SHAs carry green CI. Not a discrepancy, not unattributable. All T33-N claims
+below are verified against **`df527558`**.
+
+### STEP 1 — T33-N documentation CI: VERIFIED FROM GITHUB
+
+Run `36673230042` was reported IN PROGRESS at hand-off. **It is not — it
+completed.** `CI` / `pull_request` / **`completed`** / **`success`** / head
+`218752d4d48f21adae340f4e012716ee87001a27`. Jobs: `web` success 47s · `e2e`
+success 52s · `rust` success 6m24s · `desktop` success 10m50s. Security Audit
+`36673230041` success. **No new failures. No failure to root-cause. Handy
+recovery not begun.**
+
+Newer runs on the real head `df527558`: **CI `36673473955` success** (`web`
+1m0s · `e2e` 57s · `rust` 8m45s · `desktop` 10m50s) and **Security Audit
+`36673473744` success** (`npm-audit` 17s · `cargo-deny` 41s · `cargo-audit`
+11s).
+
+### STEP 2 — PR #63
+
+Head **`df527558d01cebbe4388425da53ee20b5a9896c0`** · `mergeable: MERGEABLE` ·
+`mergeStateStatus: BLOCKED` · `reviewDecision: REVIEW_REQUIRED` · **0 reviews,
+0 of 1 approvals** · `state: OPEN` · `mergedAt: null` · not draft.
+**All 7 checks PASS** (`web`, `e2e`, `rust`, `desktop`, `npm-audit`,
+`cargo-audit`, `cargo-deny`). Branch protection on `main`: required contexts
+`[web, e2e, rust, desktop]` **all green**, `strict: true`,
+`required_approving_review_count: 1`, `dismiss_stale_reviews: true`,
+`allow_force_pushes: false`, `allow_deletions: false`, `enforce_admins: false`.
+**The `rust`-red blocker is CLEARED; the only remaining blocker is 1 human
+approval. PR #63 NOT merged and NOT touched by this task.**
+
+### STEP 3 — COMPLETE CI BASELINE (from GitHub, never inferred locally)
+
+| Gate | Run / job | Result | CI log evidence |
+|---|---|---|---|
+| rust | `36673473955`/`rust` | **PASS** 8m45s | `test result: ok. 256 passed; 0 failed; 0 ignored` |
+| web | `36673473955`/`web` | **PASS** 1m0s | `pnpm audit --prod` → **`No known vulnerabilities found`** |
+| e2e | `36673473955`/`e2e` | **PASS** 57s | job `success` |
+| desktop | `36673473955`/`desktop` | **PASS** 10m50s | Tauri build, job `success` |
+| security (npm) | `36673473744`/`npm-audit` | **PASS** 17s | `pnpm audit --prod --audit-level=high` → `No known vulnerabilities found` |
+| security (cargo-audit) | `36673473744`/`cargo-audit` | **PASS** 11s | 821 crates scanned, 13-entry pre-existing ignore list, exit 0 |
+| security (cargo-deny) | `36673473744`/`cargo-deny` | **PASS** 41s | `success` (only `warning[duplicate]`) |
+
+**Both prior red states are GONE, verified from CI:** the **`254/2` catalog
+state** (CI now reports `256 passed; 0 failed` — the exact `254/2 → 256/0`
+transition T33-K predicted and T33-L delivered) and the **`brace-expansion`
+web failure** (`No known vulnerabilities found` at the bare `pnpm audit --prod`
+gate). Full `cargo test --workspace` in CI: **every binary green, 0 failures
+repo-wide** (256 · 27 · 20 · 31 · 6 · 5 · 4 · 4(1+3 ignored) · 3 · 2 · 0×7).
+**No failure remains → no A–E classification required. Nothing fixed, masked,
+suppressed or retried.**
+
+### STEP 4 — REPOSITORY INVARIANTS: ALL HOLD
+
+`catalog.json` 127,334 B / blob **`64fc3482a8c7ff8b0a053a043e789b22113045ec`** /
+SHA-256 **`063dfdd5ec56867e863fb362110a90611a00ef38ba41fe4d0c08f23f8776a94e`**
+— **exact T33-L Handy catalog**. `text.rs` blob **`82d45b5aced133ae5424365a707017cbf69cff98`**
+/ 29,496 B — **exact upstream**. `lang_id.rs` blob
+**`82834bdb7eb2196664fa999774c4678cb2c8534b`** / 6,685 B — **exact upstream**.
+`post_process.rs` **REMOVED**. `transcription.rs` **UNTOUCHED** (last touched
+`fc56c31b`, T22). **Zero test/spec files** changed across the entire T33 window
+(`640157aa..df527558`). All 8 non-Markdown changes attributed: T33-J
+(`text.rs` +828, `lang_id.rs` +170, `mod.rs` +6/−5, `post_process.rs` −280,
+`Cargo.toml` +5, `Cargo.lock` +100/−11) · T33-L (`catalog.json` +2239/−1) ·
+T33-N (`pnpm-lock.yaml` +13/−13). `managers/` **empty diff**;
+`.github/ crates/ apps/*/src services/ packages/ supabase/` **empty diff**.
+`pnpm-lock.yaml` = exactly 13 lines, **0 packages added, 0 removed**, and all
+three `dist.integrity` hashes **independently re-verified against the live npm
+registry** (`brace-expansion@5.0.12`, `fast-uri@3.1.8`, `ip-address@10.7.1`) —
+**no fabricated hash**, materially important given the T33-N worktree incident.
+**Zero `package.json` changes; no `pnpm.overrides` added.** T33-N's complete
+file list is 3 files: `PROGRESS.md`, the T33-N report, `pnpm-lock.yaml`.
+**v6 canonical/mirror invariant holds** — only `00_README.md` and
+`20_ADR_INDEX.md` differ (both banner-bearing). Manifest `24/24/24/24`; 26 on
+disk = 24 + 2 disclosed `22_*` extras; **manifest not amended**.
+
+`PROGRESS.md` accuracy: T33-J/K/L/M/N entries all accurate. **One defect found
+and corrected by this task** — the `Last audited (T33-N)` header still read
+`HEAD a8a4d151`, *"`web` + Security Audit RED"*, and *"BLOCKED (required `rust`
+red)"*, all now false. Per the file's own precedent the T33-N block is
+**preserved verbatim and marked HISTORICAL/STALE**, and a `Last audited
+(T33-O)` block was added. **No historical T33 entry was rewritten.**
+`## T32-U` is present (the gap T33-I recorded is closed).
+
+### STEP 5 — LICENSING: EVIDENCE INTACT, NO MODEL CLEARED
+
+Owner intent recorded (*"use the Handy catalog/models and credit the
+upstream/model licensors appropriately on Soravo's website"*) is treated as
+**intent, not as permission to ignore any individual licence.** **No model
+metadata or licensing file modified; no licence, hash, mirror or URL fabricated
+or cleared.** T33-L §6 intact and unmodified since `a8a4d151` — **69-row**
+per-model table. Histogram **independently re-derived from the restored bytes**:
+`apache-2.0`×25 / `mit`×21 / `cc-by-4.0`×15 / `other`×7 / `cc-by-nc-4.0`×1
+over 69 models — **byte-for-byte agreement with T33-L**. The one
+`cc-by-nc-4.0` model is confirmed as **`handy-computer/canary-1b-gguf`**
+(`restricted`, **non-commercial**, separate permission or release-time carve-out
+required). The **7 `other` entries are NOT declared cleared**:
+`Fun-ASR-MLT-Nano-2512-gguf`, `Fun-ASR-Nano-2512-gguf`, `medasr-gguf`,
+`multitalker-parakeet-streaming-0.6b-v1-gguf`,
+`nemotron-3.5-asr-streaming-0.6b-gguf`,
+`nemotron-speech-streaming-en-0.6b-gguf`, `SenseVoiceSmall-gguf` — each still
+needs per-model source-repo review against the v6 `08` **T10** ten-item list.
+T28 §7 / T10 remains **0/9**. Totals unchanged: `requires notice`×61 ·
+`restricted`×1 · `unknown`×7 · **`compatible`×0** — **no model is marked
+distributable-approved**; weights remain reference/download only.
+
+The later licensing task must keep separate, per v6 `21`: (1) software/licence
+obligations (Handy MIT); (2) model/weight licence obligations (69 gates — the
+catalog string is Handy *metadata*, **not** a weight-licence grant); (3)
+attribution/notice obligations (61 models + `cjpais/Handy` and each publisher,
+**no ownership claims**); (4) the one `cc-by-nc-4.0` model; (5) the seven
+`other` entries.
+
+### STEP 6 — V6 DOCUMENT STATUS (from GitHub)
+
+**The v6 canonical pack is NOT on `origin/main`** @ `ede495b5`. `main`'s
+`00_README.md` still reads ***"Pack v5"***, has **0** hits for
+`PERMANENT READING GATE`, its `20_ADR_INDEX.md` has **no ADR-019**, its `21`
+still records provenance **`UNKNOWN`**, and it lacks both `22_*` artifacts.
+**The v6 reading gate exists only on the unmerged branch.** Manifest entry
+count: `file_count: 24` = 24 `files[]` = 24 `read_order[]`; `main` holds
+exactly 24 files, the branch 26 (24 + 2 disclosed extras). `main`'s
+`SPEC_MANIFEST.json` blob `15fb55d4…` is **byte-identical** to the branch's —
+i.e. `main` carries a manifest that already labels itself v6.0.0 above a pack
+header and content that predate v6. **Pre-existing internal inconsistency on
+`main`; recorded, NOT repaired** (resolves on merge).
+
+**Authority declaration still stale — O-5 OPEN AND MATERIAL.**
+`docs/spec-v3/` **DOES NOT EXIST** (replaced by the archive artifact
+`docs/spec-v3.zip`). **30 broken authority references** across the two root
+authority documents: `README.md:13`, `README.md:28-32` (5 links),
+`README.md:69-72` (4 steps), `SORAVO_PLAN.md:11`, `SORAVO_PLAN.md:15` (V3
+marked *Authoritative / Implementation authority*), `SORAVO_PLAN.md:265-284`
+(20 entries). Any agent following the root `README.md` today is sent to a
+non-existent path. **Not repaired in this task** — repairing O-5 is not needed
+to finalize T33-N and v6 `09` forbids an agent asserting a resolution to an
+owner-gated item. **Escalated.**
+
+T33-I recorded **9** differing pack files vs `main`; measured now is **13**.
+**Fully explained** by T33-I's own authorized commits (`00`, `02`, `03`, `04`,
+`06`, `07`, `08`, `09`, `18`, `20`, `21`) plus the 2 `22_*` artifacts — the
+divergence grew because the governed work landed on the branch, not because
+anything unattributable occurred. **v6 state matches the expected governed
+state. Not a material unexpected divergence.**
+
+### STEP 7 — HANDY RECOVERY READINESS
+
+**All four preconditions MET:** T33-N CI fully green · PR #63 unmerged · no
+unexpected regression · repository invariants hold.
+
+**9 remaining V1 gates — green Linux CI closes NONE of these:**
+
+1. **Model/weight licensing** — T28 §7 / T10 **0/9**; 61 `requires notice` ·
+   1 `restricted` · 7 `unknown` · 0 approved. *Owner/legal-gated.*
+2. **Model assets / Silero VAD** — **0 `*.onnx` repo-wide; no `resources/`
+   dir**; `silero_vad_v4.onnx` (1,807,522 B upstream) absent. *Supply-chain-gated.*
+3. **Selected model availability** — `settings.selected_model` default empty;
+   `managers/transcription.rs:764` `load_model(&settings.selected_model)` has
+   no default; ADR-019 **I4** holds. *Depends on 1 & 2.*
+4. **macOS build** — **NEVER BUILT.** Every `ci.yml` job is `ubuntu-latest`;
+   ADR-019 records macOS compilation as `UNKNOWN`.
+5. **Windows build** — **NEVER BUILT.** Same.
+6. **T1 boot gate** — recorded outstanding in `20_ADR_INDEX.md`; T32-V gave a
+   Linux boot proof (15 s launch, exit 124, 0 panics) but the ADR obligation is
+   not recorded closed.
+7. **Release exercise** (v6 `08` T14) — not started; needs 1–6.
+8. **UI truthfulness (O-4)** — `apps/desktop/src/app.tsx:191-197` still tells
+   users *"Speech recognition, microphone access, global shortcuts, and text
+   insertion are **deliberately unavailable** until their dedicated, testable
+   phases."* Stale after T32-X runtime restoration.
+9. **T32/T33 governance** — O-4 · **O-5 (30 broken refs)** · 31 untracked
+   prior-task `T*.md` reports never committed · PR #63 title still "T31 + T32"
+   though the branch carries T33 work.
+
+`SPEC_MANIFEST.json` declares `primary_platforms: ["macOS", "Windows"]`.
+**Gates 4 and 5 are the declared primary platforms and neither has ever been
+compiled.**
+
+### EXACT NEXT TASK (identified, NOT executed)
+
+> **T33-P — T2 macOS/WINDOWS BUILD VERIFICATION GATE (ADR-019).** Add
+> `macos-latest` and `windows-latest` build jobs to `.github/workflows/ci.yml`
+> (compile/build verification only — no packaging, signing, notarization or
+> release artifacts), push, record the actual compile result per platform.
+
+**Why next:** (1) it is a **ratified ADR-019 outstanding obligation**, not a new
+proposal — `20_ADR_INDEX.md` lists exactly three: T1 boot gate, T2
+macOS/Windows build jobs, `app.tsx` truthfulness; no ADR and no owner decision
+required; (2) it closes the **highest-severity UNKNOWN** in the repository —
+ADR-019 states verbatim *"macOS/Windows compilation is `UNKNOWN`; only
+`x86_64-unknown-linux-gnu` was compiled and launched"*, and every green run
+since T33-J/L/N ran on `ubuntu-latest`; (3) it is the **one remaining
+substantive gate that is fully agent-executable with no external input** — no
+credentials, no legal ruling, no upstream asset, no licence, no owner choice,
+whereas gate 1 is legal-gated, 2–3 are supply-chain-gated and depend on 1, and
+7 depends on all; (4) it **directly tests the recovered code** — T33-J restored
+828 + 170 lines with five new deps (`regex`, `strsim`, `natural`, `whatlang`,
+`isolang`); `natural` (Cranelift), `rust-stemmers`, `phf`, `ahash` and the
+macOS/Windows input paths are exactly where byte-restored upstream code can
+compile on Linux and fail on a primary platform; (5) it is **strictly bounded**
+— two `runs-on` variants of the already-proven `desktop` build step; (6) it
+**unblocks honest platform claims** — v6 `13` `17_RELEASE_RUNBOOK.md` §8
+forbids claiming an unsupported OS, and T14 cannot pass without it.
+
+**Explicitly NOT in T33-P** (per v6 `09` *one action, no bundled work*): no
+model/licence change · no catalog change · no weight or VAD asset · no
+`package.json`/dependency change · no test edit · no Handy behaviour change · no
+`app.tsx`/UI change · no O-5 repair · no release packaging/signing/notarization ·
+no merge of PR #63 · no commit of the 31 untracked reports.
+
+**After T33-P, in order:** O-4 `app.tsx` truthfulness (small,
+agent-executable) → T1 boot gate closure → T10/licensing review (agent research
+plus one legal ruling on `canary-1b-gguf`) → Silero VAD + selected-model asset
+acquisition → T14 release exercise.
+
+### Security
+
+**Provider mutations: ZERO.** All GitHub access read-only (`gh pr view`,
+`gh run view/list`, `gh pr checks`, `gh api …/branches/main/protection`). **No
+secret** read/printed/committed. No `unsafe`. **No security boundary moved** —
+CSP, `capabilities/default.json`, RLS, webhook HMAC, `verify_jwt` untouched. **No
+advisory** suppressed/allowlisted/downgraded; the 13-entry `cargo audit` ignore
+list is pre-existing and unmodified. **No licence cleared, no attribution
+fabricated.** **MCP not used.** Only Markdown written.
+
+### STOP conditions — none triggered
+
+T33-N CI not green → **NOT** (both runs success). PR #63 merged → **NOT**
+(`OPEN`, `mergedAt: null`). New regression → **NOT** (0 failures, `256/0`,
+invariants hold). v6 state materially different → **NOT** (matches T33-I; 9→13
+fully explained). Unattributable source/test/catalog/workflow change → **NOT**
+(all 8 files attributed). Licensing evidence insufficient → **NOT** (no
+clearance claimed; 7 `other` + 1 `cc-by-nc-4.0` explicitly uncleared). GitHub
+state unverifiable → **NOT** (fully verified).
+
+**Full report:** `T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md`.
+Commit/push/CI recorded in the follow-up entry below after the push actually
+occurs.
+
+---
+
+## T33-O — POST-PUSH VERIFICATION (2026-09-30, follow-up)
+
+*(Recorded after the commit and push actually occur, per the permanent
+implementation discipline: CI state is recorded after push, not assumed from
+the commit succeeding.)*
+
+**STOP. T33-O is complete. T33-P is NOT started. PR #63 is NOT merged.**
