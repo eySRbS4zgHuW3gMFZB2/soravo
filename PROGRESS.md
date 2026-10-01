@@ -5876,3 +5876,336 @@ installed skills. Every skill-presence, name-coverage, registry-precedence and
 CI/PR fact was re-derived first-hand from the live filesystem, a set comparison
 against the live store, and the GitHub API — **no prior report's conclusion was
 accepted on report**. 2026-09-30, on `t31/soravo-wrapper-completion` @ `e2e2c2c3`.*
+
+---
+
+## T33-P — T2 CROSS-PLATFORM BUILD VERIFICATION GATE (2026-10-01)
+
+- **Task:** T2 cross-platform compilation verification for the desktop app (ADR-019
+  obligation T2). Build verification only — no runtime, no packaging, no signing.
+- **Work performed:** Reading gate (SPEC_MANIFEST + 16 manifest docs + PROGRESS +
+  fresh Git/PR/CI audit + T33-PRE gate + T33-O §7 + toolchain/config reads) and Skill
+  Selection Gate executed before planning. Found HEAD `34ef39d9`
+  (`ci(desktop): add macOS and Windows compile verification jobs`) already present
+  and pushed; restored an uncommitted worktree revert of it (`git checkout --
+  .github/workflows/ci.yml`) so the pushed evidence is preserved. Observed (not
+  assumed) CI run `36783665975` (CI, failure) + Security Audit `36783666087`
+  (failure) on HEAD. Classified all failures A–F with exact log provenance. Per the
+  Critical Platform Rule (source change required → STOP), no source was patched.
+  Full record: `T33-P-T2-CROSS-PLATFORM-BUILD-VERIFICATION-REPORT.md`.
+- **Files changed:** `T33-P-T2-CROSS-PLATFORM-BUILD-VERIFICATION-REPORT.md` (new) +
+  this entry. Implementation delta (pre-existing commit `34ef39d9`):
+  `.github/workflows/ci.yml` +85/-0 only (new `desktop-macos` matrix
+  `aarch64`+`x86_64-apple-darwin` + `desktop-windows` `x86_64-pc-windows-msvc`,
+  `pnpm tauri build --no-bundle`, no secrets, no signing, no release.yml use).
+- **Skills selected (all actually loaded via `skill` tool):** `tauri`, `tauri-setup`,
+  `rust-engineer`, `gh-cli`, `security-guidance`. Declined with reasons in the
+  report (§2): `github`, `rust-review`, `supply-chain-risk-auditor`, `vitest`,
+  `playwright`, `semgrep`/`codeql`, `securability-engineering`,
+  `agent-security-audit`/`mcp-server-review`, all frontend, Supabase, Cloudflare,
+  `secure-workflow-guide`, `find-skills`. Zero MCP tools called.
+- **Commit SHA:** `34ef39d9f50bd7c8cfa88003763b81f86e8fc1c2` (pre-existing, pushed).
+  This session: 0 commits, 0 pushes of code (report + entry only).
+- **Push status:** HEAD == `origin/t31/soravo-wrapper-completion`, 0 ahead / 0 behind.
+- **CI run IDs (observed):** `36783665975` (CI, failure), `36783666087` (Security
+  Audit, failure).
+- **Actual conclusions:** macOS `x86_64` FAIL (`ort-sys` no prebuilt binary — class
+  F); macOS `aarch64` FAIL (ggml needs macOS 10.15+, deployment-target — class D/E);
+  Windows FAIL (`crates/typing/src/lib.rs:322` `set_clipboard` API mismatch vs
+  `clipboard-win 5.4.1` — class A genuine Soravo defect); `rust` + `cargo-audit`
+  FAIL (`yoke-derive 0.8.3` yanked — upstream drift, unrelated). `web`/`e2e`/`desktop`
+  (Linux)/`npm-audit`/`cargo-deny` PASS. `release.yml`: 0 runs ever, not used.
+- **Remaining blockers:** Windows source repair; `x86_64` macOS leg decision
+  (`ort-sys`); `MACOSX_DEPLOYMENT_TARGET` workflow fix; `yoke-derive` ignore/bump.
+  Exact proposed Windows change recorded in the report, NOT applied.
+- **Next task:** T33-P-FOLLOWUP remediation in report §20 order. DO NOT start T33-Q.
+
+**STOP. T33-P is complete. No follow-up task is started. PR #63 is NOT merged.**
+
+## T33-P-FOLLOWUP-1 — Cross-Platform Failure Forensics (FORENSICS ONLY)
+
+- **Objective:** Independently establish root causes + smallest compatible
+  remediations for the three T33-P platform failures. Zero modifications to
+  source/workflow/deps/tests/lockfiles/release/catalog (verified via
+  `git status`: only this entry + the new report file).
+- **Reading gate:** root `SPEC_MANIFEST.json` + all 14 manifest docs +
+  canonical v6 pack (`01`,`04`,`09` full,`10` full,`12`,`13`,`14`,`19`,
+  `20`,`21` §§60–219) + `PROGRESS.md` (5,923 L) + fresh Git/PR/CI audit +
+  full T33-P report + `ci.yml`/`release.yml`/`lib.rs`/typing+stt manifests/
+  `tauri.conf.json`/`Cargo.lock` entries + vendored registry sources
+  (`clipboard-win-5.4.1`, `ort-sys-2.0.0-rc.12`, `transcribe-cpp-sys-0.2.3`,
+  `cc-1.4.7`, `cmake-0.1.58`, `@tauri-apps/cli-2.12.0` schema+binary).
+- **Fresh state:** HEAD `34ef39d9` == origin (0/0); PR #63 OPEN,
+  `MERGEABLE`/`BLOCKED`/`REVIEW_REQUIRED`, not merged; CI `36783665975`
+  failure (web/e2e/desktop-Linux green; rust + 3 platform legs red).
+- **A — macOS x86_64 (upstream/dependency limitation, class F):**
+  `ort-sys 2.0.0-rc.12` `dist.txt` has 17 rows, zero `x86_64-apple-*` under
+  any feature set (aarch64-apple-darwin present; Linux `x86_64-unknown-linux-gnu`
+  present — why Linux passes). Chain: `soravo-stt → transcribe-rs
+  0.3.11[onnx] → dep:ort → ort-sys → resolve.rs/dist.txt`. First causal:
+  `c30c2663` (STT-003). No Handy-supported solution established (UNKNOWN).
+  No pre-authorized fix — 4 alternatives (drop leg / source-build ORT /
+  version-feature change / backend switch) all need owner decision + ADR.
+- **B — macOS aarch64 (workflow/configuration defect, class D/E):**
+  `tauri.conf.json` omits `minimumSystemVersion` → CLI 2.12.0 default
+  `10.13` → `MACOSX_DEPLOYMENT_TARGET=10.13` → `cc 1.4.7` injects
+  `-mmacosx-version-min=10.13` (CI-verbatim) → bundled ggml needs
+  `std::filesystem` = 10.15+. Floor implied: **10.15** (drops 10.13/10.14; no
+  published version claim found in repo). Smallest fix: set
+  `bundle.macOS.minimumSystemVersion="10.15"` (fixes CI + release; CI-env-only
+  fix rejected as incomplete). No common remediation with A. ADR + owner ack
+  required first.
+- **C — Windows (Soravo defect, class A):** `lib.rs:229-230,322` calls
+  v4-shaped API (`get_clipboard::<String>()`,
+  `set_clipboard::<String>(text)`, phantom `ClipboardContentFormats`) against
+  declared/locked `clipboard-win 5.4.1`, whose API is
+  `get/set_clipboard(format, …)` with `Unicode: Setter<AsRef<str>>` (vendored
+  source-verified, incl. `_string` conveniences). First causal: `0b5b3705`
+  (dep + buggy calls in one commit; never compiled on Windows). No Handy
+  counterpart (no `clipboard-win` in Handy provenance; `paste_tx` is the
+  behavioral reference only). Smallest fix: 3-line v5 adaptation, zero
+  Linux/macOS impact (`cfg(windows)` isolation), no V1 behavior change, no ADR.
+- **Task separation:** three separate implementation tasks (different
+  mechanisms, governance lanes, CI proofs). Order: C (no blocker) →
+  B (after owner ack + ADR) → A (after owner alternative-selection + ADR).
+  `yoke-derive` yanked failure is a fourth separate task.
+- **Skills actually loaded:** `gh-cli`, `rust-engineer`, `rust-review`,
+  `tauri`, `tauri-setup`, `security-guidance`, `supply-chain-risk-auditor`
+  (Cargo out of its collector scope — `Cargo.lock`/registry evidence used
+  instead, recorded). Declined: `github`, `tauri-development`, `vitest`,
+  `playwright`, all frontend/Supabase/Cloudflare, `securability-engineering`,
+  `agent-security-audit`/`mcp-server-review`, `semgrep`/`codeql` (CLIs absent),
+  `secure-workflow-guide`, `find-skills`. Zero MCP tools called. Result: CLEAR.
+- **Files changed:** `T33-P-FOLLOWUP-1-CROSS-PLATFORM-FORENSICS.md` (new) +
+  this entry. All other files deliberately unchanged.
+- **Commit/push:** none (forensics deliverable left uncommitted per task).
+- **Owner decisions required:** (i) accept macOS 10.15 floor; (ii) select
+  x86_64 alternative (§A.8) — both + ADRs before implementation.
+- **Next:** `T33-P-FOLLOWUP-2` (Windows repair) → `-3` (10.15 floor + ADR) →
+  `-4` (x86_64 decision + ADR). DO NOT begin implementation in this task.
+
+**STOP. Forensics complete. No implementation begun.**
+
+---
+
+## T33-P-FOLLOWUP-2 — Windows Clipboard V5 API Remediation (SOURCE REPAIR + STOP)
+
+- **Objective:** Fix ONLY the Windows `clipboard-win` compilation defect from
+  T33-P-FOLLOWUP-1 §C (`crates/typing/src/lib.rs:229-230,322` v4-shaped calls
+  vs declared/locked `clipboard-win 5.4.1`). No dep change, no test change, no
+  ADR, no CI change, no Handy behaviour change.
+- **Reading gate:** root `SPEC_MANIFEST.json` + all 14 root docs in full +
+  canonical v6 pack all 24 entries in full + `PROGRESS.md` (5,987 L; head +
+  full T33 tails first-hand) + fresh Git/PR #63/CI audit + both T33-P reports
+  in full + Skill Selection Gate before planning + discipline/boundary/CI/
+  security/preservation rules re-read + CURRENT HEAD inspected (full record:
+  `T33-P-FOLLOWUP-2-WINDOWS-CLIPBOARD-REMEDIATION-REPORT.md` §1).
+- **HEAD state found:** `a9602ea2` (prior attempt at this task ID, already
+  pushed, == origin) = exactly one minimal commit ahead of forensic baseline
+  `34ef39d9`. Worktree held an uncommitted REVERT of that fix — classified
+  task-owned, restored via `git checkout --` to byte-identical HEAD state
+  (`cmp` clean). `M PROGRESS.md` (T33-P + FOLLOWUP-1 entries) preserved
+  untouched. Commit message never trusted; every claim re-derived first-hand.
+- **Dependency API (vendored `clipboard-win-5.4.1` source):**
+  `get_clipboard<R: Default, T: Getter<R>>(format: T)`,
+  `set_clipboard<R, T: Setter<R>>(format: T, data: R)`, root re-export
+  `Unicode` (`Getter<String>`, `Setter<AsRef<str>>`), `ClipboardContentFormats`
+  zero hits in all 9 source files. Matches forensic finding exactly — no STOP.
+- **Exact change (4+/4−, `crates/typing/src/lib.rs` only):**
+  `:229-230` phantom import → `use clipboard_win::{get_clipboard, Unicode}`,
+  `get_clipboard::<String, Unicode>(Unicode)`; `:322` →
+  `set_clipboard(Unicode, text)`. Same dep/version/checksum; `Cargo.toml` +
+  `Cargo.lock` byte-unchanged. Callers: private fns, 3 internal call sites
+  only; sole external consumer `soravo_ipc.rs:197 inject_text`. No Handy
+  counterpart (`clipboard-win` absent from Handy provenance; `paste_tx`
+  uses raw `windows` crate) — Soravo-owned fix, `SORAVO-OWNED` classification.
+- **Pre-fix failure reproduced locally:**
+  `cargo check -p soravo-typing --target x86_64-pc-windows-msvc` on the
+  baseline file → exactly 6 errors (E0432, 2×E0107, 2×E0061, E0277), matching
+  CI job `110119803903`. File restored byte-identical afterwards.
+- **Local validation (all PASS):** `cargo fmt --check -p soravo-typing` (0);
+  Windows-target `cargo check` (Finished); Linux
+  `cargo clippy -p soravo-typing --all-targets -- -D warnings` (0 warnings);
+  `cargo test -p soravo-typing` (5 unit + 4 integration, 0 failed);
+  `aarch64-apple-darwin` check (Finished); `git diff --check` (0).
+- **Authoritative CI (fix commit `a9602ea2`, NOT local reasoning):** CI run
+  `36798675037` — `web`/`e2e`/`desktop`(Linux) success; Windows job
+  `110167865409`: `soravo-typing` compiles, ZERO clipboard errors (dependent
+  `soravo-desktop` lib unit reached → rlib built). **Clipboard defect:
+  REMEDIATED.**
+- **STOP — wider Windows migration exposed (OUT OF SCOPE, untouched):**
+  `soravo-desktop` lib fails with 35 errors — E0432 unresolved `windows::*`
+  imports + E0308 ×3 in `paste_tx/windows.rs` (`:33,37,38,41,45` imports;
+  `:135:62,:284:59,:291:70`), `utils.rs` (`:58,66`), `overlay.rs`
+  (`:152,162,345,363`), `managers/audio.rs` (`:33,36`). v6 `09` stop
+  ("first compiler error indicates a wider migration") + task STOP
+  ("architectural changes") both TRIGGERED. Recorded as the next
+  deterministic task; not started here.
+- **Linux regression:** none (local + CI green). **macOS:** x86_64
+  (`110167865322`, `ort-sys` no prebuilt binary) + aarch64 (`110167865256`,
+  ggml needs 10.15+) fail EXACTLY as at baseline — unchanged, owned by
+  FOLLOWUP-3/-4, not attributed here. `rust`/`cargo-audit` unchanged
+  (`yoke-derive 0.8.3` yanked). No macOS success claimed (Windows-only task).
+- **Skills actually loaded:** `rust-engineer` (full), `rust-review` (full
+  412 L), `gh-cli` (full), `security-guidance` (index+workflow; no new trust
+  boundary → no further ASVS file triggered; v6 `12` no-clipboard-telemetry
+  preserved). `supply-chain-risk-auditor` declined (no dep change — matrix
+  mandates it only on dep changes). `github`/`tauri*`/`vitest`/`playwright`/
+  `semgrep`/`codeql`/frontend/Supabase/Cloudflare declined with reasons in
+  report §3. Zero MCP tools called. Result: CLEAR.
+- **Files changed:** `crates/typing/src/lib.rs` (committed `a9602ea2`, 4+/4−)
+  + `T33-P-FOLLOWUP-2-WINDOWS-CLIPBOARD-REMEDIATION-REPORT.md` (new,
+  uncommitted) + this entry (uncommitted). Deliberately unchanged: lockfile,
+  tests, `ci.yml` (Windows job intact), `release.yml`, catalog/models/VAD,
+  transcription, Handy files.
+- **Commit/push:** `a9602ea2b4ef2b0e4006a8d1d5dce16a5791faf5` (pushed,
+  == origin, PR #63 head, OPEN/BLOCKED/REVIEW_REQUIRED, NOT MERGED). No new
+  push needed (worktree code == HEAD; CI runs above executed ON the fix).
+- **Next:** NEW follow-up for the `soravo-desktop` Windows `windows`-crate
+  migration (§STOP evidence as input). Then FOLLOWUP-3 (10.15 floor + ADR),
+  FOLLOWUP-4 (x86_64 decision + ADR) per owner gates. DO NOT start -3/-4 here.
+
+**STOP after this task. T33-P-FOLLOWUP-3 and T33-P-FOLLOWUP-4 are NOT started.**
+
+---
+
+## T33-P-FOLLOWUP-2A — Windows Desktop Migration Forensics (NO REPAIR)
+
+- **Objective:** Investigate ONLY the newly exposed Windows `soravo-desktop`
+  compilation failure after T33-P-FOLLOWUP-2 (`a9602ea2`). No fix. Only output:
+  `T33-P-FOLLOWUP-2A-WINDOWS-DESKTOP-MIGRATION-FORENSICS.md` (new) + this entry.
+- **Reading gate:** root `SPEC_MANIFEST.json` + all 14 root docs in manifest
+  order + canonical v6 pack (chain-of-custody `21` full; `04`/`09`/`12`/`14`
+  rules re-read) + `PROGRESS.md` (6,068 L) + fresh Git/PR #63/CI audit + all
+  three T33-P reports in full + ADR-026/T04-B/T05-B + Skill Selection Gate
+  before planning (full record: forensics report §0–§1).
+- **HEAD/PR/CI:** `a9602ea2` == origin == PR #63 head (OPEN/BLOCKED/
+  REVIEW_REQUIRED, NOT MERGED). Authoritative run `36798675037`, Windows job
+  `110167865409`: `could not compile 'soravo-desktop' (lib) due to 35
+  previous errors`. `soravo-typing` clean on the same leg (FOLLOWUP-2 holds).
+- **Exact versions:** target `x86_64-pc-windows-msvc` (runner rustc -Vv
+  unrecoverable from log-failed view — UNKNOWN, not inferred); `windows 0.54.0`
+  declared BARE (zero features, since `fc56c31b`, never had any) vs Handy at
+  pin `ba10ce19` declaring `0.61.3 + 11 features` (fetched first-hand);
+  `winreg 0.10` (zero errors — NOT a defect, do not touch); workspace
+  `unsafe_code = "forbid"` (since `739ea664`) vs Handy having no `[lints]`.
+- **35/35 errors mapped:** Family A — 10× E0432 feature-gated imports
+  (`overlay.rs:152,345`; `paste_tx/windows.rs:33,37,38,41,45`;
+  `utils.rs:58`; `managers/audio.rs:33,120`) — feature/configuration mismatch.
+  Family B — 1× E0432 `core::BOOL` (`utils.rs:56`) + 3× E0308 `HANDLE(hg.0)`
+  (`paste_tx:135,284,291`) + 1 LATENT same-pattern site (`paste_tx:388`,
+  masked by E0432 cascade, must be fixed+proven together) —
+  windows-crate API/version migration (0.54 `HANDLE(isize)`/`HGLOBAL(*mut)`/
+  `Foundation::BOOL` vs 0.61 layout). Family C — 21× unsafe-forbid denials
+  (paste_tx ×16, overlay ×2, audio ×2, utils ×1) — lint-policy vs Win32-FFI
+  collision (same class as T04-B/T05-B; these files were explicitly deferred
+  to "their own ADR coverage" in T05-B §3).
+- **Blame:** paste_tx lines → `27200173` (restore of `5f56260c` bytes, diff
+  EMPTY); overlay/utils/audio lines → `a156c8c9`; bare `windows="0.54"` →
+  `fc56c31b`; `forbid` → `739ea664`. All defects stillborn at import/restore,
+  invisible to Linux CI (cfg-gating verified: `paste_tx/mod.rs:42-43`).
+- **Upstream proof:** all 4 files' Windows code byte-identical in logic to
+  Handy at `ba10ce19` (curl-fetched); Handy CI check-runs AT THE PIN show
+  Windows x86_64 + ARM builds SUCCESS — A+B compile under Handy's declaration.
+  (Side observation for FOLLOWUP-4: Handy macOS-x86_64 also green at pin with
+  `transcribe-rs 0.3.8` vs Soravo's 0.3.11.)
+- **V1 rule applied:** KEEP all 4 files' bytes (`HANDY-REUSE`); the divergence
+  is the DEPENDENCY DECLARATION, not the source. Repair hypothesis: align
+  `windows` to upstream (0.61.3 + 11 features) → A+B fixed with ZERO source
+  edits; rewriting Handy bytes to fit 0.54 rejected. `webview2-com` NOT
+  adopted without proof of need (no error demands it).
+- **Linux/macOS impact:** none by construction (`cfg(windows)` target-dep;
+  lockfile churn only; 0.61.3 already in closure via `tauri-plugin-opener`).
+- **ADR:** required for BOTH vehicles (dependency strategy; unsafe-policy
+  exception per v6 `12`:14 + T05-B §8/§12 mechanics). None written here.
+- **Classification:** agent-fixable now NONE; owner-decision-required ALL
+  (15 sites → 2B upstream-alignment + ADR; 21 sites → 2C scoped unsafe ADR);
+  external NONE; unknown NONE (35/35 + 1 latent attributed).
+- **Next (DO NOT START):** `T33-P-FOLLOWUP-2B` (declaration alignment, after
+  owner+ADR) → `T33-P-FOLLOWUP-2C` (unsafe exception, after security ADR;
+  lands after 2B). Then -3/-4 + yanked-advisory per owner gates.
+- **Skills actually loaded:** `rust-engineer`, `rust-review`, `gh-cli`,
+  `tauri`, `tauri-setup`, `security-guidance`, `supply-chain-risk-auditor`
+  (Cargo outside its collectors — lockfile/registry evidence substituted,
+  recorded). Declined with reasons in report §1. Zero MCP tools called.
+- **Files changed:** forensics report (new) + this entry. Local
+  `cargo check --target x86_64-pc-windows-msvc` attempted but blocked at
+  `ring` (`lib.exe` absent on Linux host) — CI is the sole authoritative
+  proof surface, recorded. Diff hygiene: no source/test/dep/workflow/ADR
+  touched.
+
+**STOP. Forensics complete. No repair begun.**
+
+---
+
+## T33-P-FOLLOWUP-2B — Windows Dependency Alignment + Narrow Unsafe Exception (IMPLEMENTED + CI-CLASSIFIED, STOP ON FAMILY D)
+
+- **Objective:** Implement owner Decisions 1–5 on the 2A forensics
+  (Families A+B → align `windows` with Handy-proven 0.61.3 + features;
+  Family C → narrowly scoped unsafe exception), record ADR-020 + ADR-021,
+  validate locally, push, classify authoritative CI. Full record:
+  `T33-P-FOLLOWUP-2B-WINDOWS-DEPENDENCY-ALIGNMENT-REPORT.md` (+ §1 Skill
+  Selection gate record therein).
+- **Reading gate:** canonical v6 pack all 24 entries in full + root
+  `SPEC_MANIFEST.json` + all 14 root docs (HISTORICAL/STALE, traceability
+  only) + `PROGRESS.md` head + full T33 tails + fresh Git/PR #63/CI audit
+  + 2A/FOLLOWUP-2 reports in full + T05-B/T04-B + `ci.yml` + ADR-026 +
+  index of record. **Skill Selection Gate run BEFORE planning/editing.**
+- **Skills actually loaded:** `rust-engineer`, `rust-review`, `gh-cli`,
+  `tauri`, `tauri-setup`, `security-guidance`, `securability-engineering`,
+  `supply-chain-risk-auditor` (Cargo outside its collectors —
+  `Cargo.lock`/tree/vendored-registry evidence substituted, recorded).
+  Declined with reasons in report §1 (`github`, `tauri-development`,
+  `vitest`/`playwright`, frontend/Supabase/Cloudflare,
+  `agent-security-audit`/`mcp-server-review`, `semgrep`/`codeql` CLIs
+  absent, `secure-workflow-guide`, `find-skills`). Zero MCP tools called.
+  Result: CLEAR. No scope change → no gate re-run.
+- **Upstream re-verified first-hand:** Handy `src-tauri/Cargo.toml` at
+  `ba10ce19` re-fetched (windows 0.61.3 + 11 features verbatim; no
+  `[lints]`; `winreg 0.55`; `webview2-com 0.38` deliberately NOT adopted);
+  11/11 features confirmed present in vendored `windows-0.61.3`.
+- **Files changed (2 commits, not bundled):** `83a49672` (ADR-020:
+  `apps/desktop/src-tauri/Cargo.toml` windows 0.54→0.61.3+features +
+  `Cargo.lock` one-line edge + ADR-020 + index line) + `42fa7c31`
+  (ADR-021: crate `[lints.rust]` deny + 4 `target_os="windows"`-gated
+  `allow`s on Soravo-owned `lib.rs` modules + ADR-021 + index line).
+  ADR-020/021 use next-free v6 identifiers (017 absent, not reused);
+  v2-sequence files untouched. `git diff --check` clean on both.
+- **Deliberately unchanged (verified by diff):** `paste_tx/windows.rs`,
+  `utils.rs`, `overlay.rs`, `managers/audio.rs` (zero byte edits);
+  `winreg 0.10`; macOS sources; `yoke-derive`; catalog/models; UI;
+  release/signing (`release.yml` never dispatched); all tests; other
+  manifests; root workspace `forbid`. Unsafe census: zero new `unsafe`
+  constructs (only 4 `allow(unsafe_code)` attributes + comments).
+- **Local validation (all PASS):** `cargo fmt --check -p soravo-desktop`
+  (0); `cargo clippy -p soravo-desktop --all-targets -- -D warnings` (0
+  warnings); `cargo test -p soravo-desktop` (256 passed / 0 failed =
+  baseline); `cargo deny check` (ok); `cargo audit` (only pre-existing
+  `yoke-derive 0.8.3` yanked denial, out of scope). Windows-target
+  `cargo check` host-limited (`ring`/`lib.exe` absent, exit 101, zero
+  `soravo-desktop` frames) — no local Windows claim; CI is the proof.
+- **Push:** `a9602ea2..42fa7c31` → `origin/...`, 0/0. PR #63 head
+  `42fa7c31`, OPEN/BLOCKED/REVIEW_REQUIRED, NOT MERGED.
+- **Authoritative CI (observed):** CI `36807093893` + Security Audit
+  `36807093919` (both `completed`). `web`/`e2e`/`desktop`(Linux) success;
+  `rust` fails ONLY at the pre-existing `yoke-derive` audit step
+  (`fmt`/`clippy`/`test` passed on CI); `cargo-deny`/`npm-audit` success;
+  macOS legs fail VERBATIM as baseline (`ort-sys` x86_64, ggml floor
+  aarch64 — FOLLOWUP-4/-3). **Windows job `110193759211`: 35 → 2
+  errors — Families A (10 E0432), B (incl. latent `:388`, now silent),
+  C (21 unsafe) ALL GONE; `soravo-typing` clean.**
+- **STOP — Family D (distinct defect beyond A–C, recorded, NOT
+  repaired):** 2 × E0308 at `overlay.rs:165,365` — `SetWindowPos`
+  (windows 0.61.3) vs Tauri's `HWND` (windows 0.62.2 via `tao 0.37.1` →
+  `tauri 2.12.0`): same struct layout, different crate versions.
+  Masked before by the E0432 cascade. Every repair path needs an owner
+  decision and/or a forbidden edit (bump to 0.62.2 vs Decision 1; edit
+  `overlay.rs` vs DO-NOT; tao/tauri surgery crosses subsystems) → next
+  deterministic task **T33-P-FOLLOWUP-2D** (owner selects path + ADR).
+  DO NOT START here.
+- **Next:** T33-P-FOLLOWUP-2D (Family D decision + ADR) → FOLLOWUP-3
+  (10.15 floor + ADR) → FOLLOWUP-4 (x86_64 decision + ADR) + yanked
+  advisory, per owner gates. No Windows success claimed.
+
+**STOP after this task. T33-P-FOLLOWUP-2D, -3, -4 are NOT started. PR #63
+is NOT merged.**
