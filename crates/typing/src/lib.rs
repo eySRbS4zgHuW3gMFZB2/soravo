@@ -226,8 +226,8 @@ impl TypingEngine {
     fn take_clipboard_snapshot(&self) -> Result<ClipboardSnapshot, ClipboardError> {
         #[cfg(windows)]
         {
-            use clipboard_win::{get_clipboard, ClipboardContentFormats};
-            match get_clipboard::<String>() {
+            use clipboard_win::{get_clipboard, Unicode};
+            match get_clipboard::<String, Unicode>(Unicode) {
                 Ok(content) => Ok(ClipboardSnapshot {
                     content: Some(content),
                     was_modified: true,
@@ -318,8 +318,8 @@ impl TypingEngine {
     fn write_to_clipboard(&self, text: &str) -> Result<(), ClipboardError> {
         #[cfg(windows)]
         {
-            use clipboard_win::set_clipboard;
-            set_clipboard::<String>(text).map_err(|_| ClipboardError::WriteFailed)
+            use clipboard_win::{set_clipboard, Unicode};
+            set_clipboard(Unicode, text).map_err(|_| ClipboardError::WriteFailed)
         }
 
         #[cfg(target_os = "macos")]
