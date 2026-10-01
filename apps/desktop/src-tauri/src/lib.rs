@@ -22,19 +22,30 @@ pub mod clipboard;
 pub mod helpers;
 pub mod input;
 pub mod llm_client;
+// T33-P-FOLLOWUP-2B / ADR-021: narrowly scoped unsafe exception. Each
+// `allow` below exists ONLY on Windows builds (cfg_attr) and covers ONLY
+// the Handy-derived Win32 FFI allowlisted in ADR-021 (21 sites total).
+// Every other target sees crate-level `deny`; every other module and
+// crate keeps workspace `forbid`. macOS `unsafe` surfaces are NOT covered.
+#[cfg_attr(target_os = "windows", allow(unsafe_code))]
 pub mod overlay;
+#[cfg_attr(target_os = "windows", allow(unsafe_code))]
 pub mod paste_tx;
 pub mod portable;
 pub mod secure_input;
 pub mod settings;
 pub mod tray;
 pub mod tray_i18n;
+#[cfg_attr(target_os = "windows", allow(unsafe_code))]
 pub mod utils;
 
 // Commands
 pub mod commands;
 
 // Managers
+// T33-P-FOLLOWUP-2B / ADR-021: covers managers/audio.rs Windows COM blocks
+// only (same scoping as above; macOS/Linux unaffected).
+#[cfg_attr(target_os = "windows", allow(unsafe_code))]
 pub mod managers;
 
 // Shortcut/hotkey integration

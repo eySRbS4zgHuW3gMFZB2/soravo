@@ -106,5 +106,12 @@ tauri-nspanel = "2"
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
 
-[lints]
-workspace = true
+# T33-P-FOLLOWUP-2B / ADR-021: crate-scoped unsafe exception for the
+# Handy-derived Win32 FFI (Windows builds only). The workspace
+# `unsafe_code = "forbid"` is retained for every other crate; this crate
+# uses `deny` (overridable, unlike `forbid`) so the four Windows-only
+# modules allowlisted in src/lib.rs can carry a cfg-gated `allow`.
+# This table must mirror future [workspace.lints] additions explicitly.
+[lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
