@@ -74,14 +74,15 @@ gtk = "0.18"
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
 
 [target.'cfg(windows)'.dependencies]
-# T33-P-FOLLOWUP-2B / ADR-020: aligned with the Handy-proven declaration at pin
-# ba10ce19 (windows 0.61.3 + the exact 11 features Handy declares). The
-# Handy-derived Windows sources target the 0.61 API/type layout; 0.54 is
-# incompatible (no core::BOOL, HANDLE(isize) vs HGLOBAL(*mut c_void)) and was
-# declared feature-less, which cfg'd out every imported Win32 module.
+# T33-P-FOLLOWUP-2D-DECISION / ADR-023 (Path A): direct windows aligned with the
+# Tauri/tao windows line (tao 0.37.1 / tauri 2.12.0 declare windows 0.62;
+# locked 0.62.2). Supersedes the ADR-020 0.61.3 pin: the 0.61.3-vs-0.62.2 HWND
+# type split (Family D, overlay.rs:165,365) is unified by compiling both the
+# SetWindowPos call sites and tao/tauri's hwnd() against the same windows
+# version. Same 11 features (all verified present in windows-0.62.2).
 # webview2-com is deliberately NOT adopted (no error demands it);
 # winreg stays at 0.10 per owner Decision 4 (zero errors attributable to it).
-windows = { version = "0.61.3", features = [
+windows = { version = "0.62.2", features = [
   "Win32_Media_Audio_Endpoints",
   "Win32_System_Com_StructuredStorage",
   "Win32_System_DataExchange",
