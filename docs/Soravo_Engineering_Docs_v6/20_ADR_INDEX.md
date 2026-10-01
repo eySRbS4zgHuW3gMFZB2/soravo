@@ -27,6 +27,7 @@ ADR-015 TestSprite as supplemental QA.
 ADR-016 Documentation authority: GitHub implementation truth + this pack intent/control truth.
 ADR-018 V1 Handy-core preservation policy.
 ADR-019 **ACCEPTED (with recorded amendments)** — Handy V1 runtime restoration (minimum integration boot). Text: `T32-Y-ADR-019-HANDY-V1-RUNTIME-RESTORATION-ACCEPTED.md`. Shipped on PR #63 in `5649411d` and `27200173`. Decides `D-CATALOG = B` (schema tolerance only; `catalog.json` stays authoritative and unpopulated) and ratifies the `paste_tx/` restoration as restoration of existing source. Outstanding obligations recorded in the ADR: T1 boot gate, T2 macOS/Windows build jobs, `app.tsx` truthfulness. macOS/Windows compilation is `UNKNOWN`; only `x86_64-unknown-linux-gnu` was compiled and launched. **ADR-019 is the only current entry for this decision.**
+ADR-020 **ACCEPTED** — Windows `windows`-crate dependency alignment (0.54 bare → 0.61.3 + Handy-proven 11 features, zero source edits). Text: `T33-P-FOLLOWUP-2B-ADR-020-WINDOWS-DEPENDENCY-ALIGNMENT.md`. Owner-authorized 2026-10-01 (T33-P-FOLLOWUP-2B Decisions 1, 2, 4, 5) on T33-P-FOLLOWUP-2A forensics (Families A+B). `winreg` pinned at 0.10; `webview2-com` not adopted; macOS/`yoke-derive` explicitly out of scope.
 
 ### Provenance correction note (documentary — not an ADR)
 

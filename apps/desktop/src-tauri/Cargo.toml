@@ -74,7 +74,26 @@ gtk = "0.18"
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
 
 [target.'cfg(windows)'.dependencies]
-windows = "0.54"
+# T33-P-FOLLOWUP-2B / ADR-020: aligned with the Handy-proven declaration at pin
+# ba10ce19 (windows 0.61.3 + the exact 11 features Handy declares). The
+# Handy-derived Windows sources target the 0.61 API/type layout; 0.54 is
+# incompatible (no core::BOOL, HANDLE(isize) vs HGLOBAL(*mut c_void)) and was
+# declared feature-less, which cfg'd out every imported Win32 module.
+# webview2-com is deliberately NOT adopted (no error demands it);
+# winreg stays at 0.10 per owner Decision 4 (zero errors attributable to it).
+windows = { version = "0.61.3", features = [
+  "Win32_Media_Audio_Endpoints",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_DataExchange",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Ole",
+  "Win32_System_Memory",
+  "Win32_System_Threading",
+  "Win32_System_Variant",
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_UI_WindowsAndMessaging",
+] }
 winreg = "0.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]
