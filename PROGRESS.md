@@ -6209,3 +6209,56 @@ accepted on report**. 2026-09-30, on `t31/soravo-wrapper-completion` @ `e2e2c2c3
 
 **STOP after this task. T33-P-FOLLOWUP-2D, -3, -4 are NOT started. PR #63
 is NOT merged.**
+
+## T33-P-FOLLOWUP-3 — MACOS DEPLOYMENT FLOOR REMEDIATION (2026-10-01)
+
+- **Decision (given):** ACCEPT macOS 10.15 as Soravo's minimum supported
+  macOS version. Aarch64 deployment-target failure ONLY — x86_64 ORT
+  explicitly out of scope, nothing claimed about it.
+- **Reading gate:** root manifest + 14 docs, v6 pack (`09` permanent
+  discipline/gates, `20` index of record, `21` Handy pin), PROGRESS.md
+  (6,211 L), fresh Git/PR/CI audit, T33-P + FOLLOWUP-1/2/2A/2B + ADR-020/021,
+  `ci.yml`/`release.yml`/`tauri.conf.json`/`tauri.toml` read first-hand.
+- **Skill Selection:** loaded `tauri`, `tauri-setup`, `rust-engineer`,
+  `gh-cli`, `security-guidance` BEFORE planning/editing. Declined with
+  reason: `rust-review` (no Rust touched), `supply-chain-risk-auditor`
+  (no dep change), `github`/`tauri-development`/`vitest`/`playwright`/
+  frontend/supabase/cloudflare/agent-MCP/semgrep/codeql/workflow-guide/
+  find-skills (out of scope). Zero MCP tools called. Result: CLEAR.
+- **Forensics re-derived:** Tauri CLI 2.12.0 default `minimumSystemVersion`
+  10.13 → `MACOSX_DEPLOYMENT_TARGET` → `cc 1.4.7` →
+  `-mmacosx-version-min=10.13` < bundled ggml `std::filesystem` floor
+  10.15 (`transcribe-cpp-sys 0.2.3`); x86_64 `ort-sys` no-prebuilt is
+  independent (verified same runs).
+- **ADR:** ADR-022 (next valid per index of record; root v2 sequence
+  disambiguated) — `T33-P-FOLLOWUP-3-ADR-022-MACOS-DEPLOYMENT-FLOOR.md` +
+  index line. Config-only decision; Windows/Handy/signing/release out of scope.
+- **Change:** `tauri.conf.json` `bundle.macOS.minimumSystemVersion`
+  `"10.15"` (1 key; entitlements preserved; JSON valid; `git diff --check`
+  + `cargo fmt` clean). No Rust/test/dependency/lockfile/workflow/
+  release/Windows/Handy change.
+- **Commit/push:** `fef1d48e` (impl: conf + ADR-022 + index) → origin,
+  0/0. PR #63 head `fef1d48e`, OPEN/BLOCKED/REVIEW_REQUIRED, NOT MERGED.
+- **Authoritative CI (observed):** CI `36809807824` + Security Audit
+  `36809807820` (both `completed`). `web`/`e2e`/`desktop`(Linux) success;
+  `rust` fails ONLY at pre-existing `yoke-derive` audit step;
+  `cargo-deny`/`npm-audit` success; x86_64 unchanged (`ort-sys`
+  no-prebuilt, FOLLOWUP-4); Windows unchanged (2 × E0308 Family D);
+  `release.yml` 0 runs ever, no secrets, `--no-bundle` (no signing).
+- **Aarch64 (this defect): REMEDIATED** — job `110202118702`:
+  `transcribe-cpp-sys` compiles (→ `transcribe-cpp` → `transcribe-rs`),
+  **zero** `10.15-unavailable` errors. Effective floor >= 10.15 proven
+  (declared 10.15 + proven propagation + ggml success as the only change).
+- **STOP — new independent failure (recorded, NOT repaired):** 28 ×
+  `unsafe_code = forbid` denials in `soravo-desktop` macOS-gated files
+  (`apple_intelligence.rs`, `autostart.rs`, `input.rs`,
+  `paste_tx/macos.rs`, `secure_input.rs`, `clipboard.rs`,
+  `commands/mod.rs`) — macOS analogue of Windows Family C; ADR-021
+  explicitly excluded macOS surfaces. Next deterministic task: scoped
+  macOS `unsafe` policy + ADR (v6 `12`:14). DO NOT START here.
+- **Next:** macOS `unsafe`-policy follow-up (owner + ADR) →
+  T33-P-FOLLOWUP-4 (x86_64 decision + ADR) + yanked advisory + Family D,
+  per owner gates. No aarch64 success claimed.
+
+**STOP after this task. The macOS `unsafe` follow-up and FOLLOWUP-4 are
+NOT started. PR #63 is NOT merged.**
