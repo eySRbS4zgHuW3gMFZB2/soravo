@@ -20,6 +20,8 @@
 
 use serde::Serialize;
 use specta::Type;
+#[cfg(target_os = "macos")]
+use tauri::Emitter;
 use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Clone, Serialize, Type)]
