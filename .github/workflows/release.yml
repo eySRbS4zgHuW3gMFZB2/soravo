@@ -93,7 +93,8 @@ jobs:
           ORT_VERSION="1.24.2"
           ORT_SHA256="590cee05699047b85e4a8115b4cec792073c2972ce78de383356a552a296a9c4"
           curl -L --fail -o ort.tgz "https://blob.handy.computer/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
-          echo "${ORT_SHA256}  ort.tgz" | sha256sum -c -
+          # shasum ships with macOS (sha256sum is GNU-only); same check format.
+          echo "${ORT_SHA256}  ort.tgz" | shasum -a 256 -c -
           tar xzf ort.tgz
           ORT_DIR="$GITHUB_WORKSPACE/onnxruntime-osx-x86_64-${ORT_VERSION}"
           echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> "$GITHUB_ENV"
