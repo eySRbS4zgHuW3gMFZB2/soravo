@@ -6342,7 +6342,7 @@ NOT started. PR #63 is NOT merged.**
 - **Results:** implemented = ADR-024 + index + five lib.rs attributes; verified = local scoped gates green + Handy bytes preserved + census clean (authoritative CI Family U resolution pending CI completion — see commit/push state); blocked = none in scope (x86_64 ORT + yoke-derive owned elsewhere, intentionally untouched); not executed / deferred = full `cargo test --workspace` (runtime authority forbids full suite; CI `rust` leg is the authoritative test proof), local macOS target check (host limitation), merge, FOLLOWUP-4, yoke-derive lane.
 - **Remaining work:** observe authoritative CI for Family U = 0 (M = 0, S = 0 hold); then FOLLOWUP-4 (x86_64 ORT) in parallel + yoke-derive lane elsewhere.
 - **Next task:** `T33-P-FOLLOWUP-4`. DO NOT START here.
-- **Final commit SHA:** (recorded at commit time below). **Verified remote HEAD:** (verified via `git ls-remote` == local HEAD below).
+- **Final commit SHA:** `e1c5c18413c7b1f71a93ebfd674ddfab1e737f62` (impl + ADR-024 + index + this entry, single commit). **Verified remote HEAD:** `e1c5c18413c7b1f71a93ebfd674ddfab1e737f62` (`git ls-remote origin t31/soravo-wrapper-completion` == local HEAD; pushed `12f3f8ed..e1c5c184` after `gh auth setup-git`; PR #63 NOT merged).
 - **Confirmation:** Family M = resolved (holds). Family S = resolved (holds). Family U = implementation shipped, CI proof pending (do NOT claim resolved until CI proves 0). macOS x86_64 ORT = remains separate (untouched). yoke-derive = remains separate if still present (untouched).
 
 **STOP after this task. T33-P-FOLLOWUP-4 is NOT started. PR #63 is NOT merged.**
