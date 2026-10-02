@@ -23,7 +23,7 @@ anyhow = "1"
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
 cpal = "0.16"
-enigo = "0.2"
+enigo = "0.6.1"
 ferrous-opencc = "0.4"
 flate2 = "1"
 futures-util = "0.3"
