@@ -81,6 +81,28 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      # ADR-026 (T33-P-FOLLOWUP-4I): mirror of the Handy-proven x86_64 macOS
+      # ORT provisioning in ci.yml. Release x86_64 macOS builds resolve
+      # ort-sys identically, so they need the same ORT availability.
+      # Gated to the x86_64 macOS leg only; ARM64/Windows legs untouched.
+      - name: Provision ONNX Runtime (x86_64 macOS only)
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORT_VERSION="1.24.2"
+          ORT_SHA256="590cee05699047b85e4a8115b4cec792073c2972ce78de383356a552a296a9c4"
+          curl -L --fail -o ort.tgz "https://blob.handy.computer/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
+          echo "${ORT_SHA256}  ort.tgz" | sha256sum -c -
+          tar xzf ort.tgz
+          ORT_DIR="$GITHUB_WORKSPACE/onnxruntime-osx-x86_64-${ORT_VERSION}"
+          echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> "$GITHUB_ENV"
+          echo "ORT_PREFER_DYNAMIC_LINK=1" >> "$GITHUB_ENV"
+          # Bundle the versioned dylib (matches the install name @rpath/libonnxruntime.1.24.2.dylib)
+          jq --arg lib "$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib" \
+            '.bundle.macOS.frameworks = [$lib]' \
+            apps/desktop/src-tauri/tauri.conf.json > tmp.json && mv tmp.json apps/desktop/src-tauri/tauri.conf.json
+
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
         env:

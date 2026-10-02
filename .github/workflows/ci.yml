@@ -118,6 +118,32 @@ jobs:
           echo "--- rustup target list --installed ---"
           rustup target list --installed
       - run: pnpm install --frozen-lockfile
+      # ADR-026 (T33-P-FOLLOWUP-4I): Handy-proven x86_64 macOS ORT provisioning.
+      # ort-sys 2.0.0-rc.12 ships zero x86_64-apple-* prebuilt rows, so the
+      # x86_64 leg must provision the external ORT 1.24.2 dylib before the
+      # Rust build (ORT_LIB_LOCATION is honored before the download table).
+      # Gated to x86_64 only — the ARM64 leg must never receive this binary.
+      # Reuses Handy's exact mechanism (cjpais/Handy @ ba10ce19,
+      # build.yml "Install ONNX Runtime (x86_64 macOS)"); the sha256 pin is a
+      # Soravo-observed integrity value (measured 2026-10-02), not an
+      # upstream-published checksum — see ADR-026 §7.
+      - name: Provision ONNX Runtime (x86_64 macOS only)
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORT_VERSION="1.24.2"
+          ORT_SHA256="590cee05699047b85e4a8115b4cec792073c2972ce78de383356a552a296a9c4"
+          curl -L --fail -o ort.tgz "https://blob.handy.computer/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
+          echo "${ORT_SHA256}  ort.tgz" | sha256sum -c -
+          tar xzf ort.tgz
+          ORT_DIR="$GITHUB_WORKSPACE/onnxruntime-osx-x86_64-${ORT_VERSION}"
+          echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> "$GITHUB_ENV"
+          echo "ORT_PREFER_DYNAMIC_LINK=1" >> "$GITHUB_ENV"
+          # Bundle the versioned dylib (matches the install name @rpath/libonnxruntime.1.24.2.dylib)
+          jq --arg lib "$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib" \
+            '.bundle.macOS.frameworks = [$lib]' \
+            apps/desktop/src-tauri/tauri.conf.json > tmp.json && mv tmp.json apps/desktop/src-tauri/tauri.conf.json
       - name: Compile Tauri desktop (no bundle, no signing)
         working-directory: apps/desktop
         run: pnpm tauri build --no-bundle --target ${{ matrix.target }}
