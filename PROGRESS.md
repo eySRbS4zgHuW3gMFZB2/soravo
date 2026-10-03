@@ -6929,3 +6929,120 @@ requirement mapped ✅ · implementation complete ✅ · no duplicate architectu
 2. Record the **braces posture** decision — accept the residual dev-graph HIGH as policy, or hold for an upstream `braces>=3.0.4` — and record it as an ADR or an explicit PROGRESS entry so the T34-E/T34-I/T34-K owner gate is formally closed;
 3. Close PR #63 as superseded by #64 so exactly one merge candidate exists.
 After approval: re-verify the required contexts are green on the then-current head (`strict: true`), merge PR #64 (human-executed), verify `main` CI green, and only then consider `release.yml` via `workflow_dispatch`. **Until the approval exists: no merge, no release, no production-ready claim.**
+
+---
+
+## T34-M (RE-EXECUTION) — PR #64 INDEPENDENT FINAL VALIDATION + MERGE-READINESS (2026-10-04)
+
+> Independent re-verification of T34-M. A prior T34-M entry exists above; per
+> `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` ("A statement in PROGRESS.md must be
+> revalidated before being reused as current state") every fact below was
+> re-derived this session from the repository and live GitHub. No prior
+> T34-M claim was reused as evidence.
+
+### Skill Selection
+- Task classification: repository/Git operations · GitHub · CI/CD · security (general/dependency) · supply chain / dependencies · shadcn/ui classification · testing/QA · packaging/release (readiness only) · documentation/specification/ADR · interruption/handoff/state audit · Handy upstream analysis. Inspected and found NOT applicable: Rust, Tauri (no Rust/Tauri file touched), React component work, Supabase/database/payments/auth, cloud deployment, speech/audio/STT, benchmarking, model licensing, smart contracts, MCP/agent configuration.
+- Mandatory skills selected and LOADED (full bodies, this task): `gh-cli` — governs every PR/run/branch-protection read; `github` — governs `gh pr view` / `gh run view` / `gh pr checks` usage; `supply-chain-risk-auditor` — governs the dependency/advisory judgement; `security-guidance` — governs the no-audit-weakening / dependency-classification review; `shadcn` — governs the shadcn classification question.
+- Recorded limitation of `supply-chain-risk-auditor` (from its own body): its collector parses npm/PyPI/Go manifests and explicitly does **not** read `pnpm-lock.yaml`, and it never installs or builds. This repository is pnpm. Every dependency figure below therefore comes from `pnpm audit`, `pnpm why`, direct lockfile comparison and CI logs — **no figure is estimated**, and the skill's collector output is not applicable to this lockfile.
+- Recorded gap in `security-guidance`: the reference files its index names for the dependency sections (`data/asvs/V15.1.md`, `data/asvs/V15.2.md`) **do not exist** in the installed store; only `references/aisvs/C*.md` are present. Substitute evidence used: the V15.1/V15.2 index text itself, the loaded `C13.2.md` (human-in-the-loop decision checkpoints — applied to the merge gate below), and this pack's `12_SECURITY_BASELINE.md` + `09_AI_AGENT_INSTRUCTIONS.md`.
+- Optional skills considered and DECLINED with reason: `react`/`vercel-*`/`vitest`/`playwright` (zero component or test-source change; the CI matrix already executed the browser and test legs), `rust-engineer`/`rust-review`/`tauri*` (no Rust/Tauri file in the diff), `semgrep`/`codeql` (no new sink introduced; `pnpm audit` / `cargo audit` / `cargo deny` are the scanners of record and all three ran), `supabase*`/`cloudflare*`/`wrangler` (platform layer untouched), `securability-engineering`/`secure-workflow-guide` (code-generation and smart-contract oriented), `agent-security-audit`/`mcp-server-review` (no agent/MCP surface), `find-skills` (no install needed).
+- MCP/tools selected: `git` (state audit, diff, provenance), `gh` (all GitHub reads), `pnpm` (`audit`, `why`, filtered builds/typechecks/tests). No MCP server was required by this task.
+- Authority/source boundary: repository facts (manifests, lockfile, source, workflows) from the working tree; PR/CI/protection facts from live `gh`; Handy facts from a fresh clone at live upstream `main`. Prior T34-I/J/K/L/M entries used as leads only.
+- Conflicts found: none requiring STOP. Recorded tension (not a skill conflict): T34-E and T34-I classified a `shadcn` devDependencies reclassification as owner/ADR-gated; T34-L applied it with no ADR and no recorded owner approval (see Blockers).
+- Result: CLEAR
+
+### Branch / SHA
+- Branch `fix/t34-l-braces-dependency-remediation` · local HEAD `9e3a3557ce3b666a2a6a6d84473bda58bf472850` · remote `refs/heads/fix/t34-l-braces-dependency-remediation` = `9e3a3557ce3b666a2a6a6d84473bda58bf472850` (**local == remote, verified after `git fetch origin --prune`**) · `origin/main` `ede495b55efd95cedd882d90a19d12b4777da852` · branch **83 ahead / 0 behind** · `git diff --check` clean · 4 worktrees, the 3 pre-existing `.swarm-worktrees/*` untouched · ~44 pre-existing untracked root report files preserved, never staged.
+- **State correction against the T34-M brief**: the brief's "Expected HEAD `7656c2a3`" is `HISTORICAL/STALE`. `7656c2a3` is the T34-L tip; three PROGRESS.md-only documentation commits were layered on top (`805a930d`, `e58b5642`, `9e3a3557`) and pushed. The audited head is `9e3a3557`. All CI/security/PR state below is read on `9e3a3557`.
+- Worktree hygiene finding (resolved, no work lost): `PROGRESS.md` was dirty with a **pure deletion of the 118 already-published T34-M lines** (0 insertions, 118 deletions) — a truncated working copy, not new work. Classified as unknown/truncated, **not** task-owned. Restored from `HEAD` so the published record is intact again; a copy of the truncated file was preserved outside the repository at `/tmp/opencode/PROGRESS.worktree-backup.md` before restoring. No other file was touched.
+
+### PR #64 live state (this session)
+- `OPEN`, `isDraft:false`, base `main`, head `9e3a3557`, `mergedAt:null`, `mergeable:MERGEABLE`, `mergeStateStatus:BLOCKED`, `reviewDecision:REVIEW_REQUIRED`, **reviews `[]`**, **reviewRequests `[]`** (no reviewer requested).
+- Branch protection on `main`, read live: required contexts `[web, e2e, rust, desktop]`, `strict:true`, `required_approving_review_count:1`, `dismiss_stale_reviews:true`, `allow_force_pushes:false`, `allow_deletions:false`, `enforce_admins:false`.
+- Supersession: PR #63 is still **OPEN** at `02b14773c01ab6cd5efaf7f42f15e41194751521`; `git merge-base --is-ancestor` proves it is an **ancestor** of the PR #64 head → PR #64 is a strict superset of PR #63. `origin/main` is also an ancestor, so no rebase is required for freshness.
+
+### Final CI state (fresh, on head `9e3a3557` — not the earlier runs)
+- **CI run `37123527781`** (`pull_request`, headSha `9e3a3557`) → **success, 7/7 jobs**: `web` · `e2e` · `rust` · `desktop` (Linux Tauri) · `desktop build (macOS, aarch64-apple-darwin)` · `desktop build (macOS, x86_64-apple-darwin)` · `desktop build (Windows, x86_64-pc-windows-msvc)`.
+- **Security Audit run `37123527740`** (same headSha) → **success, 3/3 jobs**: `npm-audit` · `cargo-audit` · `cargo-deny`.
+- `gh pr checks 64` → all **10 checks pass** (npm-audit 19s, cargo-audit 10s, cargo-deny 41s, web 1m38s, e2e 52s, rust 14m51s, desktop 15m9s, macOS aarch64 9m57s, macOS x86_64 13m45s, Windows x86_64 22m43s).
+- Direct CI evidence the gate is genuinely satisfied: `web` job log contains step `Run pnpm audit --prod` → `No known vulnerabilities found` (job 111204176231, 2026-10-03T12:40:10Z).
+- Four consecutive fully-green matrix pairs now stand on this branch (`37119079561`/`37119079559` on `7656c2a3`; `37120809784`/`37120809776` on `805a930d`; `37122301558`/`37122301550` on `e58b5642`; `37123527781`/`37123527740` on `9e3a3557`), the last three differing from the first by PROGRESS.md lines only.
+
+### Final security state (re-derived)
+- `pnpm audit --prod` (local, this session): **`No known vulnerabilities found`**, exit 0.
+- `pnpm audit --audit-level=high` (local, full graph incl. dev): **11 vulnerabilities — 3 low / 5 moderate / 3 high**. HIGHs are `undici` x2 (`GHSA-rfgv-xxqx-mfg5`, `GHSA-w293-vg96-wgc3`, path `.>wrangler>miniflare>undici`) and `braces` x1 (`GHSA-vfj7-8cjw-p6xm`, vulnerable `<=3.0.3`, patched `>=3.0.4`, paths `apps__website>shadcn>fast-glob>micromatch>braces` and `apps__website>shadcn>ts-morph>@ts-morph/common>fast-glob>micromatch>braces`).
+- **No security-gate manipulation is present.** Grep across all manifests + `pnpm-workspace.yaml` for `overrides`, `ignoreCves`, `ignoreGhsas`, `auditConfig`, `audit-level` → **no matches**; `.npmrc` **does not exist**. No workflow, job, step or audit flag was changed: the T34-L diff is 4 files, none of them a workflow, and `Cargo.lock` is not in the diff. CI still runs `pnpm audit --prod` (`ci.yml:26`) and `pnpm audit --prod --audit-level=high` (`security-audit.yml:53`) unmodified.
+- No fabricated version: `braces@3.0.3` carries the **identical integrity hash** `sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==` in the pre-change and post-change lockfiles. The `git diff` on `pnpm-lock.yaml` contains **zero** lines mentioning `braces`, `micromatch` or `fast-glob` — the vulnerable subtree is byte-identical, nothing was version-faked, and no patched `braces` was invented.
+- This is therefore **dependency-classification hygiene**, not gate manipulation: the advisory is a Node-side stack-exhaustion DoS reachable only from a development-time CLI.
+
+### braces verification — precise statement
+- `braces@3.0.3` is **NOT removed from the repository**. It remains in `pnpm-lock.yaml` (`:1593` resolution, `:4578` snapshot) and `pnpm why braces -r` shows it reached **only** via `apps__website (devDependencies) -> shadcn@4.21.0 -> micromatch@4.0.8 -> fast-glob@3.3.3 -> braces@3.0.3`. One version, no other path.
+- What changed is **scope**: braces left the *production* dependency graph of both workspaces, which is exactly what `pnpm audit --prod` measures. The unscoped audit still reports it HIGH.
+- Reachability in shipped artifacts, checked directly: `apps/website/dist/` and `apps/desktop/dist/` contain **no** occurrence of `braces`, `micromatch`, `fast-glob` or `shadcn`.
+
+### shadcn classification verification (runtime vs build-time vs development)
+Evidence from the actual tree, not from the T34-L report:
+- **Website** — `shadcn: ^4.21.0` is in `devDependencies` and **absent from `dependencies`**. Its only consumer anywhere in the repo is `apps/website/src/styles.css:3` → `@import "shadcn/tailwind.css";`. Grep over `apps/`, `services/`, `packages/` for `*.ts,tsx,js,jsx,css,mjs,cjs,html` returns exactly 4 hits: that import plus three comments (`styles.css:5`, `styles.css:135`, `scripts/prod-headers.mjs:20`). **Zero JavaScript/TypeScript imports of `shadcn`** → **no runtime dependency**.
+- Website build proves the build-time role: `pnpm --filter @soravo/website build` → exit 0, `✓ built in 366ms`, and the built `dist/assets/*.css` has the shadcn `base-nova` tokens inlined (`--primary:oklch(28.6% .053 162.6)`, dark `--primary:oklch(69.7% .035 155.6)`). The CSS input is unchanged because `shadcn@4.21.0`'s lockfile block is byte-identical, so the artifact is content-identical to the pre-change build.
+- **Desktop** — `shadcn` is **absent from both `dependencies` and `devDependencies`**. Removal is safe: `pnpm --filter @soravo/desktop typecheck` exit 0, `test` **11/11 passed**, `build` exit 0 (`✓ built in 201ms`), and `apps/desktop/dist/` contains no shadcn/braces/micromatch/fast-glob. Desktop's own UI components (`button.tsx`, `card.tsx`) are local source.
+- **Deploy surface** (this was T34-E's stated risk): `.github/workflows/pages-deployment.yaml:38-40` runs `pnpm install --frozen-lockfile` then `pnpm build` — a **full install including devDependencies**, so `shadcn/tailwind.css` still resolves at build time in the Cloudflare Pages deploy. Every CI job likewise uses `pnpm install --frozen-lockfile`; **no `--prod` / production-only install exists anywhere** in workflows, scripts or manifests. The reclassification breaks no build or deploy surface.
+- Classification verdict: `shadcn` is a **development/tooling + build-time** dependency (component-source generator CLI + theme CSS provider), never a **runtime** dependency. The T34-L classification is **correct and is not reversed** — no source evidence contradicts it.
+
+### PR #64 diff review
+- `git diff --name-only 02b14773..7656c2a3` = **4 files**: `PROGRESS.md`, `apps/desktop/package.json` (-1), `apps/website/package.json` (+/-1), `pnpm-lock.yaml` (373 lines changed). No source file, no test, no workflow, no CI config, no `Cargo.lock`. Accidental source changes: **none**.
+- Manifest delta is exactly the claimed one: website `shadcn: ^4.21.0` removed from `dependencies` and added to `devDependencies` at the same version; desktop `shadcn: ^4.21.0` removed from `dependencies`.
+- **FINDING (unrelated dependency churn, MEDIUM — carried forward, still open):** the non-frozen `pnpm install` re-resolved `latest`-specifier dependencies. Direct lockfile comparison, old vs new, yields 7 new entries: `vite 8.3.1->8.3.2`, `vitest 5.0.2->5.0.3`, `typescript-eslint 8.70.1->8.71.0`, `why-is-node-running 3.2.2->3.2.1` (a **downgrade**), plus peer-suffix propagation; and separately `@tauri-apps/api` resolves to **2.12.1** in the new lockfile (was 2.12.0) — the only **production/runtime** item moved, the Tauri IPC bridge. Root cause is pre-existing manifest design (`latest` specifiers in `apps/*` and `services/*`). Nothing was suppressed or faked and all 10 checks are green, but this is scope wider than "reclassify one package" and it moves a runtime dependency the task did not ask to move. **Owner decision required at review.**
+- The 83-commit diff against `origin/main` is the accumulated PR #63+#64 history (payments, Supabase functions, Handy V1 restoration), not new T34-M work.
+
+### Handy comparison (fresh, live)
+- Upstream `cjpais/Handy` `HEAD`/`main` = **`ffbc9504cbf004ce4819d2ca872fcea92be0fddf`** (`git ls-remote`, 2026-10-03 20:00:02 +0800, "transcribe 0.3.0 (#2203)"). This is **new information again**: the prior T34-M entry recorded `345caa8f`, so upstream has advanced by at least one further commit since. Recorded, **not acted on** — no automatic upstream synchronisation is permitted (`21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`, `04`), and syncing is outside this task's scope.
+- Fresh clone `/tmp/opencode/handy-t34m-verify` at `ffbc9504`: `package.json` declares **no** `shadcn`, `fast-glob`, `micromatch` or `braces`; `bun.lock` contains **zero** `braces@`/`micromatch@`/`fast-glob@` entries; there is **no** `components.json`. So Handy has none of the four packages, there is no Handy product behaviour to reuse for this finding, and **nothing was added to Soravo for parity**. The Handy-first goal is satisfied by doing nothing.
+- No Handy-derived source file, no Handy pin, no ADR, and no V1 preservation surface was touched by T34-L or by this audit.
+
+### Review / approval state and merge verdict
+- Required human approval: **1**. Recorded: **0**. `reviewDecision: REVIEW_REQUIRED`, `mergeStateStatus: BLOCKED`, no reviewer requested.
+- All four required contexts are green on the audited head, so `BLOCKED` is attributable **solely to the missing human approval**.
+- **VERDICT: merge-ready on evidence, NOT merged, NOT merge-authorized.** No merge was attempted or performed, no review was requested, no reviewer was manufactured. Autonomous merge is not authorized by this pack (no accepted ADR or owner decision grants it), and per the loaded `security-guidance` `C13.2` human-in-the-loop checkpoint plus `09_AI_AGENT_INSTRUCTIONS.md`, a high-impact irreversible action requires the human approval that is absent.
+
+### T34-L claim verification
+| Claim | Verdict | Evidence |
+|---|---|---|
+| "braces genuinely gone" | **PARTIALLY VERIFIED** | Gone from the **production** graph: `pnpm audit --prod` -> `No known vulnerabilities found` locally and in CI job 111204176231; desktop no longer declares shadcn. **Not gone from the repository**: still in `pnpm-lock.yaml`, still installed, reached only through the website **devDependencies**; the unscoped `pnpm audit` still reports it HIGH (`GHSA-vfj7-8cjw-p6xm`) via 2 website paths. Not hidden and not suppressed — but "genuinely gone" is true only of the prod scope. |
+| "no runtime functionality changed" | **VERIFIED** (with one caveat) | Zero JS/TS imports of shadcn anywhere; the only consumer is a build-time CSS `@import`; `shadcn@4.21.0`'s lockfile block is byte-identical so the built CSS is content-identical (tokens inlined); website build exit 0 and desktop typecheck exit 0 / 11-of-11 tests / build exit 0 re-run green this session; `dist/` artifacts contain no shadcn/braces/micromatch/fast-glob; the deploy path does a full install before build. Caveat: the unrelated `@tauri-apps/api` 2.12.0->2.12.1 movement **is** a production-runtime change, unrequested and outside the shadcn claim. |
+| "all validation passes" | **VERIFIED** | All 10 checks green on the audited head `9e3a3557`: CI `37123527781` 7/7 (web, e2e, rust, desktop, macOS aarch64, macOS x86_64, Windows x86_64) + Security Audit `37123527740` 3/3 (npm-audit, cargo-audit, cargo-deny). `gh pr checks 64` -> 10 pass. |
+| "PR #64 ready for human review and merge" | **PARTIALLY VERIFIED** | Ready **for human review**: yes — evidence-complete, all required checks green, diff minimal and reviewed. Ready **to merge**: not yet — 0 of 1 required approval, `REVIEW_REQUIRED`, and the governance gap below is unresolved. |
+
+### Definition-of-Done status (PR #64 vs `13_DEFINITION_OF_DONE_AND_QA.md`)
+requirement mapped OK · implementation complete OK · no duplicate architecture OK · targeted tests OK (desktop 11/11 re-run locally this session; website 179 + license-api 71 + payment-domain + supabase 200 per the T34-L record; full matrix green in CI) · typecheck/build OK (re-run locally for website build and desktop typecheck/test/build) · security PARTIAL — **prod-surface green; residual HIGH `braces` still present in the dev graph and reported by an unscoped `pnpm audit`** · docs/ADR PARTIAL — **PROGRESS.md updated; no ADR and no recorded owner authorization for the remediation posture** · diff review PARTIAL (0/1 approvals) · focused commit OK · pushed branch/PR OK · CI recorded OK. **Not production-ready, not release-ready** — `17_RELEASE_RUNBOOK.md` preconditions remain unmet (release.yml never exercised, signing credentials owner-held, model licences unapproved, no tags/releases).
+
+### Files changed by this task
+`PROGRESS.md` (this entry) only, plus the restoration of the truncated working copy of the same file to its published `HEAD` content. Deliberately unchanged: every source file, both manifests, `pnpm-lock.yaml`, `Cargo.lock`, all workflows, all docs, ADR-027/028/029, the Handy pin. No ADR created. ADR-027/028 **not touched** — both remain PROPOSED (NOT ACCEPTED) per the index of record. Temporary artifacts (`/tmp/opencode/audit.txt`, `/tmp/opencode/handy-t34m-verify`, `/tmp/opencode/PROGRESS.worktree-backup.md`) were kept outside the repository.
+
+### Implemented
+- This independent re-verification and this PROGRESS.md entry. Zero production-code, manifest, lockfile, workflow or ADR changes.
+- Restored `PROGRESS.md` from a truncated working copy to its published content; no published line was lost.
+
+### Verified
+- branch/SHA/local==remote HEAD/`origin/main`/83-ahead-0-behind/worktrees/`git diff --check`; PR #64 live state + 0 reviews + 0 requested reviewers; `main` branch protection incl. `strict:true` and 1 required approval; CI `37123527781` 7/7; Security Audit `37123527740` 3/3; `gh pr checks 64` 10 pass; the `pnpm audit --prod` CI log line; local `pnpm audit --prod` (0) and full `pnpm audit --audit-level=high` (3 HIGH named); absence of `overrides`/`ignoreCves`/`ignoreGhsas`/`auditConfig`/`.npmrc`; `braces` integrity-hash identity and a zero-hit lockfile diff for `braces`/`micromatch`/`fast-glob`; `pnpm why braces -r` single dev-only path; website build + inlined-CSS token proof + `dist/` scan; desktop typecheck/test/build + `dist/` scan; the shadcn consumer grep (4 hits, zero JS/TS); `pages-deployment.yaml` full-install-then-build order; absence of any `--prod` install in workflows/scripts; the 4-file T34-L diff; the exact lockfile version-change set; Handy live `ls-remote` `ffbc9504` + fresh clone + `package.json`/`bun.lock`/no `components.json`; PR #63 still open and an ancestor of the PR #64 head.
+
+### Blocked
+1. **PR #64 merge — 0 of 1 required human approval** (`REVIEW_REQUIRED`, `mergeStateStatus: BLOCKED`, no reviewer requested). Not bypassed, not manufactured.
+2. **Governance gap on the remediation posture**: T34-E and T34-I both classified a `shadcn` devDependencies reclassification as **owner/ADR-gated**, and T34-K listed it as an open owner decision. T34-L applied it with no ADR and no recorded owner authorization. The classification itself is technically sound (see Verified), so this is a **ratification gap, not a defect to reverse** — but a human owner must explicitly record acceptance of the braces posture (dev-graph residual HIGH accepted as policy vs. awaiting an upstream `braces>=3.0.4`) before merge. Not repaired here: an ADR/owner decision is not agent-authorizable.
+3. **Residual `braces` HIGH in the dev graph** — no patched release exists upstream (`3.0.4` does not exist), so the only remaining lever is an owner posture decision. `PARTIALLY VERIFIED`, deliberately left visible.
+4. **Release** — `release.yml` never exercised, signing secrets owner-held, model licences unapproved, no tags/releases. `NOT EXECUTED`.
+
+### Not executed
+- Any merge, any PR close, any reviewer request, any comment on PR #64 or #63. Local full `pnpm lint`/`pnpm test` across every workspace (the CI matrix is the evidence on an identical tree; website build and desktop typecheck/test/build were re-run locally). `release.yml`. Semgrep/CodeQL (no new sink). Handy upstream sync (forbidden by policy; `ffbc9504` recorded only). ADR-027/028 implementation (PROPOSED, NOT ACCEPTED — out of scope by instruction). Removal of the now-unused `apps/desktop/components.json`.
+
+### Deferred
+- ADR-027 (D-2156/D-2157) and ADR-028 (D-2186) — PROPOSED, awaiting explicit human owner approval; untouched.
+- ADR-029 follow-ons already recorded earlier: Windows ORT baseline / VC-redist staging, bundle runtime transcription proof.
+- New Handy upstream commits (`345caa8` #1941, and now `ffbc9504` transcribe 0.3.0 #2203) — evaluated for a future Handy-sync task only.
+- Removal of the now-unused `apps/desktop/components.json`, or documenting a `pnpm dlx shadcn` dev workflow for the desktop workspace (no workflow, script or CI job invokes the shadcn CLI). Low impact; not required by any gate.
+
+### Exact next task
+**T34-N — OWNER DECISION GATE on PR #64 (human action, not agent-executable):**
+1. Review and **approve** PR #64 (1 required approval outstanding) or request changes — with explicit attention to the unrelated `@tauri-apps/api` 2.12.0->2.12.1 runtime bump and the `latest`-specifier churn in the lockfile, and to whether that churn should be split out or the versions pinned before merge;
+2. Record the **braces posture** decision — accept the residual dev-graph HIGH as policy, or hold for an upstream `braces>=3.0.4` — and record it as an ADR or an explicit PROGRESS entry so the T34-E/T34-I/T34-K owner gate is formally closed;
+3. Close PR #63 as superseded by #64 so exactly one merge candidate exists.
+After approval: re-verify the required contexts are green on the then-current head (`strict: true`), merge PR #64 (human-executed), verify `main` CI green, and only then consider `release.yml` via `workflow_dispatch`. **Until the approval exists: no merge, no release, no production-ready claim.**
