@@ -462,6 +462,22 @@ pub(crate) async fn process_transcription_output(
     }
 }
 
+/// Model-availability decision boundary for recording start (Handy #2161).
+///
+/// Returns `true` when recording must NOT start: no usable model is loaded
+/// AND the selected model's files are unavailable, so the load kicked off in
+/// `TranscribeAction::start` is already failing and opening the microphone
+/// would only produce an untranscribable recording. A loaded model always
+/// permits recording — even if its files have since moved — and present files
+/// let the kicked-off load proceed on the existing failure path. Pure so the
+/// truth table is unit-testable without Tauri state.
+pub(crate) fn recording_blocked_by_missing_model(
+    is_model_loaded: bool,
+    selected_model_files_available: bool,
+) -> bool {
+    !is_model_loaded && !selected_model_files_available
+}
+
 impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
@@ -481,6 +497,32 @@ impl ShortcutAction for TranscribeAction {
             }
         });
         let kickoff_elapsed = kickoff_started.elapsed();
+
+        // Don't open the mic if nothing can transcribe the recording; the load
+        // kicked off above fails and reports why. (Handy #2161)
+        //
+        // The filesystem probe runs only when no model is loaded: a loaded
+        // model keeps working even if its files moved, and skipping the probe
+        // avoids the registry side effect (`mark_model_unavailable`) for the
+        // healthy case.
+        let model_loaded = tm.is_model_loaded();
+        let selected_files_available = if model_loaded {
+            true
+        } else {
+            match app
+                .state::<Arc<ModelManager>>()
+                .get_model_path(&get_settings(app).selected_model)
+            {
+                Ok(_) => true,
+                Err(e) => {
+                    warn!("Not starting recording: no model can transcribe it ({})", e);
+                    false
+                }
+            }
+        };
+        if recording_blocked_by_missing_model(model_loaded, selected_files_available) {
+            return;
+        }
 
         let binding_id = binding_id.to_string();
         let tray_started = Instant::now();
@@ -949,8 +991,8 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, should_use_streaming_overlay,
-        strip_think_block,
+        complete_unless_cancelled, is_blank_transcription, recording_blocked_by_missing_model,
+        should_use_streaming_overlay, strip_think_block,
     };
     use crate::settings::OverlayStyle;
     use std::future;
@@ -1032,5 +1074,28 @@ mod tests {
         assert!(!should_use_streaming_overlay(OverlayStyle::Live, false));
         assert!(!should_use_streaming_overlay(OverlayStyle::Minimal, true));
         assert!(!should_use_streaming_overlay(OverlayStyle::None, true));
+    }
+
+    #[test]
+    fn loaded_model_never_blocks_recording() {
+        // Case A: a usable model is already loaded → recording may proceed,
+        // even if the selected model's files have since moved or vanished.
+        assert!(!recording_blocked_by_missing_model(true, true));
+        assert!(!recording_blocked_by_missing_model(true, false));
+    }
+
+    #[test]
+    fn unloaded_model_with_available_files_does_not_block() {
+        // Case B: no model loaded, but the selected model's files are present
+        // → the kicked-off load may proceed on the existing failure path.
+        assert!(!recording_blocked_by_missing_model(false, true));
+    }
+
+    #[test]
+    fn unloaded_model_with_missing_files_blocks_recording() {
+        // Case C: no model loaded and the selected model's files are
+        // unavailable (none selected, not downloaded, files deleted) →
+        // recording must NOT begin (no mic, no tray/overlay change).
+        assert!(recording_blocked_by_missing_model(false, false));
     }
 }
