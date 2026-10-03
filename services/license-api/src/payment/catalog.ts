@@ -1,13 +1,6 @@
 import { PaymentError } from "./errors";
-import type { Currency, Product, ProductId, RegionalPrice } from "@soravo/payment-domain";
-import {
-  PRODUCT_CATALOG,
-  PRODUCT_IDS,
-  isProductId,
-  resolveProduct,
-  validateCurrency,
-  getRegionalPrice,
-} from "@soravo/payment-domain";
+import type { Currency, Product, ProductId } from "@soravo/payment-domain";
+import { PRODUCT_CATALOG, PRODUCT_IDS } from "@soravo/payment-domain";
 
 // Re-export types and catalog for consumers of license-api
 export type { Currency, Product, ProductId, RegionalPrice } from "@soravo/payment-domain";

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PaymentService } from "./service";
 import type { CreatePaymentInput, PaymentCaller, PaymentLogger } from "./service";
 import { DevPaymentProvider } from "./dev-provider";
-import type { PaymentProvider, ProviderSubscription } from "./types";
+import type { Currency, PaymentProvider, ProviderSubscription } from "./types";
 import { PaymentError } from "./errors";
 import type { PaymentErrorCode } from "./errors";
 
@@ -143,11 +143,11 @@ describe("PaymentService.createOrder", () => {
   it("rejects unsupported currencies (028 validation)", async () => {
     const { service } = makeService();
     await expectPaymentError(
-      service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "GBP" as any }),
+      service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "GBP" as unknown as Currency }),
       "invalid_product"
     );
     await expectPaymentError(
-      service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "JPY" as any }),
+      service.createOrder({ userId: USER_A }, { productId: "soravo_lifetime", currency: "JPY" as unknown as Currency }),
       "invalid_product"
     );
   });
@@ -385,7 +385,7 @@ describe("PaymentService.createSubscription", () => {
   it("rejects unsupported currencies for subscription", async () => {
     const { service } = makeService();
     await expectPaymentError(
-      service.createSubscription({ userId: USER_A }, { productId: "soravo_monthly", currency: "GBP" as any }),
+      service.createSubscription({ userId: USER_A }, { productId: "soravo_monthly", currency: "GBP" as unknown as Currency }),
       "invalid_product"
     );
   });

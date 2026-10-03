@@ -91,8 +91,20 @@ export type HotkeyResult =
   | { status: "invalid"; code: string; message: string }
   | { status: "conflict"; conflicting_app: string; message: string };
 
+/** Mirrors `soravo_typing::TypingMethod` (unit variants). */
+export type TypingMethod = "Native" | "ClipboardFallback";
+
+/** Mirrors `soravo_typing::TypingResult` (camelCase serde). */
+export type TypingResult = {
+  success: boolean;
+  method: TypingMethod;
+  durationMs: number;
+  message: string;
+};
+
 export const SESSION_CHANGED_EVENT = "session://changed";
 export const PING_EVENT = "runtime://ping";
+export const TYPING_RESULT_EVENT = "typing://result";
 
 export function getRuntimeStatus(): Promise<RuntimeStatus> {
   return invoke<RuntimeStatus>("runtime_status");
@@ -118,6 +130,16 @@ export function emitPing(): Promise<PingReply> {
   return invoke<PingReply>("emit_ping");
 }
 
+/**
+ * Inject committed/final text into the active application.
+ * Mirrors the `inject_text` Rust command (`text: String -> TypingResult`).
+ * Length validation (100KB bound) and error contract live server-side;
+ * this wrapper preserves the command/arg names verbatim.
+ */
+export function injectText(text: string): Promise<TypingResult> {
+  return invoke<TypingResult>("inject_text", { text });
+}
+
 /** Subscribe to authoritative session transitions. Returns an unsubscribe fn. */
 export function onSessionChanged(
   handler: (payload: SessionChangedPayload) => void
@@ -130,6 +152,19 @@ export function onSessionChanged(
 /** Subscribe to runtime ping events. Returns an unsubscribe fn. */
 export function onPing(handler: (payload: PingPayload) => void): Promise<UnlistenFn> {
   return listen<PingPayload>(PING_EVENT, (event) => handler(event.payload));
+}
+
+/**
+ * Subscribe to text-injection results emitted by `inject_text`.
+ * No UI flow subscribes yet — exported for future Soravo wiring only.
+ * Returns an unsubscribe fn.
+ */
+export function onTypingResult(
+  handler: (payload: TypingResult) => void
+): Promise<UnlistenFn> {
+  return listen<TypingResult>(TYPING_RESULT_EVENT, (event) =>
+    handler(event.payload)
+  );
 }
 
 // Hotkey commands

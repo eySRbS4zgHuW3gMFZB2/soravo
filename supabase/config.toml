@@ -26,12 +26,17 @@ project_id = "soravo"
 [functions.razorpay-webhook]
 verify_jwt = false
 
-# RAZORPAY-PAYMENT-API-032A
+# RAZORPAY-PAYMENT-API-032A / T32-B
 #
 # Payment checkout endpoint uses Supabase Auth JWT for authentication.
-# The default JWT verification is correct - we want to validate the Supabase
-# Auth token and extract the user_id from the JWT payload (never from request body).
+# `verify_jwt = true` is declared explicitly (not left as implicit default)
+# so the platform gate is version-controlled: the Supabase gateway verifies
+# the Auth JWT signature before the handler runs. The handler additionally
+# confirms the token against the authoritative Auth API (`GET /auth/v1/user`)
+# and treats manually decoded JWT claims as a structural pre-check only —
+# never as authentication (see functions/payment-checkout/checkout.ts).
 #
 # CORS is handled directly in the Edge Function to allow the Soravo website
 # to make authenticated requests to the payment endpoint.
 [functions.payment-checkout]
+verify_jwt = true

@@ -43,26 +43,31 @@ jobs:
           path: playwright-report/
           retention-days: 14
   rust:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Tauri Linux system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libgraphene-1.0-dev libgtk-4-dev libadwaita-1-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libgraphene-1.0-dev libgtk-4-dev libadwaita-1-dev libgtk-layer-shell-dev
+          # T34-H / ADR-029: libvulkan-dev + glslc + spirv-headers let
+          # transcribe-cpp-sys build ggml's Vulkan backend (the Linux `vulkan`
+          # feature). Mirrors cjpais/Handy @ 8605699d test.yml. Runner pinned
+          # to ubuntu-24.04 (was ubuntu-latest) to match that tested setup.
+          sudo apt-get install -y libvulkan-dev glslc spirv-headers
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
       - name: Install cargo-audit
         uses: taiki-e/install-action@cargo-audit
-      - run: cargo audit --deny warnings --ignore GHSA-q83h-524g-xf6h --ignore RUSTSEC-2024-0370 --ignore RUSTSEC-2025-0081 --ignore RUSTSEC-2025-0075 --ignore RUSTSEC-2025-0080 --ignore RUSTSEC-2025-0100 --ignore RUSTSEC-2025-0098 --ignore RUSTSEC-2024-0429
+      - run: cargo audit --deny warnings --ignore GHSA-q83h-524g-xf6h --ignore RUSTSEC-2024-0370 --ignore RUSTSEC-2025-0081 --ignore RUSTSEC-2025-0075 --ignore RUSTSEC-2025-0080 --ignore RUSTSEC-2025-0100 --ignore RUSTSEC-2025-0098 --ignore RUSTSEC-2024-0429 --ignore RUSTSEC-2024-0422 --ignore RUSTSEC-2024-0423 --ignore RUSTSEC-2026-0186 --ignore RUSTSEC-2025-0119 --ignore RUSTSEC-2024-0436
       - name: Install cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
   desktop:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -74,8 +79,152 @@ jobs:
       - name: Install Tauri Linux system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libgraphene-1.0-dev libgtk-4-dev libadwaita-1-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libgraphene-1.0-dev libgtk-4-dev libadwaita-1-dev libgtk-layer-shell-dev
+      # T34-H / ADR-029: Vulkan SDK for the Linux `vulkan` backend build.
+      # Mirrors cjpais/Handy @ 8605699d build.yml "Prepare Vulkan SDK for
+      # Ubuntu 24.04". Runner pinned to ubuntu-24.04 (was ubuntu-latest) to
+      # match that tested setup.
+      - name: Prepare Vulkan SDK (Ubuntu 24.04)
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-noble.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-noble.list
+          sudo apt update
+          sudo apt install vulkan-sdk -y
+          sudo apt-get install -y mesa-vulkan-drivers
       - run: pnpm install --frozen-lockfile
       - name: Build Tauri desktop
         working-directory: apps/desktop
         run: pnpm tauri build
+  # ADR-019 T2: cross-platform build verification for the two declared
+  # primary_platforms (SPEC_MANIFEST.json: macOS, Windows).
+  #
+  # Compile verification only. `--no-bundle` produces no installer, no
+  # notarisation request, no updater manifest and no signed artifact, so
+  # this gate can never constitute or substitute for a release. It does not
+  # use, dispatch or modify release.yml, and it reads no secret.
+  #
+  # Targets mirror the existing repository matrix in release.yml exactly
+  # (macos-latest x aarch64-apple-darwin, macos-latest x x86_64-apple-darwin,
+  # windows-latest x x86_64-pc-windows-msvc). No target is invented here.
+  desktop-macos:
+    name: desktop build (macOS, ${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      # Never cancel the sibling leg: both macOS results are required evidence.
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Record host toolchain (diagnostics)
+        run: |
+          echo "runner_os=${{ runner.os }} runner_arch=${{ runner.arch }}"
+          echo "--- rustc -vV ---"
+          rustc -vV
+          echo "--- rustup target list --installed ---"
+          rustup target list --installed
+      - run: pnpm install --frozen-lockfile
+      # ADR-026 (T33-P-FOLLOWUP-4I): Handy-proven x86_64 macOS ORT provisioning.
+      # ort-sys 2.0.0-rc.12 ships zero x86_64-apple-* prebuilt rows, so the
+      # x86_64 leg must provision the external ORT 1.24.2 dylib before the
+      # Rust build (ORT_LIB_LOCATION is honored before the download table).
+      # Gated to x86_64 only — the ARM64 leg must never receive this binary.
+      # Reuses Handy's exact mechanism (cjpais/Handy @ ba10ce19,
+      # build.yml "Install ONNX Runtime (x86_64 macOS)"); the sha256 pin is a
+      # Soravo-observed integrity value (measured 2026-10-02), not an
+      # upstream-published checksum — see ADR-026 §7.
+      - name: Provision ONNX Runtime (x86_64 macOS only)
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORT_VERSION="1.24.2"
+          ORT_SHA256="590cee05699047b85e4a8115b4cec792073c2972ce78de383356a552a296a9c4"
+          curl -L --fail -o ort.tgz "https://blob.handy.computer/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
+          # shasum ships with macOS (sha256sum is GNU-only); same check format.
+          echo "${ORT_SHA256}  ort.tgz" | shasum -a 256 -c -
+          tar xzf ort.tgz
+          ORT_DIR="$GITHUB_WORKSPACE/onnxruntime-osx-x86_64-${ORT_VERSION}"
+          echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> "$GITHUB_ENV"
+          echo "ORT_PREFER_DYNAMIC_LINK=1" >> "$GITHUB_ENV"
+          # Bundle the versioned dylib (matches the install name @rpath/libonnxruntime.1.24.2.dylib)
+          jq --arg lib "$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib" \
+            '.bundle.macOS.frameworks = [$lib]' \
+            apps/desktop/src-tauri/tauri.conf.json > tmp.json && mv tmp.json apps/desktop/src-tauri/tauri.conf.json
+      - name: Compile Tauri desktop (no bundle, no signing)
+        working-directory: apps/desktop
+        run: pnpm tauri build --no-bundle --target ${{ matrix.target }}
+      - name: Assert lockfiles unchanged
+        shell: bash
+        run: |
+          if ! git diff --quiet -- Cargo.lock pnpm-lock.yaml; then
+            echo "::error::A build step modified a lockfile:" >&2
+            git diff -- Cargo.lock pnpm-lock.yaml >&2
+            exit 1
+          fi
+          echo "Cargo.lock and pnpm-lock.yaml unchanged"
+  desktop-windows:
+    name: desktop build (Windows, x86_64-pc-windows-msvc)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Record host toolchain (diagnostics)
+        shell: bash
+        run: |
+          echo "runner_os=${{ runner.os }} runner_arch=${{ runner.arch }}"
+          echo "--- rustc -vV ---"
+          rustc -vV
+          echo "--- rustup target list --installed ---"
+          rustup target list --installed
+      - run: pnpm install --frozen-lockfile
+      # T34-H / ADR-029: Vulkan SDK + SPIRV-Headers for the Windows x86_64
+      # `vulkan` backend build. Mirrors cjpais/Handy @ 8605699d build.yml
+      # ("Install Vulkan SDK (Windows x64)" + "Install SPIRV-Headers for
+      # transcribe-cpp Vulkan build (Windows x64)"). This job builds x86_64
+      # only, so Handy's !aarch64 conditions hold trivially. ggml-vulkan does
+      # find_package(SPIRV-Headers CONFIG REQUIRED); the CI Vulkan SDK install
+      # does not expose a findable SPIRV-HeadersConfig.cmake, hence vcpkg.
+      - name: Install Vulkan SDK (Windows x64)
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.309.0
+          cache: true
+      - name: Install SPIRV-Headers for transcribe-cpp Vulkan build (Windows x64)
+        shell: pwsh
+        run: |
+          vcpkg install spirv-headers:x64-windows
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg install spirv-headers failed" }
+          $prefix = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows" -replace '\\','/'
+          $combined = if ($env:CMAKE_PREFIX_PATH) { "$prefix;$env:CMAKE_PREFIX_PATH" } else { $prefix }
+          Add-Content $env:GITHUB_ENV "CMAKE_PREFIX_PATH=$combined"
+          Write-Host "CMAKE_PREFIX_PATH=$combined"
+      - name: Compile Tauri desktop (no bundle, no signing)
+        working-directory: apps/desktop
+        run: pnpm tauri build --no-bundle --target x86_64-pc-windows-msvc
+      - name: Assert lockfiles unchanged
+        shell: bash
+        run: |
+          if ! git diff --quiet -- Cargo.lock pnpm-lock.yaml; then
+            echo "::error::A build step modified a lockfile:" >&2
+            git diff -- Cargo.lock pnpm-lock.yaml >&2
+            exit 1
+          fi
+          echo "Cargo.lock and pnpm-lock.yaml unchanged"

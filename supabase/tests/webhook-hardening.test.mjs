@@ -667,7 +667,7 @@ async function hmacHex(secret, body) {
 
 describe("A. catalogue parity with the price authority", () => {
   const licenseCatalogSource = readFileSync(
-    join(repoRoot, "services", "license-api", "src", "payment", "catalog.ts"),
+    join(repoRoot, "packages", "payment-domain", "src", "catalog.ts"),
     "utf8",
   );
 

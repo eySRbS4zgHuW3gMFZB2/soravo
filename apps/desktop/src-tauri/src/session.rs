@@ -24,10 +24,11 @@
 //! treat rendered UI state as a source of truth.
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 /// The authoritative session phases. Serialized in the same upper-case form
 /// the TDD uses (`IDLE`, `LISTENING`, …).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum SessionPhase {
     #[default]
@@ -41,7 +42,7 @@ pub enum SessionPhase {
 }
 
 /// Result of a validated transition, emitted verbatim as a typed bus event.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionTransition {
     pub session_id: Option<u64>,
@@ -51,7 +52,7 @@ pub struct SessionTransition {
 }
 
 /// Rejection for a transition the state machine does not permit.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionError {
     pub code: SessionErrorCode,
@@ -59,7 +60,7 @@ pub struct SessionError {
     pub to: SessionPhase,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SessionErrorCode {
     InvalidTransition,
