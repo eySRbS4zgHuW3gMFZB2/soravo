@@ -65,13 +65,24 @@ tauri-specta = { version = "2.0.0-rc", features = ["derive"] }
 tempfile = "3"
 tokio-util = "0.7"
 tokio = { version = "1", features = ["full"] }
-transcribe-cpp = { version = "0.2", default-features = false }
+# T34-H / ADR-029: transcribe-cpp backend posture ported exactly from Handy
+# (cjpais/Handy @ 8605699d, bump commit 2d526b15 for 0.2.3 -> 0.2.4; per-platform
+# features predate the bump and are reused verbatim). Whisper-family models run
+# through transcribe-cpp (GGUF/ggml, native backends); per-platform backend
+# features are added in the target tables below.
+transcribe-cpp = { version = "0.2.4", default-features = false }
 transcribe-rs = { version = "0.3", features = ["onnx"] }
 whatlang = "0.16"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
+# T34-H / ADR-029: Handy backend posture (dynamic-backends + vulkan), reused
+# verbatim from cjpais/Handy @ 8605699d.
+transcribe-cpp = { version = "0.2.4", default-features = false, features = [
+  "dynamic-backends",
+  "vulkan",
+] }
 
 [target.'cfg(windows)'.dependencies]
 # T33-P-FOLLOWUP-2D-DECISION / ADR-023 (Path A): direct windows aligned with the
@@ -97,12 +108,37 @@ windows = { version = "0.62.2", features = [
 ] }
 winreg = "0.10"
 
+# T34-H / ADR-029: Whisper backend per Windows arch, reused verbatim from
+# cjpais/Handy @ 8605699d. x86_64 ships the Vulkan GPU backend and keeps the
+# dynamic-backends posture (loadable per-ISA CPU modules + Vulkan).
+#
+# Windows-on-ARM is CPU-only: its Adreno Vulkan drivers are immature, and
+# ggml-vulkan's shader generator (vulkan-shaders-gen) does not build under the
+# clang-cl/lld toolchain that ggml's ARM CPU backend requires. dynamic-backends
+# buys nothing on ARM — ALL_VARIANTS is an x86 concept, so a DL build there is
+# just a single portable CPU module shipped as a DLL. So ARM links
+# transcribe-cpp STATICALLY (no features = static CPU-only): the one CPU backend
+# is compiled into the app binary and zero extra DLLs are shipped for it.
+# CI pins -DGGML_NATIVE=OFF (see .github/workflows/ci.yml) so the static build
+# targets a portable ARM baseline, not the build runner's CPU.
+[target.'cfg(all(windows, target_arch = "x86_64"))'.dependencies]
+transcribe-cpp = { version = "0.2.4", default-features = false, features = [
+  "dynamic-backends",
+  "vulkan",
+] }
+
+[target.'cfg(all(windows, target_arch = "aarch64"))'.dependencies]
+transcribe-cpp = { version = "0.2.4", default-features = false }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-app-kit = "0.3.2"
 objc2-foundation = "0.3.2"
 objc2-service-management = "0.3"
 tauri-nspanel = "2"
+# T34-H / ADR-029: Handy backend posture (metal, static link), reused verbatim
+# from cjpais/Handy @ 8605699d.
+transcribe-cpp = { version = "0.2.4", default-features = false, features = ["metal"] }
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"

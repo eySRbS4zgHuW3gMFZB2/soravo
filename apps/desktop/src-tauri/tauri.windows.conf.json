@@ -1,0 +1,15 @@
+{
+  // T34-H / ADR-029: Windows platform overlay, adapted from Handy
+  // (cjpais/Handy @ 8605699d src-tauri/tauri.windows.conf.json). Tauri v2
+  // merges this file automatically for Windows builds (no CLI wiring needed).
+  // Adaptation vs Handy: Handy's overlay also maps "resources" -> "resources";
+  // Soravo has no resources/ dir and no main-config resources key, so only the
+  // build.rs-staged transcribe-libs/ entry is carried. transcribe-libs/ is
+  // staged by build.rs on every Windows x86_64 (dynamic-backends) build, so
+  // the source dir exists whenever this overlay is consumed for bundling.
+  "bundle": {
+    "resources": {
+      "transcribe-libs": "."
+    }
+  }
+}

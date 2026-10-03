@@ -10,7 +10,10 @@ thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 soravo-models = { path = "../models" }
 soravo-audio = { path = "../audio" }
-transcribe-cpp = { version = "0.2", default-features = false }
+# T34-H / ADR-029: same Handy backend posture as apps/desktop/src-tauri (see it
+# for rationale). Both manifests declare transcribe-cpp, so both carry the
+# per-platform features; Cargo unifies them into one transcribe-cpp build.
+transcribe-cpp = { version = "0.2.4", default-features = false }
 transcribe-rs = { version = "0.3", features = ["onnx"] }
 vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 earshot = "1.2"
@@ -22,3 +25,23 @@ hound = "3.5"
 
 [dev-dependencies]
 hound = "3.5"
+
+# T34-H / ADR-029: Handy per-platform backend features, reused verbatim from
+# cjpais/Handy @ 8605699d (mirrors apps/desktop/src-tauri/Cargo.toml).
+[target.'cfg(all(windows, target_arch = "x86_64"))'.dependencies]
+transcribe-cpp = { version = "0.2.4", default-features = false, features = [
+  "dynamic-backends",
+  "vulkan",
+] }
+
+[target.'cfg(all(windows, target_arch = "aarch64"))'.dependencies]
+transcribe-cpp = { version = "0.2.4", default-features = false }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+transcribe-cpp = { version = "0.2.4", default-features = false, features = ["metal"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+transcribe-cpp = { version = "0.2.4", default-features = false, features = [
+  "dynamic-backends",
+  "vulkan",
+] }

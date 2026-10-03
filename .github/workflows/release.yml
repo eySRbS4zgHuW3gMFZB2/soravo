@@ -81,6 +81,26 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      # T34-H / ADR-029: Vulkan SDK + SPIRV-Headers for the Windows x86_64
+      # `vulkan` backend build (same mirror of cjpais/Handy @ 8605699d
+      # build.yml as ci.yml desktop-windows). Windows leg only.
+      - name: Install Vulkan SDK (Windows x64)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.309.0
+          cache: true
+      - name: Install SPIRV-Headers for transcribe-cpp Vulkan build (Windows x64)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        shell: pwsh
+        run: |
+          vcpkg install spirv-headers:x64-windows
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg install spirv-headers failed" }
+          $prefix = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows" -replace '\\','/'
+          $combined = if ($env:CMAKE_PREFIX_PATH) { "$prefix;$env:CMAKE_PREFIX_PATH" } else { $prefix }
+          Add-Content $env:GITHUB_ENV "CMAKE_PREFIX_PATH=$combined"
+          Write-Host "CMAKE_PREFIX_PATH=$combined"
+
       # ADR-026 (T33-P-FOLLOWUP-4I): mirror of the Handy-proven x86_64 macOS
       # ORT provisioning in ci.yml. Release x86_64 macOS builds resolve
       # ort-sys identically, so they need the same ORT availability.

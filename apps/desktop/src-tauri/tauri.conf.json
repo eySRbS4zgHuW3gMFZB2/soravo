@@ -21,6 +21,28 @@
         "installerIcon": "./icons/icon.ico",
         "languages": ["English"]
       }
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libgtk-layer-shell0", "libopenblas0"],
+        "files": {
+          "/usr/lib/Soravo": "transcribe-libs"
+        }
+      },
+      "rpm": {
+        "depends": [
+          "libgtk-layer-shell.so.0()(64bit)",
+          "libopenblas.so.0()(64bit)"
+        ],
+        "files": {
+          "/usr/lib/Soravo": "transcribe-libs"
+        }
+      },
+      "appimage": {
+        "files": {
+          "/usr/lib": "transcribe-libs"
+        }
+      }
     }
   }
 }
