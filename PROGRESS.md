@@ -7046,3 +7046,228 @@ requirement mapped OK · implementation complete OK · no duplicate architecture
 2. Record the **braces posture** decision — accept the residual dev-graph HIGH as policy, or hold for an upstream `braces>=3.0.4` — and record it as an ADR or an explicit PROGRESS entry so the T34-E/T34-I/T34-K owner gate is formally closed;
 3. Close PR #63 as superseded by #64 so exactly one merge candidate exists.
 After approval: re-verify the required contexts are green on the then-current head (`strict: true`), merge PR #64 (human-executed), verify `main` CI green, and only then consider `release.yml` via `workflow_dispatch`. **Until the approval exists: no merge, no release, no production-ready claim.**
+
+---
+
+## T34-N — ISOLATE UNREQUESTED LOCKFILE CHURN IN PR #64 (2026-10-04)
+
+> Scope correction to the T34-M next-task above. T34-M item (1) was an owner
+> decision about whether the churn should be split out or pinned. It was
+> determined here that no owner choice was needed: the churn is not a legitimate
+> alternative, and the isolation is a mechanical, deterministic repair. Items (2)
+> and (3) remain open and untouched by this task. **The human approval gate on
+> PR #64 is unchanged and still outstanding.**
+
+### Skill Selection
+- Task classification: supply chain / dependencies · security (dependency) · repository/Git operations · GitHub · CI/CD · testing/QA · documentation/ADR · interruption/handoff/state audit · shadcn/ui classification. Inspected and found NOT applicable: Rust and Tauri (no Rust/Tauri file touched), React component work (no source change), Supabase/Postgres, payments, authentication, cloud deployment, speech/audio/STT, benchmarking, model licensing, smart contracts, MCP/agent configuration, packaging/release execution.
+- Mandatory skills selected and LOADED in this task (full bodies read this session, not carried from T34-L/M):
+  - `supply-chain-risk-auditor` — governs the dependency/advisory and upstream-provenance judgement.
+  - `gh-cli` + `github` — govern every PR/run/check/protection read (authenticated `gh` only; no raw HTTP fetch, no `/contents/` substitution for local reads).
+  - `security-guidance` — governs the no-audit-weakening, no-suppression, no-fabricated-version and human-approval requirements. Read in full (996 lines) from `~/.agents/skills/security-guidance/SKILL.md` after the loader returned only a truncated summary.
+  - `vitest` — mandatory because this task carries a testing acceptance criterion; governs the workspace test commands executed below.
+- `supply-chain-risk-auditor` — RECORDED LIMITATION (from its own body, and independently confirmed on this host): its collectors parse npm/PyPI/Go manifests and **explicitly do not read `pnpm-lock.yaml`**, and the skill never installs or builds. Its scripts require `uv`, which is **ABSENT** on this host (`command -v uv` → empty), so its **execution claim is `UNKNOWN`** per the `10_AI_SKILLS.md` matrix rule. Substitute evidence actually used, none estimated: `pnpm audit` (registry advisory data, matched against the restored lockfile), `pnpm why -r`, `pnpm list -r --depth Infinity`, `npm view dist.integrity` per package, and direct lockfile comparison. The skill's own rule — "unavailable data is never evidence of risk / an absent measurement is never a clean verdict" — is honoured by recording this gap rather than presenting a clean supply-chain bill of health.
+- `security-guidance` — RECORDED GAP, re-confirmed this session and unchanged from T34-M: the index entries that govern this task (`V15.1 Secure Coding and Architecture Documentation` — dependency risk and remediation policy; `V15.2 Security Architecture and Dependencies` — dependency management and supply chain) name `data/asvs/V15.1.md` and `data/asvs/V15.2.md`. **Neither exists.** The installed store has no `data/` directory at all; its only ASVS tree is `references/aisvs/C1.1.md … C13.9.md` (89 files, chapters 1–13), i.e. chapters 14–15 are absent entirely. The two reference files required by the skill's own workflow before acting **could not be read**. Substitute authority used: the V15.1/V15.2 index text itself, this pack's `12_SECURITY_BASELINE.md` and `09_AI_AGENT_INSTRUCTIONS.md`, and `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` ("dependency strategy" requires an ADR — not triggered here, see Decisions).
+- Optional skills considered and DECLINED with reason: `shadcn` (no component work in this task; the shadcn classification question is already settled on source evidence in T34-M and is not re-litigated here) · `react`/`vercel-*`/`playwright` (no component or test-source change; Playwright ran as `pnpm e2e` without needing authoring guidance) · `rust-engineer`/`rust-review`/`tauri`/`tauri-setup`/`tauri-development` (no Rust/Tauri file in the diff) · `semgrep`/`codeql` (CLIs confirmed ABSENT on this host; no new sink; `pnpm audit`/`cargo audit`/`cargo deny` are the scanners of record for a dependency-only change) · `supabase*`/`cloudflare*`/`wrangler` (platform layer untouched) · `securability-engineering`/`secure-workflow-guide` (code-generation and smart-contract oriented) · `agent-security-audit`/`mcp-server-review` (no agent/MCP surface) · `find-skills` (no install needed).
+- MCP/tools selected: `git` (state audit, provenance, surgical restore, scoped commit) · `gh` (all GitHub reads) · `pnpm` (`install --frozen-lockfile`, `audit`, `why`, `list`, lint/typecheck/test/build/e2e) · `npm view` (registry integrity verification). No MCP server was required by this task.
+- Authority/source boundary: repository facts (manifests, lockfile, source, workflows, `dist/` artifacts) read from the working tree; PR/CI/protection facts from live authenticated `gh`; registry facts (versions, dist-tags, integrity hashes) from live `npm view`. Prior T34-I/J/K/L/M entries used as leads only — every figure below was re-derived this session.
+- Conflicts found: **none requiring STOP.** One governance tension is recorded and carried forward unchanged: T34-E and T34-I classified the `shadcn` devDependencies reclassification as owner/ADR-gated, and T34-L applied it with no ADR and no recorded owner approval (see Blockers). This task did not create, accept, or ratify that remediation posture; it narrowed the lockfile only.
+- Result: **CLEAR**
+
+### Branch / SHA / PR
+- Branch `fix/t34-l-braces-dependency-remediation`.
+- **Exact pre-cleanup HEAD: `70738c3be4a4075df19c1caa72738ec7165a72ba`.**
+- **Exact post-cleanup HEAD: `c2914e68e784801354ac1b59d4405cc746d40597`** (the `fix(t34-n)` lockfile commit). Local == remote, verified after `git push` and `git fetch`.
+- **Pre-cleanup PR #64 head == pre-cleanup HEAD == `70738c3b`; post-cleanup PR #64 head == `c2914e68`.** PR #64 remains **OPEN**, `isDraft:false`, `mergeable:MERGEABLE`, `mergeStateStatus:BLOCKED`, `reviewDecision:REVIEW_REQUIRED`, `reviews:[]`, `reviewRequests:[]`, `mergedAt:null`. **NOT merged.**
+- `origin/main` = `ede495b55efd95cedd882d90a19d12b4777da852` (unchanged, never touched). Merge-base = `ede495b5`; branch is **85 ahead / 0 behind** after this task (was 84). `git diff --check` clean. 4 worktrees; the 3 pre-existing `.swarm-worktrees/*` untouched. ~44 pre-existing untracked root report files preserved and never staged.
+- Push was a **fast-forward** (`70738c3b..c2914e68`). No force-push, no history rewrite, no amend, `main` never modified.
+
+### Baseline actually established (T34-L's lockfile was NOT assumed correct)
+Four trees were inspected directly rather than trusted:
+| Tree | SHA | Role |
+|---|---|---|
+| PR base / `origin/main` | `ede495b55e` | upstream baseline |
+| T34-L **starting** tree | `02b14773c01ab6cd5efaf7f42f15e41194751521` | the correct pre-remediation lockfile |
+| T34-L **final** tree | `ee6b44203504c799a3d4332ae6ca6f74ce08d51b` | the remediation commit |
+| pre-cleanup PR head | `70738c3be4a4075df19c1caa72738ec7165a72ba` | audited by T34-M |
+
+- `70738c3b:pnpm-lock.yaml` is **byte-identical** to `ee6b4420:pnpm-lock.yaml` (both sha256 `b5cf02b19d9eba66…`) — the T34-M documentation commits changed nothing in the lockfile.
+- `02b14773:pnpm-lock.yaml` (sha256 `f00e33d51c314370…`) is the correct pre-remediation lockfile. It is **not** identical to `origin/main`'s lockfile (sha256 `19fb0c144cf0238f…`) because earlier branch work legitimately changed `package.json` (root) and `packages/payment-domain/package.json`. Restoring to `02b14773`, not to `main`, is therefore the correct target.
+
+### Deterministic old-vs-new dependency delta (T34-L starting tree → T34-L final tree)
+Produced by a deterministic parser over the `importers`, `packages` and `snapshots` sections of both lockfiles (not by eyeballing the diff):
+- **Importer edges changed: 6** · **package-graph version-set changes: 59** · **package names added: 36** · **removed: 19** · **distinct package names: 634 → 651**.
+- Root cause, established from the manifests: `vite`, `vitest`, `typescript-eslint`, `@tauri-apps/api` and `@tauri-apps/cli` are declared with the **floating `"latest"` dist-tag specifier** in `apps/*` and `services/*`. A dist-tag specifier is not pinned by the lockfile, so the non-frozen `pnpm install` re-resolved every one of them. The T34-L manifest diff changed **no version specifier at all** — only `shadcn`'s section — therefore **none** of these movements was required by the remediation.
+
+### Classification of every changed package
+**REQUIRED FOR T34-L (the complete legitimate set — 1 package, 9 changed lockfile lines):**
+| Item | Change |
+|---|---|
+| `shadcn@4.21.0` | website: `dependencies` → `devDependencies` (importer relocation, same version) |
+| `shadcn@4.21.0` | desktop: removed from `dependencies` (importer edge deleted) |
+| `shadcn` subtree | **unchanged** — `ts-morph@26.0.0`, `@ts-morph/common@0.27.0`, `fast-glob@3.3.3`, `micromatch@4.0.8`, `braces@3.0.3` all byte-identical in both lockfiles |
+
+**UNRELATED CHURN (restored — every one of these is production- or dev-graph movement the remediation did not ask for and does not need):**
+| Package | Was (T34-L) | Restored to | Scope |
+|---|---|---|---|
+| `@tauri-apps/api` | 2.12.1 | **2.12.0** | **PRODUCTION / runtime** — Tauri IPC bridge, `apps/desktop` `dependencies` |
+| `@tauri-apps/cli` | 2.12.1 | **2.12.0** | dev |
+| `@tauri-apps/cli-*` (12 platform binaries) | 2.12.1 | **2.12.0** | dev |
+| `vite` | 8.3.2 | **8.3.1** | **production** (both workspaces) |
+| `vitest` | 5.0.3 | **5.0.2** | dev |
+| `@vitest/mocker`, `@vitest/spy` | 5.0.3 | **5.0.2** | dev |
+| `typescript-eslint` | 8.71.0 | **8.70.1** | dev |
+| `@typescript-eslint/*` (12 packages) | 8.71.0 | **8.70.1** | dev |
+| `why-is-node-running` | **3.2.1 (a downgrade)** | **3.2.2** | dev — pulled in by `vitest`, not chosen |
+| `@tailwindcss/vite`, `@vitejs/plugin-react`, `@testing-library/jest-dom` | re-keyed on `vite@8.3.2` / `vitest@5.0.3` peer suffixes | re-keyed on `8.3.1` / `5.0.2` | peer-suffix propagation of the two above |
+
+Note on `typescript-eslint`: the **workspace-root** pin is exact (`"typescript-eslint": "8.70.1"`), so it never moved. The 8.71.0 subtree existed **only** because the workspaces use `"latest"`. `typescript-eslint@8.70.1` therefore coexists with 8.71.0 in the T34-L lockfile — a duplicate of the same toolchain at two versions, itself evidence of pure resolution churn.
+
+**Not classified as churn, deliberately unchanged:** `wrangler@4.132.0`, `miniflare`, `undici@7.29.0/7.29.1/8.10.2` — verified byte-identical between the pre-T34-L and restored lockfiles, and untouched by this PR.
+
+### @tauri-apps/api investigation (the load-bearing question)
+- **Why it changed:** only because T34-L ran a non-frozen `pnpm install` and `@tauri-apps/api` is declared `"latest"` in `apps/desktop/package.json`. Nothing about `shadcn` reaches it.
+- **Does the manifest permit it:** yes — `"@tauri-apps/api": "latest"` is a floating dist-tag, and `npm view @tauri-apps/api dist-tags` returns `{ latest: '2.12.1', next: '3.0.0-alpha.2' }`. **That is exactly why the change had to be reverted at the lockfile layer rather than pinned in the manifest:** pinning it here would be a dependency-strategy change requiring an ADR and owner approval, which this task is forbidden to make.
+- **Did it change only because the lockfile was not frozen:** yes — mechanically confirmed. The restored lockfile is byte-identical to `02b14773` for every `@tauri-apps/*` entry, and `pnpm install --frozen-lockfile` then reports *"Lockfile is up to date, resolution step is skipped"*.
+- **Any source/API behaviour change required:** none. Zero source file depends on `@tauri-apps/api` version-specific behaviour; no Tauri capability, permission, IPC contract or `tauri.conf.json` key depends on it. Verified by the fact that 2.12.0 was the shipped, CI-green state on `main` and on this branch for the whole prior history.
+- **Does Handy use 2.12.1:** not applicable and not relied upon. No Handy-derived source, no Handy pin and no V1 preservation surface was touched by this task, and no automatic upstream synchronisation was performed or permitted (`21_HANDY_SOURCE_CHAIN_OF_CUSTODY.md`, `04_HANDY_FORK_AND_REUSE_POLICY.md`).
+- **Is the upgrade required for the braces remediation:** **NO.** `braces` is reached only through `shadcn → fast-glob → micromatch`. `@tauri-apps/api` is not on that path and cannot influence it.
+- **Final state: `@tauri-apps/api` = 2.12.0.** The T34-M note that 2.12.1 might need to stay "with a concrete documented reason" is now resolved: no such reason exists, so it was reverted.
+
+### Restoration method (legitimate, non-fabricated)
+1. `git restore --source=02b14773 --worktree -- pnpm-lock.yaml` — restores the last pnpm-generated lockfile that was correct for these manifests.
+2. Three surgical importer edits, and only those: delete the `shadcn` entry from `apps/desktop` `dependencies`; delete it from `apps/website` `dependencies`; insert it into `apps/website` `devDependencies` between `jsdom` and `tailwindcss` (pnpm's alphabetical order), same specifier `^4.21.0` and same resolved `4.21.0(supports-color@10.2.2)(typescript@6.0.3)`.
+3. Nothing else in the file was touched: no integrity hash was hand-edited, no version pin, `overrides`, `resolutions`, `patchedDependencies` or audit-suppression directive was introduced, no `.npmrc` was created, no CI workflow, job, step, threshold or audit flag was modified.
+
+**Proof that the result is a genuine pnpm-generated lockfile, not a hand-made one:**
+- `pnpm install --frozen-lockfile` → **exit 0**, output *"Lockfile is up to date, resolution step is skipped"* and *"Lockfile passes supply-chain policies (655 entries)"*. pnpm's own up-to-date check compares every importer specifier against every `package.json`; a mismatch fails the install.
+- A second `pnpm install --frozen-lockfile` → *"Already up to date"*, exit 0 (idempotent).
+- **Independent confirmation on a clean GitHub runner with no cache**: `npm-audit` job `111303038801` of Security Audit run `37157240573` logs *"Lockfile is up to date, resolution step is skipped"* then *"No known vulnerabilities found"*.
+- **Independent registry verification** of every restored version's integrity hash via `npm view <pkg>@<ver> dist.integrity`, compared byte-for-byte against the lockfile:
+
+| Package | Registry `dist.integrity` | Lockfile | Match |
+|---|---|---|---|
+| `@tauri-apps/api@2.12.0` | `sha512-fUSxFX8VABYe9W9K5ROdEaKVkNUFRcMSRofjruvaxztXA+I0XnQHcYHF8m/a6iExRUxsUf0HsFWhPBuH9IgzJw==` | identical | YES |
+| `@tauri-apps/cli@2.12.0` | `sha512-GIShnAR4C16kSTA8NO02fo8fOw/I5z5sAUEB5S2HlPHFnBkbihL4c9a/MpkxOm1+q5S+tFd3X4QUjHWxfyGzpQ==` | identical | YES |
+| `vite@8.3.1` | `sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==` | identical | YES |
+| `vitest@5.0.2` | `sha512-7MQrx9pDv5aHiUcovIb/70Ys3tgtkUVgCtledvKdCmEO+/1Dicq5ZqoSxOW034m03oqC+oHOKui2dM6qtMLoJg==` | identical | YES |
+| `typescript-eslint@8.70.1` | `sha512-AcWG7KDjZ2THNXsgwttMaGmzVi0VFRlFYfqFHYQRbDpF3owuYbuiL8c7UUrd2k8s3PoSfIQrWfrGXfcElrWLYA==` | identical | YES |
+| `why-is-node-running@3.2.2` | `sha512-NKUzAelcoCXhXL4dJzKIwXeR8iEVqsA0Lq6Vnd0UXvgaKbzVo4ZTHROF2Jidrv+SgxOQ03fMinnNhzZATxOD3A==` | identical | YES |
+
+- The restored lockfile is also **byte-identical to `origin/main`'s lockfile for every one of these entries**, which is the strongest available statement: this PR now changes no dependency version relative to what `main` already ships.
+
+### Final lockfile state
+- `pnpm-lock.yaml` = `02b14773`'s lockfile **+ 6 lines** (the shadcn importer move). 6,066 lines, sha256 `585970ceb6475686b3fa2722e6083bb9c8443172fcc6ba948968ee97b0dc18a1`.
+- Deterministic delta of the restored lockfile against the pre-T34-L lockfile: **0 importer resolution changes other than desktop's `shadcn` edge; 0 package-graph version-set changes; 0 package names added; 0 removed** (634 → 634).
+- Confirmed in the installed graph (`pnpm list -r --depth Infinity`): `@tauri-apps/api@2.12.0`, `vite@8.3.1`, `vitest@5.0.2`, `typescript-eslint@8.70.1`, `why-is-node-running@3.2.2`, `shadcn@4.21.0`, `undici@7.29.0 / 7.29.1 / 8.10.2`. `pnpm build` output reports `vite v8.3.1`.
+
+### Final dependency graph — production vs development
+- **Production graph: `braces` ABSENT.** Desktop does not declare `shadcn` at all; website declares it only in `devDependencies`.
+- **Development graph: `braces@3.0.3` present, and reachable by exactly one path.** `pnpm why braces -r` → `braces@3.0.3 ← micromatch@4.0.8 ← fast-glob@3.3.3 ← shadcn@4.21.0 ← @soravo/website@0.1.0 (devDependencies)`. "Found 1 version of braces."
+- This is the state the T34-L remediation was designed to produce, and it is preserved exactly.
+
+### Security audit (re-run on the corrected tree)
+| Command | Result |
+|---|---|
+| `pnpm install --frozen-lockfile` | **exit 0** — "Lockfile is up to date, resolution step is skipped"; "Lockfile passes supply-chain policies (655 entries)"; second run "Already up to date" |
+| `pnpm audit --prod` | **`No known vulnerabilities found`**, **exit 0** |
+| `pnpm audit --audit-level=high` (full graph incl. dev) | **11 vulnerabilities — 3 low / 5 moderate / 3 high**, exit 1. HIGHs: `undici` x2 (`GHSA-rfgv-xxqx-mfg5`, `GHSA-w293-vg96-wgc3`, path `.>wrangler>miniflare>undici`) and `braces` x1 (`GHSA-vfj7-8cjw-p6xm`, vulnerable `<=3.0.3`, patched `>=3.0.4`, paths `apps__website>shadcn>fast-glob>micromatch>braces` and `apps__website>shadcn>ts-morph>@ts-morph/common>fast-glob>micromatch>braces`) |
+| CI `npm-audit` job (`pnpm audit --prod --audit-level=high`) | **`No known vulnerabilities found`** |
+| CI `web` job (`pnpm audit --prod`) | **`No known vulnerabilities found`** |
+
+- **The dev-graph advisory is recorded separately and is NOT treated as equivalent to the previous production-graph blocker.** The original blocker was `braces` in the **production** graph; that is resolved and measured by `pnpm audit --prod` = 0, in CI as well as locally. The residual HIGH is confined to the **development** graph, reachable only from a build-time/CLI tool, and is **identical in count, severity and paths** to the pre-cleanup state — this task neither introduced nor removed it.
+- `undici` is **pre-existing and byte-identical** to the pre-T34-L lockfile (`undici@7.29.0`, `undici@7.29.1`, `undici@8.10.2` in both). Not touched by PR #64.
+- **No suppression of any kind.** Grep for `overrides` / `ignoreCves` / `ignoreGhsas` / `auditConfig` / `audit-level` across `package.json`, `apps/website/package.json`, `apps/desktop/package.json`, `packages/payment-domain/package.json`, `services/license-api/package.json`, `pnpm-workspace.yaml` → **no matches**. `.npmrc` **does not exist**. `ci.yml:26` (`pnpm audit --prod`) and `security-audit.yml:53` (`pnpm audit --prod --audit-level=high`) are unmodified; `Cargo.lock` is not in the diff.
+- **No fabricated package version.** Verified in the table above.
+
+### Local tests (all on the corrected tree, exit codes observed)
+| Check | Command | Result |
+|---|---|---|
+| Install | `pnpm install --frozen-lockfile` | **PASS** (exit 0, resolution skipped, idempotent) |
+| Lint (all workspaces + checkout fn) | `pnpm lint` | **PASS** (exit 0) |
+| Typecheck (all workspaces + checkout fn) | `pnpm typecheck` | **PASS** (exit 0) |
+| Tests | `pnpm test` | **PASS** (exit 0) — website **179 passed** (16 files), desktop **11 passed**, license-api **71 passed** (6 files), payment-domain, supabase **200 passed** (3 files) |
+| Build | `pnpm build` | **PASS** (exit 0) — website `built in 354ms`, desktop `built in 205ms`, reporting `vite v8.3.1` |
+| E2E (Playwright) | `pnpm e2e` | **PASS** — **20 passed** (13.0s) |
+| Website build-time shadcn resolution | `apps/website/dist/assets/*.css` | shadcn `base-nova` tokens inlined: `--primary:oklch(28.6% .053 162.6)`, dark `--primary:oklch(69.7% .035 155.6)` — `@import "shadcn/tailwind.css"` resolves through the package `exports` subpath (`shadcn/dist/tailwind.css`) with `shadcn` as a devDependency |
+| Shipped-artifact scan | `apps/website/dist`, `apps/desktop/dist` | **no occurrence** of `braces`, `micromatch`, `fast-glob` or `shadcn` in either |
+
+### GitHub Actions on the corrected commit `c2914e68`
+| Run | ID | Jobs | Conclusion |
+|---|---|---|---|
+| **Security Audit** | `37157240573` | `npm-audit` PASS · `cargo-audit` PASS · `cargo-deny` PASS | **success** |
+| **CI** | `37157240581` | `web` PASS · `e2e` PASS · `rust` PASS · `desktop` PASS · macOS aarch64 PASS · macOS x86_64 PASS · Windows x86_64 PASS | **success** |
+
+- `gh pr checks 64` → **all 10 checks pass**: npm-audit 18s, cargo-audit 13s, cargo-deny 43s, web 1m3s, e2e 51s, rust 17m58s, desktop 15m49s, macOS aarch64 10m42s, macOS x86_64 13m4s, Windows x86_64 23m38s.
+- CI log evidence that the gates are genuinely satisfied rather than skipped: `web` job `111303039355` step `Run pnpm audit --prod` → `No known vulnerabilities found`; `npm-audit` job `111303038801` step `Run pnpm install --frozen-lockfile` → `Lockfile is up to date, resolution step is skipped`, then `Run npm audit` → `No known vulnerabilities found`; step **`Assert lockfiles unchanged` passed on all three desktop matrix legs** — lockfile integrity is machine-checked on macOS and Windows too, and `@tauri-apps/api@2.12.0` builds and compiles on all three targets.
+- **The earlier green T34-L/T34-M runs were not relied upon.** The matrix was re-executed on the corrected commit because the lockfile changed.
+
+### PR #64 diff review (post-cleanup)
+Dependency surface of PR #64, measured against its base tree `02b14773`:
+```
+ apps/desktop/package.json | 1 -
+ apps/website/package.json | 2 +-
+ pnpm-lock.yaml            | 9 +++------
+ 3 files changed, 4 insertions(+), 8 deletions(-)
+```
+The **complete** set of added/removed lines across the whole PR dependency diff is **11 lines, every one of them `shadcn`**: two `"shadcn": "^4.21.0",` manifest lines removed and one added; and the three-line lockfile importer entry `shadcn:` / `specifier: ^4.21.0` / `version: 4.21.0(supports-color@10.2.2)(typescript@6.0.3)` deleted from `apps/desktop` `dependencies`, deleted from `apps/website` `dependencies`, and added to `apps/website` `devDependencies`.
+Filter applied to added/removed lines only, across `pnpm-lock.yaml` and all three manifests, for `tauri-apps|vite|vitest|typescript-eslint|why-is-node-running|@vitest|@typescript-eslint` → **zero hits**. **No unrelated dependency upgrade or downgrade remains anywhere in PR #64's dependency diff, and `@tauri-apps/api` is not mentioned in it at all.**
+Also confirmed: no source file, no test, no workflow, no CI config, no `Cargo.lock`, no `deny.toml`, and no manifest other than the two named are in the T34-L/T34-N dependency delta. `shadcn` was **not** reintroduced as a production dependency.
+
+### Definition-of-Done status (vs `13_DEFINITION_OF_DONE_AND_QA.md`)
+requirement mapped OK · implementation complete OK · no duplicate architecture OK · targeted tests OK (website 179 / desktop 11 / license-api 71 / payment-domain / supabase 200 / e2e 20, all local, all green) · typecheck/build OK · security OK **for the scope this PR owns** (`pnpm audit --prod` = 0 locally and in two independent CI jobs; no suppression, no override, no fabricated version; residual dev-graph HIGH recorded separately and unchanged) · docs OK (`PROGRESS.md`; **no ADR created and none required** — see Decisions) · diff review PARTIAL — **0 of 1 human approvals** · focused commit OK (`c2914e68`, single file, scoped path) · pushed branch/PR OK (fast-forward) · CI recorded OK (10/10 on `c2914e68`). **Not merged. Not release-ready** — `17_RELEASE_RUNBOOK.md` preconditions remain unmet.
+
+### Files changed by this task
+- `pnpm-lock.yaml` — the only non-documentation file. Restored pre-T34-L resolutions, kept the shadcn importer relocation.
+- `PROGRESS.md` — this T34-N entry.
+
+**Deliberately unchanged (protected):** `apps/website/package.json` and `apps/desktop/package.json` (the T34-L classification is preserved verbatim; not re-edited), root `package.json`, `packages/payment-domain/package.json`, `services/license-api/package.json`, `pnpm-workspace.yaml`, every source file, every test, `Cargo.toml`/`Cargo.lock`, `deny.toml`, `.github/workflows/**` (including `ci.yml` and `security-audit.yml`), all ADR text and `docs/Soravo_Engineering_Docs_v6/**`, the Handy pin `ba10ce19`. No `.npmrc`. No new ADR. No implementation of ADR-027, ADR-028 or ADR-029 follow-ons; no Handy upstream sync; no UI change; no Supabase change; no release-workflow change; no CI audit-policy change; **PR #63 not closed; PR #64 not merged.**
+Temporary analysis artifacts (`delta.py`, `commitmsg.txt`, extracted lockfiles) were kept under the gitignored `.pnpm-store/t34n/` and `/tmp/opencode/t34n/` — **nothing untracked was added to version control.** Staging used an explicit path (`git add -- pnpm-lock.yaml`), never `git add -A`.
+
+### Decisions
+1. **No owner choice was required to resolve the churn.** T34-M framed this as "split it out or pin the versions". Both were rejected: splitting would leave an unrelated 6-package movement inside a security-remediation PR, and pinning would convert floating `latest` specifiers into exact pins — a *dependency-strategy change*, which `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` makes ADR- and owner-gated and which this task is forbidden to make. The correct action is neither: restore the resolutions the repository already shipped, at the lockfile layer, leaving the pre-existing `latest`-specifier design untouched and still owned by whoever chooses to change it.
+2. **Restoring a lockfile to a previous pnpm-generated state is not fabrication.** The prohibition is on hand-editing integrity hashes or pinning versions to force a number. Here every hash is the verbatim registry hash for that exact version (independently re-verified), and pnpm itself declares the file up to date and installs it unmodified.
+3. **No ADR.** `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` requires an ADR for a *dependency strategy* change. This task changes no strategy: it removes accidental movement and restores the exact dependency set `main` already ships. Recording an ADR would itself be the out-of-scope governance work this task is forbidden to perform.
+4. **Corrective commit, not history rewriting.** `14_CI_CD_AND_BRANCHING.md` forbids force-pushing or rewriting shared history. The published PR history is preserved and the repair is an auditable forward commit.
+
+### Implemented
+- `pnpm-lock.yaml` restored to the pre-T34-L resolutions for all six unrelated movements, keeping only the shadcn importer relocation. PR #64's lockfile diff reduced from 373 changed lines to 9.
+- `@tauri-apps/api` returned to **2.12.0**; `vite` 8.3.1; `vitest` 5.0.2; `typescript-eslint` 8.70.1 (duplicate 8.71.0 subtree eliminated); `why-is-node-running` 3.2.2 (the accidental **downgrade** reverted); `@tauri-apps/cli` + 12 platform binaries 2.12.0.
+- Committed as `c2914e68` and pushed as a fast-forward. No force-push, no amend, `main` untouched.
+
+### Verified
+- Four baseline trees inspected directly; `70738c3b`'s lockfile proven byte-identical to `ee6b4420`'s; `02b14773` proven the correct restoration target (and proven *not* equal to `main`'s, with the reason).
+- Deterministic parser delta old→T34-L (6 importer edges, 59 version-set changes, 36 added / 19 removed names, 634→651) and pre-T34-L→restored (**0 / 0 / 0 / 0**, 634→634).
+- `pnpm install --frozen-lockfile` exit 0, "resolution step is skipped", supply-chain policies passed, and idempotent on a second run — plus the same "resolution step is skipped" line reproduced independently on a clean GitHub runner.
+- Six registry `dist.integrity` hashes matched byte-for-byte against the lockfile.
+- `pnpm audit --prod` = 0 (local) and = 0 in two independent CI jobs; `pnpm audit --audit-level=high` = 11 (3 low / 5 moderate / 3 high) with all three HIGHs named and attributed.
+- `pnpm why braces -r` single dev-only path via `@soravo/website (devDependencies)`; "Found 1 version of braces".
+- Absence of `overrides` / `ignoreCves` / `ignoreGhsas` / `auditConfig` / `audit-level` in every manifest and in `pnpm-workspace.yaml`; `.npmrc` absent.
+- Local: `pnpm lint` 0, `pnpm typecheck` 0, `pnpm test` 0 (179/11/71/200), `pnpm build` 0, `pnpm e2e` 20 passed; website built CSS carries the inlined shadcn `base-nova` tokens; neither `dist/` contains `braces`/`micromatch`/`fast-glob`/`shadcn`.
+- GitHub: Security Audit `37157240573` success 3/3; CI `37157240581` success 7/7; `gh pr checks 64` 10/10 on `c2914e68`; `Assert lockfiles unchanged` passed on all three desktop matrix legs; PR still `OPEN` / `MERGEABLE` / `BLOCKED` / `REVIEW_REQUIRED`, `reviews:[]`, `mergedAt:null`.
+- PR dependency diff contains 11 changed lines, all `shadcn`; zero added/removed lines referencing any churn package.
+
+### Blocked
+1. **PR #64 merge — 0 of 1 required human approval** (`reviewDecision: REVIEW_REQUIRED`, `mergeStateStatus: BLOCKED`, `reviewRequests: []`). Not bypassed, not manufactured, not requested by this task. **This is the sole remaining merge blocker on the dependency-corrected tree.**
+2. **Governance gap on the remediation posture (carried forward, unchanged, not repaired here).** T34-E and T34-I classified the `shadcn` devDependencies reclassification as owner/ADR-gated and T34-K listed it as an open owner decision; T34-L applied it with no ADR and no recorded owner authorization. The classification remains technically sound on the source evidence recorded in T34-M, so this is a **ratification gap, not a defect to reverse**. An ADR/owner decision is not agent-authorizable. **This task narrowed the lockfile only and neither created nor ratified that posture.**
+3. **Residual `braces` HIGH in the dev graph (carried forward, deliberately left visible).** No patched release exists upstream (`braces@3.0.4` does not exist in the registry). The remaining lever is an owner posture decision. Unchanged in count, severity and paths by this task.
+4. **Pre-existing `undici` HIGH x2 via `wrangler > miniflare`** — byte-identical to the pre-T34-L lockfile, out of PR #64's scope, untouched.
+5. **Release** — `release.yml` never exercised, signing secrets owner-held, model licences unapproved, no tags/releases. `NOT EXECUTED`.
+
+### Not executed
+- Any merge, any PR close, any reviewer request, any comment on PR #64 or PR #63. `release.yml`. Local Rust validation (no Rust change; the `rust` CI job is the evidence, and it passed). Implementation of ADR-027 / ADR-028 (PROPOSED, NOT ACCEPTED — out of scope by instruction). Handy upstream synchronisation (forbidden by policy). Any manifest change beyond the T34-L shadcn classification, which was preserved verbatim. Any `pnpm.overrides`, version pin, `.npmrc`, audit suppression, CI change or workflow change. Removal of the now-unused `apps/desktop/components.json`.
+
+### Deferred
+- ADR-027 (D-2156/D-2157) and ADR-028 (D-2186) — PROPOSED, awaiting explicit human owner approval; untouched.
+- **The root cause of the churn class itself is deferred, deliberately:** `vite`, `vitest`, `typescript-eslint`, `@tauri-apps/api` and `@tauri-apps/cli` remain declared as the floating `"latest"` dist-tag in `apps/*` and `services/*`. The **next** non-frozen `pnpm install` on any workspace will re-introduce exactly this churn. Fixing it means replacing `latest` with pinned or caret ranges — a **dependency-strategy change requiring an ADR and owner approval**, which this task must not make. It is recorded here as the smallest deterministic next *owner* task, not as agent work.
+- ADR-029 follow-ons already recorded earlier: Windows ORT baseline / VC-redist staging, bundle runtime transcription proof.
+- New Handy upstream commits recorded by T34-M (`345caa8` #1941, `ffbc9504` transcribe 0.3.0 #2203) — future Handy-sync task only.
+- Braces posture decision; closing PR #63 as superseded.
+
+### Exact next task
+**T34-O — OWNER DECISION GATE on PR #64 (human action, not agent-executable).** The dependency scope objection that T34-M routed here is now **CLOSED**: PR #64 contains only the shadcn classification remediation, with no unrelated dependency movement and `@tauri-apps/api` restored to 2.12.0. Remaining human actions, all outside agent authority:
+1. Review and **approve** PR #64 at head `c2914e68` (1 required approval outstanding) or request changes. Re-verify the required contexts are still green on the then-current head before merging — branch protection is `strict: true`.
+2. Record the **braces posture** — accept the residual dev-graph HIGH (`GHSA-vfj7-8cjw-p6xm`, no upstream patch exists) as policy, or hold for `braces>=3.0.4` — as an ADR or an explicit PROGRESS entry, closing the T34-E/T34-I/T34-K owner gate and ratifying the T34-L remediation posture.
+3. Close PR #63 as superseded by #64 so exactly one merge candidate exists.
+
+**Separately, as a scoped owner decision (not blocking this PR):** decide whether to replace the `"latest"` dist-tag specifiers with pinned or caret ranges to eliminate the churn class at its root. That is a dependency-strategy change and requires an ADR.
+After approval: merge PR #64 (human-executed), verify `main` CI green, and only then consider `release.yml` via `workflow_dispatch`. **Until the approval exists: no merge, no release, no production-ready claim.**
