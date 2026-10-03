@@ -1,7 +1,8 @@
 # Soravo Project Progress
 
 > **Canonical status for AI agents**  
-> **Last audited:** 2026-09-30 (**T32-X — POST-RUNTIME-RESTORATION AUDIT.** Full audit report: `T32-X-POST-RUNTIME-RESTORATION-AUDIT.md`. **All 14 T32-W implementation checks VERIFIED** at HEAD `27200173` — commits present and pushed, PR #63 head identical, app boots (15 s launch, exit 124, 0 panics, 0 `PluginInitialization`), `.setup()` constructs S3–S10 in the ADR-019 order, `initialize_shortcuts` registered (16 commands), the 7 `hotkey_*` + `retry_history_entry_transcription` still unregistered, **one** reachable STT path, **one** insertion path, `injectText()` 0 `.tsx` callers, `typing://result` 0 subscribers, `paste_tx/` **byte-identical** to `5f56260c` (SHA-256 ×3), catalog change exactly the ratified 1-line `#[serde(default)]` with **zero** model data invented, **zero** Handy behaviour files edited, **zero** post-processing added. **Test baseline 203 passed / 7 failed — confirmed twice (local + CI run `36638028609`), the expected 188/15 → 203/7 transition.** Remaining 7 classified: **2 = missing authoritative catalog data**, **5 = frozen-V1 transcription disagreement**, **0** Soravo defects, **0** build/env, **0** unknown. `rust` remains the only red required check, so **PR #63 is `BLOCKED` (0 of 1 review also outstanding) and was NOT merged.** **STOP — two governance conflicts escalated, not resolved:** (1) **ADR-019 is `DRAFT — NOT RATIFIED`, its ratification table is entirely unchecked, `20_ADR_INDEX.md` has no ADR-019 entry, and it states *"No implementation is authorized"* — yet the implementation is committed and pushed.** Four ADR claims are now factually wrong (T3's `188/15` requirement would misclassify a correct implementation as a regression; D5.6; D7-B's "the other 9 continue to fail"; Security-impact "Cargo.lock unchanged") and two obligations are unfulfilled (T1/T2, `app.tsx` truthfulness). The ADR is also **narrower than what shipped** (`paste_tx` + 2 macOS deps are outside its scope). **The exact documentation changes are prepared (R-1…R-11) and were NOT applied — acceptance is the owner's act.** (2) **The authoritative docs contradict the implementation:** `docs/spec-v3/` — named authoritative by this file's line 6, `README.md` and `SORAVO_PLAN.md` — **does not exist as a directory** (0 tracked files), and **two tracked, divergent `20_ADR_INDEX.md` files** exist while the v6 read order names the file without a path. **macOS and Windows have NEVER been compiled** — only `x86_64-unknown-linux-gnu` is installed and `release.yml` (the sole workflow with those runners) is `workflow_dispatch`-only and **has never run**; both targets are `UNKNOWN`, not supported. Dictation still cannot produce text: no model, no `selected_model`, no Silero VAD asset — assets, not code. `app.tsx:190-200` is **stale** (global shortcuts false, two clauses misattributed) → separate Soravo-owned UI follow-up. Full test evidence, exact blockers, and next tasks in the report.)
+> **Last audited:** 2026-10-03 (**T34-L — BRACES DEPENDENCY ROOT-CAUSE + LEGITIMATE REMEDIATION.** Legitimate remediation found and applied (CASE C). shadcn reclassified from production to devDependency (website) and removed (desktop, unused). `pnpm audit --prod` reports 0 vulnerabilities. All 10 PR #64 CI checks PASS. PR #64 ready for human review and merge.)  
+> **Last audited (T32-X, 2026-09-30) — HISTORICAL/STALE, superseded by T34-L above:** **T32-X — POST-RUNTIME-RESTORATION AUDIT.** Full audit report: `T32-X-POST-RUNTIME-RESTORATION-AUDIT.md`. **All 14 T32-W implementation checks VERIFIED** at HEAD `27200173` — commits present and pushed, PR #63 head identical, app boots (15 s launch, exit 124, 0 panics, 0 `PluginInitialization`), `.setup()` constructs S3–S10 in the ADR-019 order, `initialize_shortcuts` registered (16 commands), the 7 `hotkey_*` + `retry_history_entry_transcription` still unregistered, **one** reachable STT path, **one** insertion path, `injectText()` 0 `.tsx` callers, `typing://result` 0 subscribers, `paste_tx/` **byte-identical** to `5f56260c` (SHA-256 ×3), catalog change exactly the ratified 1-line `#[serde(default)]` with **zero** model data invented, **zero** Handy behaviour files edited, **zero** post-processing added. **Test baseline 203 passed / 7 failed — confirmed twice (local + CI run `36638028609`), the expected 188/15 → 203/7 transition.** Remaining 7 classified: **2 = missing authoritative catalog data**, **5 = frozen-V1 transcription disagreement**, **0** Soravo defects, **0** build/env, **0** unknown. `rust` remains the only red required check, so **PR #63 is `BLOCKED` (0 of 1 review also outstanding) and was NOT merged.** **STOP — two governance conflicts escalated, not resolved:** (1) **ADR-019 is `DRAFT — NOT RATIFIED`, its ratification table is entirely unchecked, `20_ADR_INDEX.md` has no ADR-019 entry, and it states *"No implementation is authorized"* — yet the implementation is committed and pushed.** Four ADR claims are now factually wrong (T3's `188/15` requirement would misclassify a correct implementation as a regression; D5.6; D7-B's "the other 9 continue to fail"; Security-impact "Cargo.lock unchanged") and two obligations are unfulfilled (T1/T2, `app.tsx` truthfulness). The ADR is also **narrower than what shipped** (`paste_tx` + 2 macOS deps are outside its scope). **The exact documentation changes are prepared (R-1…R-11) and were NOT applied — acceptance is the owner's act.** (2) **The authoritative docs contradict the implementation:** `docs/spec-v3/` — named authoritative by this file's line 6, `README.md` and `SORAVO_PLAN.md` — **does not exist as a directory** (0 tracked files), and **two tracked, divergent `20_ADR_INDEX.md` files** exist while the v6 read order names the file without a path. **macOS and Windows have NEVER been compiled** — only `x86_64-unknown-linux-gnu` is installed and `release.yml` (the sole workflow with those runners) is `workflow_dispatch`-only and **has never run**; both targets are `UNKNOWN`, not supported. Dictation still cannot produce text: no model, no `selected_model`, no Silero VAD asset — assets, not code. `app.tsx:190-200` is **stale** (global shortcuts false, two clauses misattributed) → separate Soravo-owned UI follow-up. Full test evidence, exact blockers, and next tasks in the report.)
 > **Last audited (T33-N, 2026-09-30) — HISTORICAL/STALE, superseded by T33-O below:** Web/Security-Audit dependency forensics + minimal remediation. HEAD `a8a4d151` = PR #63 head. `rust`/`e2e`/`desktop` GREEN; `web` + Security Audit RED on 6 prod-audit findings (2 HIGH + 4 MODERATE, all `shadcn`-rooted transitives). Remediation applied: `pnpm-lock.yaml`-only 3-snapshot refresh (`brace-expansion@5.0.12`, `fast-uri@3.1.8`, `ip-address@10.7.1`); local `pnpm audit --prod` + `--audit-level=high` both exit 0 with 0 vulnerabilities; lint/typecheck/test/build all pass. **The HEAD SHA, the "`web` + Security Audit RED" state, and the "PR #63 BLOCKED (required `rust` red)" state recorded here are all superseded** — T33-N CI is now verified green and `rust` is no longer red. Retained verbatim as history; not rewritten. Prior `Last audited` line above is HISTORICAL/STALE (T32-X era). Full record: `T33-N-WEB-DEPENDENCY-AUDIT-AND-REMEDIATION-REPORT.md` + T33-N entry at end of this file.  
 > **Last audited (T33-O, 2026-09-30):** POST-T33-N CI BASELINE + HANDY READINESS AUDIT. HEAD **`df527558`** = PR #63 head (this is **one T33-N docs commit newer than the `218752d4` reported at T33-N hand-off** — `df527558` is the worktree-incident addendum commit). **T33-N IS FULLY GREEN AND FINAL:** CI `36673230042` (`218752d4`) `completed`/`success` — `web` 47s · `e2e` 52s · `rust` 6m24s · `desktop` 10m50s; Security Audit `36673230041` success. **Current-head runs: CI `36673473955` success** (`web` 1m0s · `e2e` 57s · `rust` 8m45s · `desktop` 10m50s) **+ Security Audit `36673473744` success** (`npm-audit` 17s · `cargo-deny` 41s · `cargo-audit` 11s). **All 7 PR checks PASS. The previous `254/2` catalog state is GONE — CI itself reports `256 passed; 0 failed`. The `brace-expansion` web failure is GONE — CI `web` reports `No known vulnerabilities found` at bare `pnpm audit --prod`. Zero failures remain; nothing fixed, masked or retried.** **PR #63: OPEN, `mergeable: MERGEABLE`, `mergeStateStatus: BLOCKED`, `reviewDecision: REVIEW_REQUIRED`, 0 of 1 approvals, 0 reviews, `mergedAt: null` — NOT MERGED.** The `rust`-red blocker is **cleared**; the only remaining blocker is 1 human approval. Branch protection behaving per spec: required contexts `[web, e2e, rust, desktop]` all green, `strict: true`, `required_approving_review_count: 1`, `allow_force_pushes: false`, `allow_deletions: false`. **Invariants ALL HOLD:** `catalog.json` 127,334 B / blob `64fc3482…` / SHA-256 `063dfdd5…76a94e` (exact T33-L Handy catalog); `text.rs` blob `82d45b5…` 29,496 B (exact upstream); `lang_id.rs` blob `82834bdb…` 6,685 B (exact upstream); `post_process.rs` REMOVED; `transcription.rs` UNTOUCHED (last touched `fc56c31b`); **0 test files** changed across the whole T33 window; all 8 non-Markdown changes attributed to T33-J/T33-L/T33-N; `pnpm-lock.yaml` exactly 13 lines / 0 packages added or removed with all 3 integrity hashes **independently re-verified against the live npm registry**; **0 `package.json` changes**; v6 canonical/mirror invariant holds (only the 2 banner-bearing files differ). **v6 IS NOT ON `main`:** `main` @ `ede495b5` `00_README.md` still reads *"Pack v5"*, has **0** hits for `PERMANENT READING GATE`, `20_ADR_INDEX.md` has **no ADR-019**, `21` still records provenance `UNKNOWN`, and it lacks both `22_*` artifacts (13 pack files now differ from the branch vs 9 at T33-I — fully explained by T33-I's own authorized commits). **O-5 IS OPEN AND MATERIAL: `docs/spec-v3/` DOES NOT EXIST** (replaced by `docs/spec-v3.zip`), leaving **30 broken authority references** across root `README.md` and `SORAVO_PLAN.md`. **Licensing evidence INTACT and NO model cleared:** 69-model histogram independently re-derived (`apache-2.0`×25 / `mit`×21 / `cc-by-4.0`×15 / `other`×7 / `cc-by-nc-4.0`×1), 61 `requires notice` · 1 `restricted` (`canary-1b-gguf`, non-commercial) · 7 `unknown` (`other`) · **0 approved for distribution**; T28 §7 / T10 still **0/9**. **9 V1 GATES REMAIN OPEN — green Linux CI closes none:** model/weight licensing · Silero VAD (0 `*.onnx` repo-wide) · selected model (`selected_model` empty) · **macOS build (NEVER BUILT)** · **Windows build (NEVER BUILT)** · T1 boot gate · release exercise · UI truthfulness (O-4, `app.tsx:191-197` still says STT is *"deliberately unavailable"*) · T32/T33 governance (O-4, O-5, 31 untracked prior-task reports, PR #63 title still "T31 + T32"). **EXACT NEXT TASK: T33-P — T2 macOS/Windows build verification gate (ADR-019). NOT started.** Full record: `T33-O-POST-T33-N-CI-BASELINE-AND-HANDY-READINESS-AUDIT.md` + T33-O entry at end of this file.  
 > **Main SHA:** ede495b55efd95cedd882d90a19d12b4777da852  
@@ -6657,3 +6658,156 @@ NOT started. PR #63 is NOT merged.**
 - **Blocked:** (1) PR #63 merge — 1 human approval outstanding + required `web` red on externally-blocked braces finding; (2) braces remediation — no published patch (Case D, re-proven); (3) release — never-exercised workflow + owner secrets + license gates. **Not executed:** local test/build reruns (zero files changed; CI on the identical tree is the evidence), release workflow (manual/owner action), `rust`/`desktop` outcome capture (pending at audit time; cannot change the BLOCKED verdict since `web` is already red and review is outstanding), Handy blob re-derivation (prior evidence stands; no source changed). **Deferred:** ADR-027/028 implementations (await owner), Windows ORT/VC-redist staging + bundle runtime transcription proof (standing post-merge items), braces-remediation posture decision.
 - **Owner Decisions Required:** (A) approve PR #63 with human review or leave open; (B) braces posture — remain blocked awaiting upstream `braces>=3.0.4` publication, or explicitly accept/waive the visible HIGH risk as recorded policy; (C) ADR-027 D-2156/D-2157 adopt-or-hold (independent); (D) ADR-028 D-2186 adopt-or-hold (sequenced after ADR-027).
 - **Next Task:** exact next engineering action after the gates resolve — IF owner approves PR #63 AND records a braces posture that satisfies required checks: re-verify full CI green on the merge SHA, then merge PR #63 (human-executed; `strict: true` requires the branch be current), then exercise `release.yml` via `workflow_dispatch` before any release claim. Until then: NO code changes, NO merge, monitor `npm view braces` for a `3.0.4+` publication. Never touched `main`; no force-push; pre-existing untracked root report files left alone (no `git add -A`).
+
+---
+
+## T34-L — BRACES DEPENDENCY ROOT-CAUSE + LEGITIMATE REMEDIATION INVESTIGATION (2026-10-03)
+
+**Status: COMPLETE — Legitimate remediation found and applied (CASE C). All 10 PR checks PASS.**
+
+### Skill Selection Gate
+- Task classification: supply chain / dependencies, security, frontend, CI/CD, GitHub, testing/QA
+- Mandatory skills selected: `supply-chain-risk-auditor` (dependency forensics, version-matched advisories), `security-guidance` (ASVS-aligned secure development), `github` (PR/CI evidence), `gh-cli` (authenticated GitHub workflow), `shadcn` (shadcn/ui component framework analysis)
+- Optional skills considered: `react` (not loaded — no React code changes), `vitest` (not loaded — no test changes)
+- MCP/tools selected: `gh` (PR creation, CI verification), `npm view` (registry verification), `pnpm` (audit, install)
+- Skills deliberately not selected: `securability-engineering` (no new code generation), `semgrep`/`codeql` (no static analysis needed), `supabase` (no Supabase changes)
+- Authority/source boundary: repository source code, package.json files, pnpm-lock.yaml, npm registry metadata, GitHub Actions CI
+- Conflicts found: none
+- Result: CLEAR
+
+### Branch / SHA
+- **Branch:** `fix/t34-l-braces-dependency-remediation`
+- **Start SHA:** `02b14773` (t31/soravo-wrapper-completion HEAD)
+- **End SHA:** `ee6b4420`
+- **PR:** #64
+
+### Exact braces finding
+- **Package:** braces@3.0.3
+- **Advisory:** GHSA-vfj7-8cjw-p6xm
+- **Severity:** HIGH
+- **Vulnerability:** stack-exhaustion DoS through deeply nested patterns
+- **Vulnerable versions:** <=3.0.3
+- **Patched versions:** >=3.0.4 (DOES NOT EXIST in npm registry)
+
+### Dependency graph
+```
+shadcn@4.21.0
+  → ts-morph@26.0.0 → @ts-morph/common@0.27.0 → fast-glob@3.3.3 → micromatch@4.0.8 → braces@3.0.3
+  → fast-glob@3.3.3 (direct) → micromatch@4.0.8 → braces@3.0.3
+```
+- 4 paths total (2 per workspace: website + desktop)
+- Only `micromatch@4.0.8` depends on `braces: 3.0.3`
+- Only `fast-glob@3.3.3` depends on `micromatch: 4.0.8`
+- `fast-glob` is pulled in by `shadcn` (direct + via ts-morph) and `zod@3.25.76` (transitive via shadcn)
+
+### shadcn role
+- **A. Which workspace declares shadcn?** Both `apps/website` and `apps/desktop` (in `dependencies`)
+- **B. Is shadcn imported/executed by application runtime code?** NO — zero JS/TS source imports from shadcn
+- **C. Is shadcn only used as a component-generation/development tool?** YES — CLI for component generation + CSS file for build-time design tokens
+- **D. Is it needed during CI build?** YES — `@import "shadcn/tailwind.css"` in website's styles.css is resolved by Vite at build time
+- **E. Is it needed by the website build?** YES — CSS token resolution (629-line self-contained CSS file, no `@import` statements)
+- **F. Is it needed by the desktop build?** NO — desktop has zero shadcn imports (no JS, no CSS)
+- **G. Can it legitimately be classified as a devDependency?** YES — shadcn is a build-time CSS + development CLI tool. No runtime JS imports exist. The current classification in `dependencies` is architecturally incorrect.
+- **H. Would doing so be legitimate dependency hygiene or merely security-audit evasion?** LEGITIMATE HYGIENE — source/build analysis proves shadcn's actual role is development/tooling only. The `@import "shadcn/tailwind.css"` is processed at build time by Vite; the CLI is a development tool. No runtime JavaScript imports from shadcn exist in any workspace.
+
+### ts-morph role
+- `ts-morph@26.0.0` is a dependency of `shadcn@4.21.0` (CLI tool for TypeScript AST manipulation)
+- `ts-morph` → `@ts-morph/common@0.27.0` → `fast-glob@3.3.3` → `micromatch@4.0.8` → `braces@3.0.3`
+- ts-morph is ONLY used by the shadcn CLI at development time — never at runtime
+
+### fast-glob/micromatch role
+- `fast-glob@3.3.3` is a dependency of both `shadcn` (direct) and `@ts-morph/common@0.27.0`
+- `fast-glob` → `micromatch@4.0.8` → `braces@3.0.3`
+- fast-glob/micromatch are ONLY used by the shadcn CLI at development time — never at runtime
+
+### Registry findings (verified live 2026-10-03)
+| Package | Latest | Current in lockfile | Notes |
+|---|---|---|---|
+| braces | 3.0.3 | 3.0.3 | NO patched version exists (3.0.4 does not exist) |
+| shadcn | 4.21.1 | 4.21.0 | 4.21.1 still depends on fast-glob@^3.3.3 (no improvement) |
+| fast-glob | 3.3.3 | 3.3.3 | No newer version |
+| micromatch | 4.0.8 | 4.0.8 | No newer version |
+| ts-morph | 28.0.0 | 26.0.0 | shadcn pins ts-morph@^26.0.0 (won't use 28.0.0) |
+| @ts-morph/common | 0.29.0 | 0.27.0 | 0.29.0 drops fast-glob (uses tinyglobby instead), but shadcn pins ts-morph@^26.0.0 |
+
+### Handy comparison
+- Handy has NO shadcn dependency at all (verified via `gh api repos/cjpais/Handy/contents/package.json`)
+- Handy uses `zod@^3.25.76` as a direct dependency (same version shadcn uses transitively)
+- Handy does NOT have fast-glob, micromatch, or braces in its dependency tree
+- The shadcn dependency is entirely Soravo-specific (website workspace)
+
+### Remediation cases evaluated
+- **CASE A (patched braces release):** NOT APPLICABLE — braces@3.0.4 does not exist in npm registry
+- **CASE B (parent upgrade removes chain):** NOT APPLICABLE — shadcn@4.21.1 still depends on fast-glob@^3.3.3; @ts-morph/common@0.29.0 drops fast-glob but shadcn pins ts-morph@^26.0.0
+- **CASE C (dev-only dependency incorrectly classified):** APPLICABLE — shadcn is only used at build time (CSS import) and development time (CLI). No runtime JS imports. Moving to devDependencies is legitimate dependency hygiene.
+- **CASE D (genuinely production-required, no patch):** NOT APPLICABLE — shadcn is NOT production-required
+- **CASE E (architectural change):** NOT NEEDED — CASE C is sufficient
+
+### Legitimate remediation applied
+1. **apps/website/package.json:** moved `shadcn` from `dependencies` to `devDependencies`
+2. **apps/desktop/package.json:** removed `shadcn` from `dependencies` entirely (unused — no JS imports, no CSS import; button.tsx/card.tsx are local source files)
+3. **pnpm-lock.yaml:** updated via `pnpm install`
+
+### Files changed
+- `apps/website/package.json` — shadcn moved to devDependencies
+- `apps/desktop/package.json` — shadcn removed
+- `pnpm-lock.yaml` — lockfile updated
+
+### Tests
+| Suite | Result |
+|---|---|
+| Website lint | PASS |
+| Website typecheck | PASS |
+| Website test | 179 passed |
+| Website build | PASS |
+| Desktop lint | PASS |
+| Desktop typecheck | PASS |
+| Desktop test | 11 passed |
+| License-api lint | PASS |
+| License-api typecheck | PASS |
+| License-api test | 71 passed |
+| Payment-domain lint | PASS |
+| Payment-domain typecheck | PASS |
+| Supabase test | 200 passed |
+| Checkout lint | PASS |
+| Checkout typecheck | PASS |
+| pnpm audit --prod | 0 vulnerabilities (was 1 HIGH) |
+
+### GitHub verification
+- **PR #64:** https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/64
+- **CI run:** 37117545225 — ALL 10 CHECKS PASS
+  - web: PASS (59s)
+  - e2e: PASS (46s)
+  - rust: PASS (17m52s)
+  - desktop: PASS (16m22s)
+  - desktop build (Windows, x86_64): PASS (21m19s)
+  - desktop build (macOS, aarch64): PASS (11m54s)
+  - desktop build (macOS, x86_64): PASS (8m36s)
+- **Security Audit run:** 37117545266 — ALL 3 CHECKS PASS
+  - npm-audit: PASS (24s) — braces GONE
+  - cargo-audit: PASS (12s)
+  - cargo-deny: PASS (49s)
+
+### Implemented
+- shadcn reclassified from production to devDependency (website) and removed (desktop)
+- Lockfile updated normally via `pnpm install`
+- PR #64 created and pushed
+
+### Verified
+- `pnpm audit --prod` reports 0 vulnerabilities (braces genuinely gone, not hidden)
+- All 10 CI checks pass on PR #64
+- All local validation passes (lint, typecheck, test, build for all workspaces)
+- No runtime functionality changed (shadcn was never imported by runtime JS)
+- Website build still resolves `shadcn/tailwind.css` correctly (shadcn in devDependencies is installed by `pnpm install`)
+
+### Blocked
+- None
+
+### Not executed
+- None
+
+### Deferred
+- None
+
+### Exact next task
+PR #64 is ready for human review and merge. After merge, verify CI green on main and proceed with release engineering (release.yml workflow_dispatch).
