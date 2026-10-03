@@ -13,7 +13,7 @@ use soravo_desktop_lib::{
         audio::AudioRecordingManager,
         history::HistoryManager,
         model::ModelManager,
-        transcription::{init_transcribe_backend, TranscriptionManager},
+        transcription::{init_transcribe_backend, report_compute_devices, TranscriptionManager},
     },
     portable, secure_input,
     session::SessionMachine,
@@ -36,7 +36,15 @@ fn main() {
 
     // S2 — register the transcribe-cpp compute backends. Must precede the first
     // model load, or every `Model::load` fails. (Handy: managers/transcription.rs:1886.)
+    // Registration alone stays on the startup path. Listing the devices to log
+    // them is what first opens the GPU (macOS: loads ggml's Metal library,
+    // compiled from source on a shader-cache miss — first launch after an
+    // install/update), so it runs on a background thread instead of blocking
+    // startup here. (Handy #2160: `report_compute_devices` off the startup
+    // path; backend registration, model loading, device selection and
+    // transcription are unchanged.)
     init_transcribe_backend();
+    std::thread::spawn(report_compute_devices);
 
     // Initialize session state machine (Soravo's authoritative state)
     let session_machine = Mutex::new(SessionMachine::default());

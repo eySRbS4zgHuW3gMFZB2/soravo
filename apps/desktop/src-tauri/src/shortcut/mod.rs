@@ -1395,7 +1395,7 @@ pub fn change_transcribe_gpu_device(app: AppHandle, device: Option<String>) -> R
 /// First-call cost is dominated by enumerating GPU devices through the
 /// transcribe.cpp Metal/Vulkan backend, which loads dynamic libraries and
 /// probes hardware. Run it on the blocking pool so the webview thread
-/// stays responsive — see also the startup pre-warm in `lib.rs`.
+/// stays responsive — see also the startup background device report in `main.rs` (S2).
 #[tauri::command]
 #[specta::specta]
 pub async fn get_available_accelerators() -> crate::managers::transcription::AvailableAccelerators {
