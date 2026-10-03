@@ -3,11 +3,16 @@ members = [
   "apps/desktop/src-tauri",
   "crates/audio",
   "crates/config",
+  "crates/diagnostics",
+  "crates/history",
   "crates/hotkeys",
+  "crates/licensing",
   "crates/models",
+  "crates/scheduler",
   "crates/stt",
   "crates/transcript",
-  "crates/typing"
+  "crates/typing",
+  "crates/vad"
 ]
 resolver = "2"
 
@@ -20,3 +25,8 @@ authors = ["Soravo Engineering"]
 [workspace.lints.rust]
 unsafe_code = "forbid"
 unused_must_use = "deny"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

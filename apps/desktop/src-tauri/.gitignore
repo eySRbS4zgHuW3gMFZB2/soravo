@@ -1,0 +1,6 @@
+# T34-H / ADR-029: staged by build.rs (ported from cjpais/Handy @ 8605699d):
+# transcribe-cpp shared runtime libraries (Windows DLLs / Linux .so), bundled
+# next to the executable — to the install root via tauri.windows.conf.json on
+# Windows, into /usr/lib/Soravo (deb/rpm) / /usr/lib (AppImage) via
+# tauri.conf.json on Linux.
+/transcribe-libs/

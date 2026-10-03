@@ -1,4 +1,3 @@
-import type { Currency, ProductId } from "@soravo/payment-domain";
 import type { AppSupabaseClient } from "./supabase";
 
 export type CheckoutRequest = {
