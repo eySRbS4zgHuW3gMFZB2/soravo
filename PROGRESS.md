@@ -11446,3 +11446,408 @@ repository **read** access — should be taken, because it is the only thing
 currently preventing any HR-classified change from ever merging.
 
 Suggested task id: **T34-Y**.
+
+---
+
+## T34-Y — VERIFY AND MERGE PR #67 + RECONCILE THE REMAINING-ROADMAP PLAN (2026-10-05)
+
+**TASK ID:** T34-Y
+**Date:** 2026-10-05
+**Objective:** (1) Re-verify every merge prerequisite for PR #67 against **fresh
+live GitHub state** — not from the T34-X record — and merge it on the ordinary
+path. (2) Verify the resulting `main`. (3) Reconcile the authoritative
+remaining-project plan against the **actual current repository state**.
+**Verification + progress synchronization + roadmap reconciliation only.** No
+product redesign, no roadmap implementation, no refactor, no speculative change.
+
+### Skill Selection
+
+- **Task classification:** repository/Git operations · GitHub · testing/QA ·
+  documentation/specification/ADR · interruption/handoff/state audit ·
+  packaging/release · licensing/provenance · benchmarking · CI/CD · security.
+  Marked applicable and carried into selection: repository/Git, GitHub,
+  testing/QA, documentation/specification/ADR, state audit, packaging/release.
+  Inspected and found not to apply as *loaded* skills: Rust, Tauri,
+  TypeScript/JavaScript, React, shadcn/ui, frontend, backend, database/Supabase,
+  authentication, payments, Handy upstream analysis, speech/audio/STT,
+  model/catalog/asset handling, MCP/tooling — **because this task modifies no
+  source, no configuration, no dependency, and no external service.** Those
+  domains are *described* in the roadmap, not *acted on* here.
+- **Mandatory skills selected:** `gh-cli` — governs **every** GitHub fact in this
+  entry; unauthenticated fetches are rate-limited and untrustworthy for a merge
+  decision, so no `curl`/`webfetch` was used for GitHub state.
+- **Optional skills considered and loaded:** `github` — governs the
+  check → run → job → step → raw-log inspection sequence required to prove the
+  security gates **executed** on the merge commit rather than merely reporting
+  `success`.
+- **MCP/tools selected:** authenticated `gh` / `gh api` (PR, ref, comment,
+  review, run, job, raw log, branch protection); local `git` (rev-parse, log,
+  diff, merge-base, fetch). No MCP server was required.
+- **Skills deliberately not selected:** `semgrep`, `codeql`,
+  `supply-chain-risk-auditor`, `securability-engineering`, `security-guidance`,
+  `rust-engineer`, `rust-review`, `web-perf`, `web-design-guidelines`,
+  `frontend-design`, `vitest`, `shadcn`, `react`, `supabase`,
+  `supabase-postgres-best-practices`, `cloudflare*`, `wrangler`, `tauri*`,
+  `playwright`, `agent-security-audit`, `mcp-server-review`, `supply-chain-risk-auditor`,
+  `secure-workflow-guide`, `find-skills`, `customize-opencode`, `skill_improve`
+  class skills. **Reason (coverage judgement, not omission):** each governs
+  scanning, authoring, or building in a domain this task does not touch. The
+  security posture asserted below is exactly the posture CI enforces on every
+  `main` push, and every advisory claim is quoted from an executed gate rather
+  than inferred from an absent local measurement. Loading a local SAST or Rust
+  pass would add no evidence that the merge-commit CI run does not already
+  produce, and would risk implying coverage that was not actually obtained.
+- **Authority/source boundary:** engineering-control truth read from
+  `docs/Soravo_Engineering_Docs_v6/` (the canonical pack). Root
+  `Soravo_Engineering_Docs_v6/` is a **non-authoritative mirror** by that pack's
+  own declaration and was **not** edited. Implementation truth read live from
+  GitHub via authenticated `gh`, plus the local working tree. `PROGRESS.md` is
+  treated as evidence only, never as authority (`01`).
+- **Conflicts found:** **none.** The ADR-031 §5.5 classification is mechanical and
+  both PRs classified **NR**; the roadmap clarification touches no §4 protection,
+  no gate, and no acceptance criterion (zero deleted lines). No `STOP` was
+  required on a conflict basis.
+- **Result:** **CLEAR**
+
+### Part 1 — Fresh verification of PR #67 (nothing taken on trust from T34-X)
+
+Every row below was read live. The T34-X report was **not** used as a substitute
+for live state.
+
+| # | Prerequisite | Fresh value | Verdict |
+|---|---|---|---|
+| 1 | PR number / expected PR | `#67` — `docs(t34-x): record PR #66 merge (dca95503), new main HEAD and post-merge CI` | **PASS** — matches the intended PR |
+| 2 | Head SHA | `6314c5ad2ccec075e2b5913cda521d2b00ca2b4f` | **PASS** |
+| 3 | Base branch | `main` | **PASS** |
+| 4 | State | `state=OPEN`, `mergedAt=null`, `isDraft=false` | **PASS** |
+| 5 | Mergeability | `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN` | **PASS** |
+| 6 | Commits changed since the T34-X report | **None.** `git log --oneline origin/main..origin/t34-x-progress-md-merge-record` = exactly **1** commit, tip `6314c5ad`, identical to the reported head | **PASS** — no drift |
+| 7 | Required checks present | `web`, `e2e`, `rust`, `desktop` — all four, plus the three desktop-build legs | **PASS** |
+| 8 | Each required check's actual conclusion | all **7/7 `success`** | **PASS** |
+| 9 | **Check run HEAD SHA == PR head SHA** | run `37206536201`: `head_sha = 6314c5ad2ccec075e2b5913cda521d2b00ca2b4f` **== PR head**; `event=pull_request`, `run_attempt=1`, `status=completed`, `conclusion=success` | **PASS** — head-bound, not inherited |
+| 10 | No stale/inherited green mistaken for current | queried runs **by `head_sha`** (`actions/runs?head_sha=6314c5ad…`) — exactly **one** run exists on that head. Every earlier green run traces to a different SHA | **PASS** |
+| 11 | Branch protection unchanged | `contexts=[web,e2e,rust,desktop]`, `strict:true`, `required_approving_review_count:0`, `dismiss_stale_reviews:true`, `require_code_owner_reviews:false`, `allow_force_pushes:false`, `allow_deletions:false`, `enforce_admins:false` | **PASS** — `GET` only, **zero writes** |
+| 12 | §5.5 step-4 classification recorded on the PR | comment `id=5980616113`, author `eySRbS4zgHuW3gMFZB2`, created `2026-10-04T13:41:53Z`, body carries the literal required line | **PASS** — pre-existing, not created by this task |
+| 13 | No unresolved conversation, no fabricated review | `reviewThreads` = **0 nodes**; `pulls/67/reviews` = **`[]`** | **PASS** |
+| 14 | Diff scope | **1 file**, `PROGRESS.md`, **+288 / −0**, **zero deletions** | **PASS** — no bundled unrelated work |
+
+M3 (`strict`) was satisfied by real ancestry: `git merge-base origin/main
+6314c5ad` = `dca95503210d01d7b67677fd5cdde581acc45ded` = the pre-merge `main`
+tip, so the branch was genuinely up to date, not passing on a stale-check
+illusion.
+
+### Part 2 — ADR-031 §5.5 risk classification, re-run against the actual PR #67 diff
+
+**Deliberately re-derived from the live diff, not read back from §5.8's precedent
+for PR #65.**
+
+```
+$ gh api repos/eySRbS4zgHuW3gMFZB2/soravo/pulls/67/files
+PROGRESS.md   +288   -0   modified
+```
+
+| # | HR trigger | Verdict | Basis, from the live diff |
+|---|---|---|---|
+| HR-1 | Security-boundary implementation | **No** | Markdown only. Zero changes under `apps/`, `crates/`, `services/`, `packages/`, `supabase/`. |
+| HR-2 | CI / release / deployment definition | **No** | Zero changes under `.github/**`; no workflow, job, gate, trigger, or release script. |
+| HR-3 | Repository-protection mutation | **No** | Protection endpoint read via `GET` only; zero writes. `12_SECURITY_BASELINE.md` untouched. |
+| HR-4 | Dependency admission | **No** | No `Cargo.lock`, `pnpm-lock.yaml`, `package.json`, `deny.toml`, licence/advisory list, registry or source change; no model/asset pipeline or catalogue change. |
+| HR-5 | Handy-derived desktop core | **No** | No Handy-derived source, no preserved upstream test. |
+| HR-6 | Secrets / environment / signing | **No** | `15_ENVIRONMENT_AND_SECRETS.md` untouched; no `.env*`, secret, or signing change. |
+| HR-7 | Removal or relaxation of a control | **No** | **Zero deleted lines across 288 added.** A deletion is required to delete/comment-out/invert/make-optional a prohibition or gate; there are none. The added text *records* prohibitions and stop conditions. Verified by reading the complete diff. |
+| HR-8 | Owner designation | **No** | `labels: []` — `requires-independent-review` absent; no written owner designation. |
+
+**Classification: `risk-classification: normal (ADR-031 §5.5)` — normal-risk
+(NR).** The ambiguity-fails-safe clause was not engaged: every trigger was
+mechanically decidable. §5.5 step 4 was satisfied by the pre-existing comment
+`5980616113`; this task did not create, edit, or re-word it.
+
+### Part 3 — The merge of PR #67
+
+```
+$ gh pr merge 67 --repo eySRbS4zgHuW3gMFZB2/soravo --merge
+```
+
+Ordinary path only. **Not used:** `--admin`, `--auto`, any admin-enforcement
+override, "merge without waiting for requirements to be met", any force-push,
+rebase, amend, history rewrite, branch-protection write, direct commit to
+`main`, or any fabricated/synthesized/self-created/impersonated review.
+Reviews on PR #67 were **0** before the merge and remain **0** — the merge
+consumed no approval, because none was needed and none was invented.
+`enforce_admins: false` means an admin *could* bypass; that capability was not
+exercised.
+
+| Fact | Value |
+|---|---|
+| PR #67 state | **`MERGED`** |
+| `mergedAt` | `2026-10-04T21:14:05Z` |
+| `mergedBy` | `eySRbS4zgHuW3gMFZB2` (the owner — an owner self-merge, exactly what ADR-031 §2 and §5.7 authorize for an NR change) |
+| **Merge commit** | **`3467706d70e269b0cb28ff6bfdefe272a4209fee`** |
+| Parent 1 | `dca95503210d01d7b67677fd5cdde581acc45ded` (previous `main`) |
+| Parent 2 | `6314c5ad2ccec075e2b5913cda521d2b00ca2b4f` (the verified PR head) |
+| Commit shape | genuine **two-parent merge commit** — `--merge` strategy, not squash/rebase/fast-forward |
+| **`main` before → after** | `dca95503` → **`3467706d`** |
+| Verified PR head is ancestor of new `main` | **true** — nothing dropped |
+| `git ls-remote origin refs/heads/main` | `3467706d70e269b0cb28ff6bfdefe272a4209fee` |
+
+The PR branch was **not** deleted; the recovery path is retained.
+
+### Part 4 — Post-merge verification on `main` @ `3467706d`
+
+Run **`37235259975`** — `name: CI`, `event: push`, `branch: main`,
+`run_attempt: 1`, `status: completed`, **`conclusion: success`**,
+**`head_sha = 3467706d70e269b0cb28ff6bfdefe272a4209fee`** == the new `main` tip.
+The run is bound to the merge commit itself, **not** inherited from the PR run.
+Cloudflare Pages run **`37235259933`** (`event: push`, same `head_sha`) is also
+`completed`/`success`.
+
+| Job | Conclusion | Window (UTC) | Job id |
+|---|---|---|---|
+| `web` | **success** | 21:14:12 → 21:15:03 | 111532973101 |
+| `e2e` | **success** | 21:14:12 → 21:15:08 | 111532973213 |
+| `rust` | **success** | 21:14:11 → 21:32:37 | 111532973223 |
+| `desktop` | **success** | 21:14:11 → 21:29:56 | 111532973216 |
+| `desktop build (Windows, x86_64-pc-windows-msvc)` | **success** | 21:14:11 → 21:37:01 | 111532973198 |
+| `desktop build (macOS, aarch64-apple-darwin)` | **success** | 21:14:16 → 21:25:24 | 111532973232 |
+| `desktop build (macOS, x86_64-apple-darwin)` | **success** | 21:14:16 → 21:25:19 | 111532973226 |
+
+**`web`, `e2e`, `rust`, and `desktop` — all four required contexts — are green on
+`main`.** **7/7 jobs green.**
+
+Deployment: the Cloudflare Pages run succeeded on the same commit. Per `14`,
+deployment success is not CI success and is recorded separately, not conflated.
+
+### Part 5 — Security and build gates proven to EXECUTE on `3467706d`
+
+Evidence is **step-level windows plus raw job-log output**, not a `success`
+conclusion. Jobs fetched via `gh api .../actions/jobs/<id>/logs`.
+
+| Step | Window (UTC) | Conclusion | Execution proof from the run log |
+|---|---|---|---|
+| `cargo fmt --all -- --check` | 21:15:16.605 → 21:15:16.938 | `success` | ran; **0 occurrences of `Diff in`** in the 15 702-line job log |
+| `cargo clippy --workspace --all-targets -- -D warnings` | 21:15:16.938 → 21:23:19.167 | `success` | **8m 02s** real workspace pass; terminal `Finished \`dev\` profile … in 8m 02s`; **0 `generated N warnings`** under `-D warnings` |
+| `cargo test --workspace` | 21:23:19.325 → 21:32:00.743 | `success` | **360 passed / 0 failed** across all suites; **0 `FAILED` and 0 `panicked at`** lines in the whole log |
+| `cargo audit --deny warnings --ignore …` | 21:32:03.671 → 21:32:09.677 | `success` | `Fetching advisory database from https://github.com/RustSec/advisory-db.git`; **`Loaded 1290 security advisories`**; **`Scanning Cargo.lock for vulnerabilities (812 crate dependencies)`**; no vulnerability reported |
+| `cargo deny check` (`EmbarkStudios/cargo-deny-action@v2`) | checked 21:32:09.677 → 21:32:27.934 | `success` | raw output ends **`advisories ok, bans ok, licenses ok, sources ok`** |
+| `pnpm install --frozen-lockfile` | 21:14:2x | `success` | lockfile install accepted |
+| `pnpm lint` | 21:14:26 → 21:14:32 | `success` | ran |
+| `pnpm typecheck` | 21:14:32 → 21:14:40 | `success` | ran |
+| `pnpm test` | 21:14:40 → 21:14:53 | `success` | **26 test files / 461 tests passed** (179 + 11 + 71 + 200) |
+| `pnpm build` | 21:14:53 → 21:14:58 | `success` | ran |
+| **`pnpm audit --prod`** | 21:14:58 → 21:14:59 | `success` | **`No known vulnerabilities found`** |
+| `pnpm playwright install` + `pnpm e2e` | 21:14:52 → 21:15:05 | `success` | **`20 passed (12.0s)`** — the existing `tests/e2e/` suite, retained and still gating |
+| `pnpm tauri build` (Linux desktop) | 21:14:2x → 21:29:54 | `success` | `Finished \`release\` profile [optimized] … in 14m 04s`; **`Built application at: …/target/release/soravo-desktop`** |
+
+`cargo deny` emitted only `warning[duplicate]` (duplicate lockfile entries) and
+`warning[advisory-not-detected]` (a `deny.toml` ignore whose advisory was not
+encountered). Both are pre-existing notices inherited from `main`, neither is a
+finding, and neither was silenced by this task. The 13 `cargo audit --ignore`
+entries are the pre-existing list inherited unchanged from `main`; `.github/**`
+and `deny.toml` have a zero-line diff across this merge.
+
+**M7 is therefore satisfied by execution, not by assertion:** `cargo-audit`,
+`cargo-deny`, and `pnpm audit --prod` all ran on the merge commit `3467706d` and
+all returned green.
+
+### Part 6 — Roadmap reconciliation (the second required task)
+
+**The problem.** `07_IMPLEMENTATION_PLAN.md` ordered the tail as *Phase 6 —
+Security and full QA*, *Phase 7 — Release engineering*, *Phase 8 — Soravo visual
+redesign*. That ordering was **not sufficiently precise** to be deterministic:
+it did not say that release *preparation* must precede the redesign, that release
+*validation and rehearsal* must follow it, or that **final E2E QA is a dedicated
+pass executed after the redesign**. An agent following it literally could
+reasonably have shipped the release before the redesign, or declared "final QA"
+on the strength of a green `e2e` CI job.
+
+**Canonical documents corrected — the existing authoritative plan, not a new
+roadmap file.** No duplicate roadmap was created. `SPEC_MANIFEST.json`
+`file_count: 24` remains exact: **no document was added or removed.**
+
+| File | Change |
+|---|---|
+| `docs/Soravo_Engineering_Docs_v6/07_IMPLEMENTATION_PLAN.md` | **+83 / −0.** Phases 6/7/8 clarified **additively** (original wording retained verbatim, clarifications added as blockquoted notes). New *Remaining sequence* section defining ordered steps **R1–R10**, each with its done-when condition, its current state, and the explicit *FINAL E2E QA — what it means, and what it does not* rule. Explicit `COMPLETED`/`IN PROGRESS`/`REMAINING`/`BLOCKED`/`DEFERRED` vocabulary, with no completion percentage claimed. |
+| `docs/Soravo_Engineering_Docs_v6/08_TASK_BREAKDOWN.md` | **+74 / −0.** Added task **`T15` — FINAL full E2E QA (executed AFTER the T13 redesign)** with its own acceptance criteria. Added an *Execution order* section fixing the remaining sequence and stating explicitly that the T01–T15 numbering is **stable and not renumbered**. Added a *Current state by remaining step* table. No existing acceptance criterion was modified — `T13` and `T14` text is unchanged. |
+| `docs/Soravo_Engineering_Docs_v6/13_DEFINITION_OF_DONE_AND_QA.md` | **+25 / −0.** Added *Final E2E QA — a dedicated post-redesign pass*, closing the contradiction between "the `e2e` CI job is green" and "final E2E QA is done". Explicitly adds an obligation; removes no DoD item, QA level, or acceptance criterion. |
+| `docs/Soravo_Engineering_Docs_v6/17_RELEASE_RUNBOOK.md` | **+24 / −0.** Added *Position in the remaining sequence*, recording where the release preconditions sit relative to the redesign and final E2E QA. Explicitly relaxes no precondition and adds none. |
+
+**Total: 4 files, +206 / −0. Zero deleted lines across the whole diff** — so no
+existing prohibition, gate, mandatory check, stop condition, or acceptance
+criterion was removed, commented out, inverted, or made optional (ADR-031 HR-7
+tested on this PR's own diff, below).
+
+**Confirmed final order (now deterministic):**
+
+1. **R1** — Finish remaining functional desktop/product gaps.
+2. **R2** — Complete model provenance/licensing resolution for anything intended to ship.
+3. **R3** — Execute the real STT benchmark protocol and performance validation.
+4. **R4** — Complete remaining security/release-foundation validation.
+5. **R5** — Complete release-engineering preparation needed before final UI validation.
+6. **R6** — Perform the full Soravo visual/UI/UX redesign using `DESIGN.md`.
+7. **R7** — **AFTER the redesign: execute FINAL full E2E QA against the redesigned product.**
+8. **R8** — Clean-machine/runtime/install/package validation against the final UI and release candidate.
+9. **R9** — Final release/signing/checksum/download/release rehearsal.
+10. **R10** — Release only after Definition of Done and release gates are satisfied.
+
+**The distinction the task required, now recorded in the control plane:**
+
+- Existing E2E tests are **NOT** to be discarded. `tests/e2e/` (`auth.spec.ts`,
+  `navigation.spec.ts`, `admin.spec.ts` — 20 tests) and the **required** `e2e`
+  CI context stay in place and keep gating every merge throughout development.
+- Existing E2E coverage remains **regression/functional** coverage.
+- "Final E2E QA" means a **dedicated final validation pass after the UI/UX
+  redesign is complete** — task `T15` / step `R7`.
+- **Final E2E QA is NOT complete merely because the CI `e2e` job is green.** A
+  green `e2e` run proves only that the Playwright suite passed against *that*
+  commit's UI; it is not evidence about the redesigned product.
+- The redesign is **not** permission to alter established auth, payment, IPC,
+  privacy, entitlement, or other product contracts — that requires an explicit ADR.
+- The redesign must **not** be started before the functional, security, and
+  benchmark foundations are ready (consistent with ADR-010).
+
+**Actual state of the remaining work, from repository and live-GitHub evidence:**
+
+| Step | State | Evidence / named blocker |
+|---|---|---|
+| R1 functional desktop/product gaps | **REMAINING** | `T33-DESKTOP-V1-FUNCTIONAL-GAP-AUDIT.md` maps the desktop path set; parts are **BLOCKED** on named external assets/data that must not be fabricated (Silero VAD asset absent — 0 `*.onnx` in the tree; licence-verified shipping catalogue; a downloaded model with `selected_model` pointing at it) |
+| R2 model provenance/licensing | **REMAINING** | `T10` / `08` acceptance is not satisfied for the shipping catalogue. `catalog.json` is 127 334 B on `main`, but T28 §7 / T10 record **0 of 9** cleared. Unknown licence = **BLOCKED** for that model (ADR-011) |
+| R3 real STT benchmark | **REMAINING** | `crates/stt/src/benchmark.rs` exists; **no protocol execution evidence recorded** for `16_TEST_AND_BENCHMARK_PROTOCOL.md` |
+| R4 security / release-foundation validation | **REMAINING** | `12_SECURITY_BASELINE.md` obligations not all closed; no recorded full security review |
+| R5 release-engineering preparation | **REMAINING** | `17_RELEASE_RUNBOOK.md` preconditions unsatisfied; signing credentials remain external secrets |
+| R6 Soravo visual/UI/UX redesign | **REMAINING** | Not started. Gated on R1–R5 per ADR-010 |
+| **R7 FINAL full E2E QA** | **REMAINING** | **Cannot begin until R6 completes.** A green `e2e` CI job is **not** this step |
+| R8 clean-machine/install/package validation | **REMAINING** | Requires the final UI and the release candidate |
+| R9 signing/checksum/download/rehearsal | **REMAINING** | Requires external signing credentials and the rehearsal run |
+| R10 release | **REMAINING** | Requires `13` Definition of Done and every `17` precondition |
+
+**CONTRADICTIONS RECONCILED** (the task required this explicitly):
+
+| Contradiction found | Resolution applied |
+|---|---|
+| `07` Phase 6 "full QA" could be read as including final E2E QA, which would place final QA **before** the redesign | `07` Phase 6 clarified **additively**: "full QA" = security review, regression, TestSprite supplemental coverage, CI-equivalent validation — and **explicitly not** final E2E QA. Final E2E QA is `T15`/`R7`, after the redesign |
+| `08`'s `T13` (redesign) and `T14` (release) left the release/redesign relative order unstated | `08` gained an *Execution order* section. `T14` is split **by function, not renumbered**: preparation before `T13`, validation/rehearsal after `T15`. `T14`'s acceptance criteria are unchanged |
+| `07` Phase 7 placed "clean-machine install and rollback plan" wholly before the redesign | `07` Phase 7 clarified **additively**: obligations independent of the shipped UI precede the redesign; obligations observing the shipped artifact follow final E2E QA. **Nothing is discharged early**; clean-machine install runs against the final UI |
+| `13` did not distinguish a green `e2e` CI job from final E2E QA | `13` gained the *Final E2E QA* section stating the distinction and **retaining** the existing `tests/e2e/` suite and required `e2e` context as ongoing regression coverage |
+| `17_RELEASE_RUNBOOK.md` did not state where its preconditions sit relative to the redesign | `17` gained *Position in the remaining sequence*, relaxing no precondition |
+
+**No ADR was required, and none was invented.** `01`'s *Architecture changes*
+requires an ADR for: system boundary, payment semantics, auth/storage,
+session/transcript contract, Handy reuse classification, model policy, release
+architecture, dependency strategy. **None of these was changed.** This was a
+documentation-only clarification of *sequencing*, of the same class as the
+T33-I *Provenance correction note* ("a process control is not an architecture
+decision"). Where a genuine policy change would have been needed, this task
+would have recorded the need and stopped that item instead of deciding it.
+
+**`ADR-010`** ("UI overhaul deferred until functional/release gates") is
+**consistent with** the corrected order and was neither reopened nor amended; it
+is now cited explicitly from `07` Phase 8.
+
+**Historical records preserved.** No completed historical T34 entry was
+rewritten. The T33/T34 entries above this one are byte-unchanged. No completion
+percentage was fabricated anywhere. The non-authoritative root mirror
+`Soravo_Engineering_Docs_v6/` was **not** edited, per the canonical pack's own
+instruction "Do not edit the control plane here."
+
+### Part 7 — Git discipline for the roadmap change
+
+| Item | Value |
+|---|---|
+| Branch | `t34-y-remaining-roadmap-reconciliation` (short-lived, branched from `origin/main` @ `3467706d`) |
+| Commit | `c51ea5df` — `docs(t34-y): reconcile remaining roadmap with actual state; final E2E QA after redesign` |
+| Files in that commit | exactly the **4** canonical pack documents above |
+| PR | **`#68`** — `docs(t34-y): reconcile remaining roadmap with actual state; final E2E QA after redesign` |
+| Diff | **+206 / −0**, 4 files, Markdown only |
+| §5.5 classification recorded on the PR | comment `5984530533` |
+| `main` edited directly? | **No.** All work on a feature branch; `main` reached only through `gh pr merge --merge` |
+| `--admin` / bypass / "merge without waiting" / force-push / rebase / amend / history rewrite | **None used** |
+| Fabricated or self-created review | **None.** No review was authored, and no review was consumed |
+| Branch protection mutated | **No.** Read via `GET` only, before and after; every field unchanged |
+| `git add -A` used | **No.** Every path staged explicitly |
+| Unrelated work | **All 45 unrelated untracked paths preserved** — untouched, unstaged, undiscarded |
+
+### Status by category
+
+- **IMPLEMENTED / VERIFIED this task:** PR #67 re-verified live head
+  `6314c5ad` → `OPEN`/`CLEAN`/`MERGEABLE`, 7/7 green and **head-bound** on run
+  `37206536201`, classification re-derived **NR**, branch protection unmutated,
+  no drift since T34-X; PR #67 **merged** as `3467706d` (two parents);
+  post-merge `main` CI **7/7 green** on `3467706d` with every security gate
+  proven to **execute**; Cloudflare Pages green on the same commit; the
+  remaining-roadmap reconciliation applied to the canonical plan, task
+  breakdown, DoD, and release runbook.
+- **BLOCKED (standing, unchanged):** **any HR-classified change cannot be
+  merged.** The repository has exactly one collaborator and GitHub never counts
+  an author's approval on their own PR, so the §5 independent-review requirement
+  remains unsatisfiable. For any change matching HR-1…HR-8 the correct outcome is
+  **STOP and report** until the owner grants a second person repository **read**
+  access. This does **not** block the normal-risk work recorded above. The agent
+  will not grant access to anyone.
+- **Not executed (deliberately, and recorded rather than glossed):** **no merge
+  of PR #68** — this task merged PR #67 and produced the roadmap reconciliation;
+  merging the PR carrying the reconciliation is a separate owner decision under
+  the same ADR-031 discipline, and PR #68's own merge is reported as **not
+  merged** here. No release, publish, production deployment, signing, store
+  submission, or Razorpay LIVE activation. **No implementation work from the
+  reconciled roadmap was started** — R1–R10 are roadmap, not work. No UI redesign.
+  No Handy-derived functionality was modified: this is **not** a Handy sync task
+  and `04`/`09`/`21` were not acted on. No refactor, no speculative change, no
+  replacement of working Handy behavior. **No local build, test, lint, or audit
+  was run on this machine**; all verification evidence is live CI on
+  `3467706d`, and no claim is made about this workstation's toolchain state. No
+  local SAST or dependency-advisory scan was run.
+- **DEFERRED (carried, unchanged, each with its reason):** the single-collaborator
+  HR-review blocker above (ADR-031 §5.9 residual limitation); the floating
+  `"latest"` specifier class deferred to its own ADR by ADR-030;
+  `SPEC_MANIFEST.json`'s two disclosed extras (`22_IMPLEMENTATION_COMPLETION_MATRIX.md`,
+  `22_IMPLEMENTATION_COMPLETION_MATRIX_UPDATE.md`) awaiting admission or explicit
+  retirement; the pre-existing `cargo deny` `warning[duplicate]` /
+  `warning[advisory-not-detected]` notices and the 13 inherited
+  `cargo audit --ignore` entries; `ADR-027` and `ADR-028` both remain
+  **PROPOSED (NOT ACCEPTED)** pending explicit owner approval; ADR-019's
+  outstanding obligations (T1 boot gate, `app.tsx` truthfulness); and the
+  unrepaired authority references to `docs/spec-v3/` (O-5).
+
+### Part 8 — Remaining work
+
+1. **Merge PR #68** (`c51ea5df`) on the ordinary path once its required checks
+   are green, under the same ADR-031 discipline. Not merged by this task.
+2. **Grant a second person repository read access** (owner action) — the single
+   standing blocker on all HR-classified work.
+3. **R1** — close the remaining functional desktop/product gaps; parts remain
+   BLOCKED on owner-gated assets/data (Silero VAD asset, licence-verified
+   catalogue, a downloaded model) that must not be fabricated.
+4. **R2** — resolve model provenance/licensing for everything intended to ship
+   (`T10` currently 0 of 9 cleared).
+5. **R3** — execute the real STT benchmark protocol (`T11`).
+6. **R4/R5** — remaining security validation and release-engineering preparation.
+7. **R6** — the Soravo visual/UI/UX redesign per `DESIGN.md`, only after R1–R5.
+8. **R7/T15** — FINAL full E2E QA **after** the redesign. Not satisfiable by a
+   green `e2e` CI job.
+9. **R8/R9** — clean-machine validation, then signing/checksum/download/rehearsal.
+10. **R10** — release, only after `13` and `17` are satisfied.
+11. `SPEC_MANIFEST.json`'s two disclosed extras still need admission or explicit
+    retirement.
+12. `cargo deny`'s pre-existing duplicate / advisory-not-detected notices and the
+    13 inherited `cargo audit --ignore` entries remain unreviewed `main` state.
+13. Node.js 20 deprecation annotations on `actions/checkout@v4`,
+    `actions/setup-node@v4`, `pnpm/action-setup@v4` (warnings only; the runner
+    forces them onto Node 24). Cosmetic; no gate affected.
+
+### Part 9 — Next task
+
+**T34-Z — merge PR #68 (`c51ea5df`), the roadmap reconciliation, on the ordinary
+path.** Same discipline as T34-X/T34-Y: re-verify HEAD,
+`OPEN`/`CLEAN`/`MERGEABLE`, all four required contexts green **and head-bound**,
+the §5.5 step-4 classification line recorded, branch protection still requiring
+0 approvals and 4 contexts — then `--merge` and confirm post-merge `main` CI.
+
+Before that, the standing owner action — **granting a second person repository
+read access** — should be taken, because it remains the only thing preventing any
+HR-classified change from ever merging.
+
+The first piece of *roadmap* work after that is **R1**: closing the remaining
+functional desktop/product gaps, which requires the owner-gated R2 (licensing)
+and asset answers before the dictation chain can be exercised at all.
+
+Suggested task id: **T34-Z**.
