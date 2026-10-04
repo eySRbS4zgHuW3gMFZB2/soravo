@@ -8499,3 +8499,55 @@ PROPOSED, NOT ACCEPTED; ADR-029 follow-ons (Windows ORT baseline, VC-redist
 staging, bundle runtime transcription proof); Handy upstream synchronisation.
 
 **Not production-ready.** CI being green is not release readiness.
+
+### T34-O THIRD PASS — end SHA, push, and CI on the pushed head (addendum)
+
+- **Start SHA `fde4caeb3187ff897931db83376470a979e3d429`** →
+  **End SHA `0b250bdb5606874b82a8507c83a856603db5bc3d`**. Branch
+  `fix/t34-l-braces-dependency-remediation`. Commit contents: **1 file,
+  `PROGRESS.md`, 424 insertions, 0 deletions** — no dependency, manifest,
+  lockfile, Rust, workflow, source, test or ADR file. Secret scan of the staged
+  delta: the only token-pattern match is the bare `gho_` **prefix** in prose
+  describing `gh auth status` output; **no credential value is present**.
+- **Pushed** `fde4caeb..0b250bdb`. **Fast-forward proven** —
+  `git merge-base --is-ancestor fde4caeb 0b250bdb` → true. **No force-push, no
+  amend, no history rewrite.** `origin/main` unchanged at `ede495b5` throughout.
+- **Remote verified:** `git ls-remote origin refs/heads/fix/t34-l-braces-dependency-remediation`
+  → `0b250bdb5606874b82a8507c83a856603db5bc3d` **== local HEAD**. Ahead/behind
+  **0/0**. Working tree clean; **44** untracked files preserved.
+
+**CI on the pushed head `0b250bdb` — observed by polling, not assumed.** Two runs,
+**10/10 pass**:
+
+| Run | ID | Jobs |
+|---|---|---|
+| Security Audit | `37174285037` | `npm-audit` 15s · `cargo-audit` 14s · `cargo-deny` 36s — **success** |
+| CI | `37174285043` | `web` 1m2s · `e2e` 57s · `desktop` 15m3s · `rust` 18m2s · macOS aarch64 11m37s · macOS x86_64 12m56s · Windows x86_64 21m58s — **success** |
+
+Polled in three intervals; `rust`, `desktop` and the three platform builds were
+**pending** on the first two reads and were reported as pending, not as passing.
+All **four required contexts** (`web`, `e2e`, `rust`, `desktop`) are green on the
+exact head being reviewed.
+
+**Final PR #64 state (authenticated, after the push):**
+`state=OPEN` · `isDraft=false` · `mergeable=MERGEABLE` ·
+`mergeStateStatus=BLOCKED` · `reviewDecision=REVIEW_REQUIRED` · `reviews=[]` ·
+`mergedAt=null` · `headRefOid=0b250bdb` · `changedFiles=255` ·
+`additions=47772`. **NOT merged. No approval fabricated, requested or bypassed.**
+
+**PR #63 unchanged:** `state=CLOSED`, `closedAt=2026-10-04T00:11:14Z`,
+`mergedAt=null`. Not touched this session.
+
+**Recorded limitation on this addendum itself.** Committing this addendum
+advances the head again and induces one further CI run whose outcome is **not
+awaited here** — it is recorded as **not-yet-observed rather than claimed as
+passing**. Its delta is `PROGRESS.md`-only over the fully-validated `0b250bdb`
+tree: zero source, zero manifest, zero lockfile difference, with three
+consecutive fully-green matrix pairs already observed on the identical dependency
+tree. Any merge must re-verify the four required contexts on the then-current
+head regardless, because `strict: true`.
+
+**Next task is unchanged: T34-P — human review and merge decision on PR #64.**
+The two owner decisions recorded in Blocker 2 (recurring worktree rollback —
+mechanism `UNKNOWN`) and Blocker 3 (ADR-030 "11" → 12 count correction) remain
+open and neither blocks the PR. **Not production-ready.**
