@@ -1771,3 +1771,233 @@ Do NOT add Razorpay secret credentials to frontend environment. Razorpay `keyId`
 See: docs/spec-v3/RAZORPAY-SUBSCRIPTIONS-029.md
 
 Status: CODE-COMPLETE, Razorpay TEST API Limited (Items created; Plans via API BLOCKED)
+
+---
+
+# T34-P — Owner Merge Policy (2026-10-04)
+
+**TASK ID:** T34-P · **DATE:** 2026-10-04 · **TYPE:** Owner-directed governance change
+**BRANCH:** `t34-p-owner-merge-policy` · **BASE SHA:** `ede495b55efd95cedd882d90a19d12b4777da852`
+**GOV COMMIT:** `c80765192141f46609c7eccc232b2ff89d07f1ba` · **MERGE STATE:** not merged (deliberate)
+
+## Skill Selection
+
+Skills inspected before implementation, per the mandatory skill-selection gate.
+
+- `gh-cli` — **LOADED AND USED.** Governs GitHub interaction: mandates authenticated `gh` over raw `curl`/`WebFetch`/MCP fetch. Applied for every GitHub read and write in this task (`gh auth status`, `gh repo view`, `gh api .../branches/main/protection` before **and** after, `gh pr view`, `gh pr checks`, `gh api .../collaborators`, `gh pr create`).
+- `github` — **LOADED AND USED.** Governs PR/CI inspection: `gh pr checks`, `gh pr view --json`, `gh api` for advanced queries. Applied to establish PR #64's live state and its green check set before asserting it is mergeable.
+- Governance/domain skills reviewed and **deliberately not loaded**: `agent-security-audit`, `mcp-server-review`, `securability-engineering`, `supply-chain-risk-auditor` — each targets code/dependency/config security review. This task changed **no** code, dependency, secret, workflow or config, and performed no new attack surface, so no such skill governs any claim made here. The security-relevant checks that *do* apply (secret scan, no-CI-change diff proof, protection-field comparison) were performed directly and are recorded below. `codeql`/`semgrep` were not run because no source file was modified — running them would produce findings unrelated to this diff and would not evidence this change.
+- Not claimed: no other skill was used, and no skill is cited without its content having been loaded and applied.
+
+## Objective
+
+Record the owner-merge policy (ADR-031) in the canonical engineering-control
+pack, and make the single minimal GitHub branch-protection change that permits
+the repository owner to merge their own pull request once every required
+automated check and repository-defined safety gate passes.
+
+This is an owner-directed governance change. It is explicitly **not** permission
+to bypass safeguards. No security, testing, release, audit or CI requirement was
+weakened, removed, or deferred.
+
+## Finding that shaped the change
+
+The "second human approval on every PR" requirement was **never stated in any
+canonical document**. A full read of the canonical pack
+(`docs/Soravo_Engineering_Docs_v6/`, 24/24 manifest documents) plus a repo-wide
+search found no approval or merge-authority mandate in the control plane. The
+requirement existed in exactly two places:
+
+1. **GitHub branch protection on `main`** —
+   `required_pull_request_reviews.required_approving_review_count = 1`, applied
+   by T23 (`T23-GITHUB-BRANCH-PROTECTION-REPORT.md` §7/§8). This is the operative
+   blocker: the repository owner is simultaneously the **sole collaborator**,
+   the **sole PR author**, and the only possible approver, and GitHub never
+   counts an author's approval on their own PR. The setting therefore made
+   every normal PR permanently unmergeable.
+2. **Historical evidence only** — T23/T32-U/T33-O/T34-N task reports and
+   `PROGRESS.md` log entries recording `required_approving_review_count: 1` and
+   "Review PR #64 and approve it (1 required)" as the next action.
+
+Consequence: the required change is small and additive, and it removes no
+documented control, because no documented control ever required a second
+approver.
+
+## Exact files changed (6, all in commit `c8076519`)
+
+| File | Change |
+|---|---|
+| `docs/Soravo_Engineering_Docs_v6/14_CI_CD_AND_BRANCHING.md` | **+74** — new `## Merge authority and owner-merge policy`: M1–M8 conjunction; `### Mandatory — never relaxed by merge authority`; `### Designated-review changes`; `### Deterministic merge decision procedure` (9 steps) |
+| `docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` | **+39/−2** — `Forbidden` gains 5 items (fabricated/self-created review approval; disabling/renaming/expecting a required check to obtain a merge; emergency "bypass rules"/admin override; merging with failing or unverified checks; merging a designated-review change); new `## Merge authority (ADR-031)`; completion schema gains `merge state`; `Stop conditions` gain 2 items (designated-review with no non-author reviewer available; a merge obtainable only by weakening/removing/bypassing a gate) |
+| `docs/Soravo_Engineering_Docs_v6/13_DEFINITION_OF_DONE_AND_QA.md` | **+6** — `diff review` is the agent's own pre-commit diff review, mandatory, and is **not** satisfied by a green check, a merged PR, or owner merge authority |
+| `docs/Soravo_Engineering_Docs_v6/17_RELEASE_RUNBOOK.md` | **+4** — source-merge authority is separate from release authority and satisfies no release precondition |
+| `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` | **+1** — ADR-031 registered (single index of record) |
+| `T34-P-ADR-031-OWNER-MERGE-POLICY.md` | **+248, new** — ADR text at repository root, per the pack convention "ADR text is not stored in this pack" |
+
+Total: 6 files, 370 insertions, 2 deletions. Every change is additive; the two
+deletions are `- force-push shared history.` and the final stop-condition line
+being re-terminated with `;` to extend the list.
+
+Also changed: `PROGRESS.md` (this entry, commit recorded below).
+
+## Exact policy now in force
+
+The repository owner / primary maintainer may merge their own pull request when
+**all** of M1–M8 hold (conjunction): PR against `main`; `web`, `e2e`, `rust`,
+`desktop` green on the head SHA; branch up to date with `main` (`strict`);
+force-push and deletion still blocked; no secrets/fabricated evidence/unrelated
+bundled work; not designated-review; `cargo-audit`/`cargo-deny`/`npm-audit`
+green or risk recorded in an ACCEPTED ADR; release gates untouched and
+separately satisfied.
+
+Explicitly unchanged and still mandatory: required CI/tests; security and audit
+checks; no force-push or history rewriting; **no disabling required checks to
+obtain a merge**; **no merge with failing required checks**; **no fabricated or
+self-created review approval**; **no use of GitHub's emergency "bypass rules" /
+admin override to work around a failing requirement**; production/release gates
+remain separate and are satisfied by no merge; normal PR workflow remains the
+default; Handy Reuse First policy (`04_HANDY_FORK_AND_REUSE_POLICY.md`,
+ADR-018/019) untouched.
+
+Security-sensitive and explicitly designated changes still require independent
+human review by a non-author, and the agent must stop rather than merge.
+Designated = owner designation in writing (incl. a `requires-independent-review`
+PR label), **or** any touch of a security boundary (auth, session,
+entitlements/RLS, payment/webhook handling, secrets, CI/release workflow
+definitions, branch-protection settings, dependency policy/`deny.toml`/lockfile
+policy, licence or model-licensing claims, Handy-derived desktop core behaviour),
+**or** the dependency-strategy class ADR-030 deferred, **or** Handy-core
+behaviour under the V1 preservation policy.
+
+**Recorded limitation (not papered over).** GitHub branch protection cannot
+express a *conditional* review requirement. With the approval count at `0`, the
+carve-out is enforced procedurally and by the agent, not by the platform. This
+is a real, knowingly-accepted reduction in platform-enforced assurance — taken
+because the prior setting was not merely strict but unusable. Compensating
+controls: the two new agent stop conditions, the owner's written designation,
+and the ADR audit record. **Owner action required:** this repository has exactly
+one collaborator (`eySRbS4zgHuW3gMFZB2`, admin), so no genuinely independent
+approval can exist until the owner grants another person review access. The
+agent will not grant access to anyone.
+
+## GitHub protection state — changed
+
+Verified live via authenticated `gh api .../branches/main/protection` **before**
+and **after**. Exactly one field modified.
+
+| Field | Before | After |
+|---|---|---|
+| `required_pull_request_reviews.required_approving_review_count` | `1` | `0` |
+| `required_status_checks.contexts` | `["web","e2e","rust","desktop"]` | **unchanged** |
+| `required_status_checks.strict` | `true` | **unchanged** |
+| `required_pull_request_reviews.dismiss_stale_reviews` | `true` | **unchanged** |
+| `require_code_owner_reviews` | `false` | **unchanged** |
+| `require_last_push_approval` | `false` | **unchanged** |
+| `allow_force_pushes.enabled` | `false` | **unchanged** |
+| `allow_deletions.enabled` | `false` | **unchanged** |
+| `enforce_admins.enabled` | `false` | **unchanged** |
+| `required_conversation_resolution` / `required_linear_history` / `required_signatures` / `lock_branch` / `allow_fork_syncing` | `false` | **unchanged** |
+
+Required status checks were **not** disabled, renamed, relaxed, or replaced.
+`required_approving_review_count = 0` is the minimum change that permits owner
+self-merge; GitHub offers no other mechanism, because an author's approval is
+never counted on their own PR.
+
+No other repository setting was touched: repository merge methods
+(`allow_merge_commit`/`allow_squash_merge`/`allow_rebase_merge`),
+`allow_auto_merge`, visibility, collaborators, secrets, and `.github/workflows/**`
+are all unchanged.
+
+## Tests / checks performed and results
+
+| Check | Result |
+|---|---|
+| Canonical pack read (24/24 manifest docs) for approval/merge mandates | **PASS** — none found; policy gap confirmed |
+| Repo-wide search for second-approval/independent-review/two-person language | **PASS** — matches confined to `PROGRESS.md` logs + T23/T32-U/T33-O/T34-N reports |
+| `git diff origin/main -- .github/ Cargo.toml package.json pnpm-lock.yaml Cargo.lock crates/ apps/ services/ supabase/ packages/` | **PASS** — empty output; no CI job, workflow, dependency, lockfile or source touched |
+| `git diff --stat` review (full diff read line by line) | **PASS** — 6 files, 370+/2−, additive only |
+| `docs/…/13`, `docs/…/14`, `docs/…/17` byte-identity check across `origin/main` ↔ PR #64 head | **PASS** — identical, so this change creates no conflict there |
+| Placeholder scan (TODO/FIXME/XXX/HACK/TBD/placeholder) on all 6 changed files | **PASS** — no matches |
+| Secret-pattern scan on added lines + new ADR (`gh[pousr]_…`, `AKIA…`, `BEGIN … PRIVATE KEY`, key/secret/password literals) | **PASS** — no matches |
+| `secretscan` on canonical pack | **PASS** — 0 findings (23 files skipped as oversized/binary; covered by the targeted grep above) |
+| Manifest reconciliation: no document added to or removed from the canonical pack directory | **PASS** — `file_count: 24` and the 24 manifest entries remain exact |
+| Worktree inspection before staging; explicit path staging (no `git add -A`) | **PASS** — staged exactly 6 files; 47 unrelated untracked paths (T2x/T3x/T34 reports, `apps/desktop/.env.example`, `deno.lock`, `docs/archive/spec-v3/spec-v3/`, `reports/`) left untouched |
+| Branch-protection read-back and field-by-field comparison after the change | **PASS** — only `required_approving_review_count` differs |
+| Required checks re-verified present after the change | **PASS** — `web`, `e2e`, `rust`, `desktop` all still required |
+| Git history integrity | **PASS** — no force-push, no rebase, no amend, no history rewrite; branch branched from `ede495b5`; `main` never edited |
+| Local test suite / build | **NOT EXECUTED** — docs-only change; no source, dependency, workflow or configuration file modified, so no compile/test/lint target is affected. `web`/`e2e`/`rust`/`desktop` CI runs on the pushed branch are the authoritative gate and are recorded below |
+
+## Status per item
+
+- **IMPLEMENTED** — owner-merge policy recorded in the canonical pack (5
+  control-plane documents) and as ADR-031; registered in the index of record.
+- **IMPLEMENTED** — minimal GitHub protection change applied
+  (`required_approving_review_count` 1 → 0), with every other field verified
+  unchanged.
+- **VERIFIED** — no canonical document previously mandated a second approver, so
+  no control was removed; no security, testing, release, audit or CI requirement
+  weakened; no CI/dep/code/lockfile/workflow file touched; no required check
+  disabled; no force-push, no history rewrite; no fabricated or self-created
+  review approval anywhere in this task; no emergency bypass used.
+- **VERIFIED** — PR #64 is `MERGEABLE` with `web`, `e2e`, `rust`, `desktop`,
+  `cargo-audit`, `cargo-deny`, `npm-audit` and all three desktop build jobs
+  **passing** on head `1cf65c02`, and is 0 behind / 93 ahead of `main` (so
+  `strict` is satisfied). PR #64's code is byte-unchanged by this task.
+- **BLOCKED (owner action, not agent action)** — the designated-review carve-out
+  cannot be satisfied today: the repository has exactly one collaborator, so no
+  independent non-author reviewer exists. The owner must grant another person
+  read access **before** a designated change is authored. The agent will not
+  grant access.
+- **NOT EXECUTED** — PR #64 was **not merged**. Deliberate: the owner reserved
+  that decision, and this task's mandate is to make the merge path deterministic
+  and report it. PR #64 was neither merged, closed, relabelled, nor retitled.
+- **NOT EXECUTED** — this governance PR was **not merged**. Deliberate: merging
+  it into `main` first would push PR #64 behind `main` under `strict: true` and
+  force a sync of PR #64, which this task must not do. The functional unblock is
+  already effective and does not depend on the doc merge, because no canonical
+  document ever mandated a second approval.
+- **DEFERRED** — merge interaction between this branch and the PR #64 branch:
+  `09_AI_AGENT_INSTRUCTIONS.md` and `20_ADR_INDEX.md` differ between `main` and
+  the PR #64 head (PR #64 carries the newer control-plane text: ADR-019…ADR-030
+  and +263 lines in `09`). When PR #64 merges, those two files need a manual
+  union. The exact resolution recipe is §8 of ADR-031: keep PR #64's version of
+  both files in full, then re-apply this ADR's `09` additions and insert the
+  ADR-031 entry after ADR-030; confirm both ADR-030 and ADR-031 survive intact.
+  `13`, `14`, `17` are byte-identical on both bases and merge automatically.
+- **DEFERRED (unchanged, pre-existing)** — root `Soravo_Engineering_Docs_v6/`
+  mirror was deliberately **not** edited. The canonical `00_README.md` declares
+  it non-authoritative and instructs verbatim: "Do not edit the control plane
+  here." Editing a mirror is a governance violation, not a mirror update.
+  Root `SPEC_MANIFEST.json` and root `01_`–`14_*.md` were not edited either —
+  the canonical pack already declares them `HISTORICAL/STALE` pending owner
+  reconciliation (open item O-5), and this task does not reopen that
+  reconciliation. Both are recorded here rather than silently skipped.
+- **DEFERRED (unrelated, untouched)** — ADR-030's floating-`"latest"`
+  dependency-strategy class, and ADR-027/ADR-028 (PROPOSED, NOT ACCEPTED).
+
+## Branch / commits / PR
+
+- Branch: `t34-p-owner-merge-policy` (short-lived, branched from `origin/main`)
+- Base SHA: `ede495b55efd95cedd882d90a19d12b4777da852`
+- Governance commit: `c80765192141f46609c7eccc232b2ff89d07f1ba`
+- PR: opened against `main`, docs-only
+- `main` was never edited; no force-push; no amend; no rebase
+
+## Remaining work
+
+1. Owner reviews and merges the governance PR (docs-only; merge authority now
+   permits it once its four required checks are green).
+2. Owner grants a non-author read access so the designated-review carve-out is
+   actually satisfiable.
+3. Owner merges PR #64 through the ordinary path — now possible, but not done
+   here.
+4. Next task: apply the ADR-031 §8 union to `09` and `20_ADR_INDEX.md` when PR
+   #64 merges; re-verify `file_count: 24` afterwards.
+
+## Next exact task
+
+T34-Q — apply the ADR-031 §8 manual union to
+`docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` and
+`20_ADR_INDEX.md` immediately after PR #64 merges, preserving ADR-019…ADR-031,
+then re-verify the canonical manifest reconciliation and re-read the live
+protection payload. No new authority, no new scope.
