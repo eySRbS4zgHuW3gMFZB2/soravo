@@ -98,7 +98,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/vulkan-sdk-debs
-          key: vulkan-sdk-1.3.290-noble-ubuntu-24.04-${{ runner.arch }}
+          key: vulkan-sdk-1.3.290-noble-ubuntu-24.04-v2-${{ runner.arch }}
       - name: Prepare Vulkan SDK (Ubuntu 24.04)
         run: |
           set -euo pipefail
@@ -109,9 +109,8 @@ jobs:
             wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
             sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-noble.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-noble.list
             sudo apt update
-            sudo apt install vulkan-sdk -y
-            sudo mkdir -p /tmp/vulkan-sdk-debs
-            sudo cp /var/cache/apt/archives/*.deb /tmp/vulkan-sdk-debs/ || true
+            sudo mkdir -p /tmp/vulkan-sdk-debs && sudo chmod 755 /tmp/vulkan-sdk-debs
+            sudo apt-get install -y -o Dir::Cache::Archives=/tmp/vulkan-sdk-debs vulkan-sdk
             sudo chmod -R a+rX /tmp/vulkan-sdk-debs
           fi
           sudo apt-get install -y mesa-vulkan-drivers
