@@ -2055,12 +2055,301 @@ runs (156-158) are FAILING." `main` has been red since.
 
 ## Next exact task
 
-T34-Q — repair the pre-existing `origin/main` CI defects that block PR #65
-(`pnpm lint` unused-vars/`no-explicit-any` in `apps/website/src/pages/pricing.tsx`
-and `pricing.test.tsx`; `cargo fmt` ordering in
-`apps/desktop/src-tauri/src/audio_toolkit/mod.rs`; `Build Tauri desktop`), on its
-own branch, with no weakening of any lint rule or required check. Then
-immediately after PR #64 merges, apply the ADR-031 §8 manual union to
+T34-Q — **REVISED by T34-P-CI-DIAG (diagnosis complete, no code changed).
+The correct fix is NOT to hand-patch `main`.** See the T34-P-CI-DIAG entry
+below for the measured decision. Short form: merge PR #64 (`1cf65c02`, all 10
+required checks green), which already carries the complete desktop manifest,
+the missing desktop source modules, and the lint/fmt corrections. Only if the
+owner declines to merge PR #64 does T34-Q become a source-repair task on its
+own branch (no weakening of any lint rule or required check). Then immediately
+after PR #64 merges, apply the ADR-031 §8 manual union to
 `09_AI_AGENT_INSTRUCTIONS.md` and `20_ADR_INDEX.md`, preserving ADR-019…ADR-031,
 and re-verify the canonical manifest reconciliation and the live protection
 payload.
+
+---
+
+# T34-P-CI-DIAG — diagnosis of the three failing required checks on PR #65
+
+**Date:** 2026-10-04
+**Type:** DIAGNOSTIC ONLY — read-only investigation, zero code changes
+**Scope:** `web`, `rust`, `desktop` on PR #65 only
+**Verdict:** all three failures are **pre-existing on `origin/main`**. PR #65
+introduced **no** failure. Root cause of the `desktop` failure is a *known,
+self-declared, never-completed* dependency integration, not toolchain drift.
+
+## Skills selected and used (mandatory gate)
+
+| Skill | Why selected | How it was actually used |
+|---|---|---|
+| `github` | Canonical CI-failure debugging sequence (`gh pr checks` → `gh run list` → `gh run view` → `--log-failed`) | Drove the whole investigation: identified run `37186129712`, isolated the exact failing step per job, pulled `--log-failed` for jobs `111388298059`, `111388298292`, `111388298232` |
+| `gh-cli` | Authenticated GitHub access; forbids unauthenticated `curl`/WebFetch against GitHub | All GitHub reads went through authenticated `gh` (`gh pr view`, `gh run list/view`, `gh api repos/.../contents/...?ref=`, `gh api .../git/trees/`) |
+| `rust-engineer` | Mandates `cargo fmt --check` / `cargo clippy` / `cargo test` as the Rust validation triad | Used `cargo fmt --all -- --check` and `cargo check -p soravo-desktop` as the local reproductions; used the skill's "fix all warnings, never ignore" constraint to reject any lint-rule relaxation as a fix |
+| `tauri-development` | Desktop build pipeline (`pnpm tauri build` → `beforeBuildCommand` → cargo), Tauri/Rust boundary, capability config | Used to interpret the `Build Tauri desktop` failure: separated the passing `beforeBuildCommand` (vite/tsc green) from the failing Rust compile stage, and to recognise that manifest/`lib.rs` wiring — not the frontend — was the failing layer |
+
+Also attempted: `actionlint` workflow lint — **NOT EXECUTED**, `actionlint` is
+not installed on this host (`actionlint-not-found`). Not required for the
+verdict: GitHub Actions parsed and executed `.github/workflows/ci.yml` on every
+run, and the workflow's own steps produced the failures analysed below.
+
+## Live PR #65 state (fresh read, not assumed)
+
+| Field | Value |
+|---|---|
+| PR | **#65** — "docs(t34-p): adopt ADR-031 owner-merge policy in canonical control plane" |
+| URL | https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/65 |
+| Head SHA | **`cda03dd2021c43cf96f1baee66847ee2202dc01d`** |
+| Head branch | `t34-p-owner-merge-policy` |
+| Base | `main` @ `ede495b55efd95cedd882d90a19d12b4777da852` |
+| `mergeable` / `mergeStateStatus` | `MERGEABLE` / **`BLOCKED`** (correctly blocked on red required checks) |
+| `isDraft` / `reviewDecision` | `false` / empty |
+| Checks | `web` FAILURE · `e2e` SUCCESS · `rust` FAILURE · `desktop` FAILURE |
+| Run | `37186129712` (three earlier runs on the same branch: `37185808415`, and the `c8076519`/`c77cf55b` commits — all identical 3-failure pattern) |
+
+## Proof that PR #65 caused nothing
+
+1. `git merge-base origin/main HEAD` = `ede495b5` = `origin/main` tip. The
+   branch is level with `main`; no rebase, no divergence.
+2. `git diff --name-only ede495b5..HEAD` returns **7 files, every one `.md`**:
+   `PROGRESS.md`, `T34-P-ADR-031-OWNER-MERGE-POLICY.md`, and five canonical
+   control-plane documents (`09`, `13`, `14`, `17`, `20`). Filtering for
+   non-`.md` returns **empty**.
+3. Targeted byte-identity proof over every path named in the failing logs:
+   `git diff --stat origin/main HEAD -- apps/website/src/lib/payment-service.ts
+   apps/website/src/pages/account.tsx apps/website/src/pages/pricing.tsx
+   apps/website/src/pages/pricing.test.tsx
+   apps/desktop/src-tauri/src/audio_toolkit/mod.rs
+   apps/desktop/src-tauri/Cargo.toml .github/ crates/ Cargo.toml Cargo.lock
+   package.json pnpm-lock.yaml` → **empty output**. Not one byte of code,
+   dependency, lockfile or workflow differs from `main`.
+4. `main`'s own CI run on the merge-base commit — run **`36339104443`**, head
+   `ede495b5` — independently reports `web: failure`, `rust: failure`,
+   `desktop: failure`, `e2e: success`. **`main` is red on its own.**
+5. Every recorded `main` CI run is red: `ede495b5` failure, `2f96f3d2` failure,
+   `af19dc696` failure. Every recorded PR #64-branch run is green (18
+   consecutive successes, `4395e725`…`1cf65c02`).
+6. PR #64 head `1cf65c02e5763fc80ab93d990bb9cf3a4d7ff351` is
+   **`mergeStateStatus: CLEAN`** with all **10** checks green: `web`, `rust`,
+   `e2e`, `desktop`, `cargo-audit`, `cargo-deny`, `npm-audit`, and all three
+   desktop builds (macOS aarch64, macOS x86_64, Windows msvc).
+
+**Conclusion: category (b) pre-existing `main` failure for all three checks.
+Category (a) PR #65 change: none. Category (c) toolchain drift: none — see
+below. Category (d) unrelated repository state: the desktop failure is an
+incomplete source/manifest integration, which is repository state, but it
+predates PR #65 by 12 days.**
+
+## Per-check root cause
+
+### `web` — FAIL
+
+- **Workflow / job / step:** CI → job `web` → **step `Run pnpm lint`**
+  (`eslint src --max-warnings=0`, via
+  `pnpm --filter @soravo/website lint && … --desktop … && … --license-api … && … --payment-domain`)
+- **Error captured:** `✖ 15 problems (15 errors, 0 warnings)` —
+  `@typescript-eslint/no-unused-vars` ×8 and
+  `@typescript-eslint/no-explicit-any` ×7, in
+  `apps/website/src/lib/payment-service.ts` (`Currency`, `ProductId`),
+  `apps/website/src/pages/account.tsx` (`refreshEntitlements`,
+  `handleRefresh`), `apps/website/src/pages/pricing.test.tsx` (`Mock`,
+  `useNavigate`, four `any`), `apps/website/src/pages/pricing.tsx`
+  (`FormEvent`, four `any`).
+- **First/root failure:** the ESLint step itself. `pnpm install
+  --frozen-lockfile` and `pnpm/action-setup` succeeded immediately before, so
+  this is not a dependency or lockfile problem. Downstream steps
+  (`typecheck`, `test`, `build`, `audit --prod`) are greyed out — they were
+  skipped, never failed.
+- **Local reproduction:** `pnpm --filter @soravo/website lint` → exit 1, the
+  same 15 errors in the same four files, same rule IDs, same
+  line:column. **Byte-identical to CI.**
+- **Culprit commits on `main`:** the website payment/checkout series
+  (`bfbffc8d feat(payments): add frontend checkout implementation (033)`,
+  2026-09-27, last touched all four files) on top of the WEB-004/006/007
+  series (`9cb5d4d9`, `7a451171`, `e0d000b4`, 2026-09-14). The violations are
+  committed source; nothing about them is generated.
+
+### `rust` — FAIL
+
+- **Workflow / job / step:** CI → job `rust` → **step `Run cargo fmt --all -- --check`**
+- **Error captured:** a single rustfmt diff,
+  `Diff in apps/desktop/src-tauri/src/audio_toolkit/mod.rs:3` — reordering
+  `pub use soravo_audio::{AudioRecorder, VadPolicy};` after the
+  `soravo_audio::audio::…` / `soravo_audio::vad::{…}` groups, and sorting the
+  braced `vad::{…}` list (`frames_for_duration_ms, EarshotVad, …,
+  VAD_STREAMING_HANGOVER_MS`) into rustfmt's canonical order.
+- **First/root failure:** the `cargo fmt` step. It is step 1 of the Rust gate,
+  so **`cargo clippy --workspace --all-targets -- -D warnings`,
+  `cargo test --workspace`, `cargo audit` and `cargo-deny` were all skipped,
+  not passed.** Important: `main` has therefore had **no working clippy, test or
+  dependency-audit signal at all** since this drift landed — those gates have
+  been dark, not green.
+- **Local reproduction:** `cargo fmt --all -- --check` → exit **1**, exactly one
+  `Diff in` hunk, byte-identical to the CI log.
+- **Not toolchain drift:** `dtolnay/rust-toolchain@stable` floats, but the
+  failure reproduces on the locally pinned stable toolchain with an identical
+  diff, and this exact diff is the committed ordering in the file — it is a
+  source defect, not a formatter-version artefact.
+- **Culprit commit:** **`a156c8c9`** (2026-09-22) — the same commit that caused
+  the desktop failure. It created `audio_toolkit/mod.rs` and never ran
+  `cargo fmt`.
+
+### `desktop` — FAIL
+
+- **Workflow / job / step:** CI → job `desktop` → **step `Build Tauri desktop`**
+  (`pnpm tauri build`, `working-directory: apps/desktop`)
+- **Error captured:** `error: could not compile 'soravo-desktop' (lib) due to
+  279 previous errors` → `failed to build app: failed to build app`.
+  Error census: **231 × E0433** (`cannot find module or crate …`),
+  **41 × E0432** (`unresolved import …`), **8 × E0425**.
+- **First/root failure — this is the important one.** `pnpm tauri build`'s
+  `beforeBuildCommand` (`tsc -b && vite build`) **succeeded** (35 modules
+  transformed, dist emitted). The failure is entirely in the Rust compile
+  stage, and its root cause is **not** a source bug but a **manifest/source
+  incompleteness**: the committed `apps/desktop/src-tauri/Cargo.toml` on `main`
+  declares **20 dependencies**, while the committed Rust source references
+  **~30 crates it never declares**. Missing: `anyhow`, `specta`,
+  `rusqlite`, `once_cell`, `sha2`, `hf_hub`, `futures_util`, `ferrous_opencc`,
+  `handy-keys`, `transcribe-cpp`, `natural`, `isolang`, `whatlang`,
+  `strsim`, `tar`, `flate2`, `tempfile`, `clap`, `tokio-util`,
+  `tauri-plugin-store`, `-opener`, `-os`, `-dialog`, `-fs`, `-updater`,
+  `global-shortcut`, `clipboard-manager`, plus the in-workspace path dep
+  **`soravo-audio = { path = "../../../crates/audio" }`** — without which even
+  `soravo_audio` (a *workspace member*) is unresolvable. A **second,
+  independent** root cause sits underneath: `src/lib.rs` never declares
+  `mod tray_i18n` or `mod helpers`, and **20 source files that the imports
+  reference are absent from `main` entirely** (`audio_toolkit/audio.rs`,
+  `lang_id.rs`, `text.rs`, `wav.rs`, `helpers/mod.rs`, `helpers/clamshell.rs`,
+  `paste_tx/{mod,macos,windows}.rs`, `commands/{account,soravo_ipc}.rs`,
+  `managers/model/download/…`, `shortcut/…`). `main` tracks 46 files under
+  `src-tauri/src`; PR #64 tracks 67. Only 11 of the 280 errors are
+  `crate::`-internal; ~269 are the missing-manifest/missing-file class.
+- **Local reproduction:** `cargo check -p soravo-desktop --message-format short`
+  → **280** matching errors, first one identical to CI's
+  `apps/desktop/src-tauri/src/actions.rs:4:28: error[E0432]: unresolved imports
+  'crate::audio_toolkit::is_microphone_access_denied',
+  'crate::audio_toolkit::is_no_input_device_error'`. Same classes, same files,
+  same lines. **Reproduced.**
+- **Root cause is self-declared in `main`'s own history.** Commit
+  **`a156c8c9`** *"feat: integrate PR #55 Handy-derived desktop foundation
+  (audit-008)"* (Frostypanda221, 2026-09-22) added 40+ Handy source files and
+  amended `Cargo.toml` by only **+15/−1** lines (adding `chrono`, `cpal`,
+  `enigo`, `gtk`, `gtk-layer-shell`, `rand`, `reqwest`, `tauri` features,
+  `tauri-plugin-autostart`, `tokio`, `rodio`). Its own commit body states:
+
+  > *Build: Requires transcribe-rs, hf_hub, ferrous_opencc dependencies*
+  > *Next: **Add missing dependencies and run full build/tests***
+
+  `git log --follow` confirms `a156c8c9` is the **last** commit ever to touch
+  that file. The declared follow-up never landed on `main`. `main` has been
+  un-buildable at the Rust layer ever since — 12 days before PR #65 existed.
+
+## Classifying each failure
+
+| Check | (a) PR #65 | (b) pre-existing main | (c) toolchain drift | (d) other repo state |
+|---|---|---|---|---|
+| `web` | **No** | **Yes** — committed ESLint violations in `main`, reproduced locally, `main` CI run `36339104443` red | No — pure ESLint rule violations in committed source; lockfile install succeeded | — |
+| `rust` | **No** | **Yes** — one rustfmt diff from `a156c8c9`; blocks clippy/test/audit on `main` | No — identical diff on the locally pinned toolchain | — |
+| `desktop` | **No** | **Yes** — `a156c8c9` incomplete Handy integration, self-declared unfinished | No — fails at Rust name resolution, long before any codegen; not a linker/SDK/toolchain issue | **Yes** — `main`'s desktop tree is a knowingly incomplete subset (46 vs 67 files) |
+
+## Smallest correct fix
+
+**Do not hand-patch `main`. The smallest correct fix for all three checks is a
+single action: merge PR #64** (head `1cf65c02`, `mergeStateStatus: CLEAN`, all
+10 required checks green). It already carries every missing artefact — the
+complete `Cargo.toml` (~50 deps incl. `soravo-audio`, `transcribe-cpp`,
+`handy-keys`, all Tauri plugins, and the per-platform target tables), the 20
+missing source files, `pub mod helpers;` / `pub mod tray_i18n;` in `lib.rs`,
+the restructured rustfmt-clean `audio_toolkit/mod.rs`, and the website lint
+corrections. Hand-repairing `main` instead would mean reconstructing ~20
+absent source files from scratch — materially larger and strictly worse than
+merging the branch that already contains them.
+
+Explicitly **not** part of any fix: no `eslint-disable`, no
+`--max-warnings` relaxation, no `no-explicit-any` downgrade, no removing a
+required check, no `continue-on-error`, no admin bypass.
+
+Per-check, if and only if the owner declines to merge PR #64:
+
+| Check | Smallest correct fix |
+|---|---|
+| `web` | Delete the 8 unused imports/bindings and give the 7 `any` sites real types across `payment-service.ts`, `account.tsx`, `pricing.tsx`, `pricing.test.tsx`. Fix the code, not the rule. |
+| `rust` | `cargo fmt --all` (one file: `audio_toolkit/mod.rs`). Then re-enable the signal by making clippy/test/audit actually run. |
+| `desktop` | Restore the ~30 missing `[dependencies]` (incl. `soravo-audio` path dep) **and** the 20 missing source files **and** the `helpers`/`tray_i18n` module declarations. Large; do not attempt piecemeal. |
+
+## Status per item
+
+- **IMPLEMENTED** — nothing. This task made **zero code changes** by design.
+- **VERIFIED** — all three failures are pre-existing on `main`; PR #65
+  introduced none of them (7 `.md` files, byte-identity diff over every
+  failing path, `main`'s own run `36339104443` red, PR #64 green).
+- **VERIFIED** — `web` reproduced locally, byte-identical, exit 1, 15 errors.
+- **VERIFIED** — `rust` reproduced locally, byte-identical, exit 1, 1 diff.
+- **VERIFIED** — `desktop` reproduced locally, byte-identical, 280 errors,
+  same first error and same error census as CI.
+- **VERIFIED** — root causes pinned to concrete historical commits:
+  `a156c8c9` (2026-09-22) for `rust` + `desktop`; the WEB-00x/033 website
+  payment series (2026-09-14 → 2026-09-27) for `web`.
+- **VERIFIED** — the `desktop` failure is a *self-declared incomplete
+  integration*, quoted from `a156c8c9`'s own commit message. Not an
+  environment problem.
+- **VERIFIED (new finding, not in the previous report)** — because
+  `cargo fmt` is step 1 of the `rust` gate, `main` has had **no functioning
+  clippy, test, cargo-audit or cargo-deny signal since 2026-09-22**; those
+  gates have been silently skipped, not passing. Any claim that `main` is
+  "green except for three checks" understates the problem.
+- **NOT EXECUTED** — PR #65 **not merged**. Left `OPEN`, `BLOCKED`,
+  unapproved. Owner decision.
+- **NOT EXECUTED** — PR #64 **not merged, not modified, not touched**. Head
+  still `1cf65c02`, `state: OPEN`, `mergedAt: null`.
+- **NOT EXECUTED** — no code fix of any kind. No lint rule, workflow,
+  required check, protection rule or dependency touched.
+- **NOT EXECUTED** — `actionlint` workflow lint: binary not installed on this
+  host. Not required for the verdict (Actions parsed and ran the workflow).
+- **DEFERRED** — the separate `Security Audit` failure on `main` (run
+  `37173073676`, schedule event, 2026-10-04) is **out of scope**: the task
+  limited this diagnosis to `web`, `rust`, `desktop`. It is recorded here so
+  it is not lost.
+- **DEFERRED** — the ADR-031 §8 manual union (`09_AI_AGENT_INSTRUCTIONS.md`,
+  `20_ADR_INDEX.md`) still awaits PR #64's merge.
+- **DEFERRED** — the `Node.js 20 is deprecated` runner annotation on
+  `actions/checkout@v4`, `actions/setup-node@v4`, `pnpm/action-setup@v4` is
+  **informational only** and did not fail any job. Recorded for a future
+  dependency-hygiene task; deliberately not "fixed" here.
+
+## Branch / commits / PR (this task)
+
+- Branch: **`t34-p-owner-merge-policy`** (unchanged — this task created no branch)
+- HEAD: **`cda03dd2021c43cf96f1baee66847ee2202dc01d`** (unchanged at the time of
+  this diagnosis; only this `PROGRESS.md` entry is pending commit)
+- PR #65: **not merged**, still `OPEN` / `BLOCKED`
+- PR #64: **untouched**, `1cf65c02e5763fc80ab93d990bb9cf3a4d7ff351`, `OPEN`,
+  `CLEAN`
+- `main`: never edited. No force-push, no amend, no rebase, no history
+  rewrite, no `git add -A`, no bypass, no CI disabled.
+
+## Exact remaining work
+
+1. **Owner merges PR #64** (`1cf65c02`) — the single smallest correct fix for
+   all three failing checks. Deliberately not done here; the owner reserved
+   the merge decision.
+2. Re-run CI on `main` after that merge and confirm `web`, `rust`, `desktop`
+   are green **and** that clippy / test / `cargo audit` / `cargo deny` now
+   actually execute (they have been skipped since 2026-09-22).
+3. Then PR #65 becomes mergeable on the ordinary path; merge it, then apply
+   the ADR-031 §8 union to `09` and `20_ADR_INDEX.md`.
+4. Separately (out of scope here): the `main` `Security Audit` failure, and
+   the Node 20 action-version hygiene.
+
+## Next exact task
+
+**T34-R — merge PR #64 and re-verify the whole gate.** Merge `1cf65c02` into
+`main` through the ordinary path (no bypass, no admin override, no protection
+change), then trigger CI on `main` and confirm all four required checks
+(`web`, `e2e`, `rust`, `desktop`) are green and that `cargo clippy`,
+`cargo test`, `cargo audit` and `cargo deny` genuinely execute rather than
+being skipped. Then merge PR #65, apply the ADR-031 §8 union, and re-verify
+`file_count: 24` and the live protection payload.
+
+Fallback only if the owner declines the PR #64 merge: **T34-Q** as originally
+scoped — a source-repair branch for the three defects, with no weakening of any
+lint rule, formatter or required check.
