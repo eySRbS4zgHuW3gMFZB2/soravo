@@ -10119,3 +10119,63 @@ PR #64 and §5.4 forbids treating it as precedent. Then re-verify
   head `5743a0c9a2b8fb87fdd8d6cdb32d1abb2632c940`, `CLEAN`, **not merged**
 - PR #64: untouched, `MERGED` at `aa4cc8e8…`
 - Recovery tag: `backup/t34-t-premerge-c9d17d2a`
+
+---
+
+## T34-T addendum — branch-tip and verification-run reconciliation
+
+Two facts recorded above need correcting so this record is not misread, and one
+structural limitation stated plainly.
+
+**1. The synchronization commit is `5743a0c9`; the branch tip is not.**
+`5743a0c9a2b8fb87fdd8d6cdb32d1abb2632c940` is the **merge commit** that brought
+this branch current with `main`, and it is the correct answer to "what SHA
+synchronized PR #65". It is **not** the branch tip: committing this T34-T
+documentation necessarily advances the tip, because any edit to `PROGRESS.md`
+inside PR #65 changes PR #65's head.
+
+| Role | SHA |
+|---|---|
+| Synchronization (merge) commit | `5743a0c9a2b8fb87fdd8d6cdb32d1abb2632c940` |
+| T34-T documentation commits (successive) | `3a23757a…`, then this addendum's commit |
+| Branch tip | **read live** — `gh pr view 65 --repo eySRbS4zgHuW3gMFZB2/soravo --json headRefOid` |
+
+The tip SHA is deliberately not hard-coded here. A `PROGRESS.md` entry cannot
+state its own commit SHA, and hard-coding a guess would be wrong the moment the
+next commit lands. Live read is authoritative.
+
+**2. The 7/7 evidence above is from run `37192156768` (head `5743a0c9`).** It
+was re-verified from scratch on the follow-up run **`37193668879`**
+(head `3a23757a…`, `conclusion: success`, 7/7 pass) with the same result. Final-run
+per-step timings and proof, for the record:
+
+| Rust step | Window (final run `37193668879`) | Conclusion | Execution proof |
+|---|---|---|---|
+| `cargo fmt --all -- --check` | `09:56:07Z → 09:56:08Z` | `success` | no `Diff in` output anywhere after the command — check ran clean |
+| `cargo clippy --workspace --all-targets -- -D warnings` | `09:56:08Z → 10:02:20Z` | `success` | **`Finished \`dev\` profile … in 6m 11s`** — real 6-minute workspace compile under `-D warnings` |
+| `cargo test --workspace` | `10:02:20Z → 10:09:14Z` | `success` | **`Finished \`test\` profile … in 6m 52s`**; **29 test binaries, 360 passed, 0 failed, 3 ignored** |
+| `cargo audit --deny warnings --ignore …` | `10:09:15Z → 10:09:21Z` | `success` | `Loaded 1290 security advisories`; `Scanning Cargo.lock for vulnerabilities (812 crate dependencies)`; no finding |
+| `EmbarkStudios/cargo-deny-action@v2` (`cargo deny check`) | `10:09:21Z → 10:09:51Z` | `success` | **`advisories ok, bans ok, licenses ok, sources ok`** (+7 `advisory-not-detected` warnings for ignore entries whose crates left the graph) |
+
+Every one of the 5 Rust gates is `success` in **both** runs — none `skipped`,
+none `neutral`, none inherited. `web`, `e2e`, `desktop` and all three cross-build
+matrix jobs were likewise `success` in both runs.
+
+**3. Why the tip is not pinned, structurally.** Because `PROGRESS.md` is itself
+part of PR #65, recording the tip would invalidate the record and require
+another commit, another push, and another ~15–22 minute CI cycle — an unbounded
+regress. The invariant that actually matters is therefore stated instead, and it
+is checkable at any time:
+
+> For the current branch tip, exactly **one** CI run exists, its `headSha`
+> equals that tip, and all four required contexts (`web`, `e2e`, `rust`,
+> `desktop`) plus the three cross-build jobs are `pass`. Any divergence between
+> the live tip and the live `headSha`, or any non-green required context, means
+> the refresh must be repeated.
+
+Verified live at completion of this task: one run per tip,
+`headSha == tip`, **7/7 pass**, `mergeStateStatus: CLEAN`,
+`mergeable: MERGEABLE`. `git merge-base --is-ancestor origin/main HEAD` remains
+**true**, so `strict: true` continues to be satisfied by real ancestry. PR #65
+remains **OPEN and unmerged**; T34-U still owns the ADR-031 §5
+independent non-author review decision.
