@@ -7,7 +7,6 @@ import { useAuth } from "../lib/auth-context";
 import { DISPLAY_NAME_MAX } from "../lib/auth-service";
 import {
   loadAccountDashboard,
-  refreshEntitlements,
   type AccountDashboardData,
   type AccountDevice,
   type AccountSession,
@@ -286,17 +285,6 @@ export function Account() {
       }
     } finally {
       setSubmittingPassword(false);
-    }
-  }
-
-  async function handleRefresh() {
-    if (!client || !user) return;
-    setDashboard({ status: "loading" });
-    const result = await loadAccountDashboard(client);
-    if (result.error) {
-      setDashboard({ status: "error", message: result.error, data: result.data });
-    } else {
-      setDashboard({ status: "ready", data: result.data });
     }
   }
 

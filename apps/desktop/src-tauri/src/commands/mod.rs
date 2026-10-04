@@ -1,6 +1,8 @@
+pub mod account;
 pub mod audio;
 pub mod history;
 pub mod models;
+pub mod soravo_ipc;
 pub mod transcription;
 
 use crate::settings::{
@@ -9,6 +11,17 @@ use crate::settings::{
 use crate::utils::cancel_current_operation;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
+
+// T10-B: re-export the recovered Soravo-owned IPC surface so
+// `use soravo_desktop_lib::{commands::*}` (main.rs) resolves the 11
+// frontend-expected commands without touching Handy architecture.
+// T14: account adapter re-export for the 3 frontend account commands.
+pub use account::{account_sign_in, account_sign_out, get_account_snapshot};
+pub use soravo_ipc::{
+    emit_ping, inject_text, load_settings, ping, runtime_status, save_settings, session_reset,
+    session_snapshot, session_transition, update_hotkey_settings, update_microphone_settings,
+    update_model_settings,
+};
 
 #[tauri::command]
 #[specta::specta]

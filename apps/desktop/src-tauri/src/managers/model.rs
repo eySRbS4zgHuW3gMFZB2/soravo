@@ -4,7 +4,7 @@ use super::model_capabilities::{
 use crate::settings::{get_settings, write_settings};
 use anyhow::Result;
 use flate2::read::GzDecoder;
-use hf_hub::api::tokio::{ApiBuilder, CancellationToken, Progress};
+use hf_hub::api::tokio::{ApiBuilder, Progress};
 use hf_hub::{Cache, Repo, RepoType};
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -18,6 +18,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tar::Archive;
 use tauri::{AppHandle, Emitter, Manager};
+use tokio_util::sync::CancellationToken;
 
 mod download;
 
@@ -515,6 +516,14 @@ impl<'a> Drop for DownloadCleanup<'a> {
         }
         self.cancel_flags.lock().unwrap().remove(&self.model_id);
     }
+}
+
+/// Outcome of one raced HF download attempt: either the hf-hub future
+/// resolved, or the cancellation token fired (user cancel or stall watchdog)
+/// and the future was dropped after the grace period.
+enum AttemptOutcome {
+    Completed(Result<PathBuf, hf_hub::api::tokio::ApiError>),
+    Cancelled,
 }
 
 pub struct ModelManager {
@@ -1389,7 +1398,7 @@ impl ModelManager {
                 // A models-dir copy counts too: mirror-fallback downloads land
                 // there, and it makes manual drop-ins of catalog files work.
                 let local_path = self.models_dir.join(&model.filename);
-                let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+                let partial_path = self.models_dir.join(format!("{}.partial", model.filename));
                 model.is_downloaded = hf_cached_path(repo_id, revision, &model.filename).is_some()
                     || local_path.exists();
                 model.is_downloading = false;
@@ -1409,10 +1418,10 @@ impl ModelManager {
             if model.is_directory {
                 // For directory-based models, check if the directory exists
                 let model_path = self.models_dir.join(&model.filename);
-                let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+                let partial_path = self.models_dir.join(format!("{}.partial", model.filename));
                 let extracting_path = self
                     .models_dir
-                    .join(format!("{}.extracting", &model.filename));
+                    .join(format!("{}.extracting", model.filename));
 
                 // Clean up any leftover .extracting directories from interrupted extractions
                 // But only if this model is NOT currently being extracted
@@ -1437,7 +1446,7 @@ impl ModelManager {
             } else {
                 // For file-based models (existing logic)
                 let model_path = self.models_dir.join(&model.filename);
-                let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+                let partial_path = self.models_dir.join(format!("{}.partial", model.filename));
 
                 model.is_downloaded = model_path.exists();
                 model.is_downloading = false;
@@ -2011,25 +2020,28 @@ impl ModelManager {
             // that IS in the chunk loop can unwind gracefully (committing the
             // `.sync.part` resume offset), then drop the future outright,
             // which aborts whatever request it was wedged in.
-            let mut download = std::pin::pin!(repo.download_with_progress_cancellable(
-                &filename,
-                progress,
-                attempt_token.clone()
-            ));
+            //
+            // NOTE: the published hf-hub API exposes `download_with_progress`
+            // (no token parameter), so cancellation is implemented purely by
+            // this race: a fired token maps to `AttemptOutcome::Cancelled`
+            // and the future is dropped. hf-hub leaves the partially
+            // downloaded `.sync.part` in the shared cache, so a later attempt
+            // resumes instead of restarting.
+            let mut download = std::pin::pin!(repo.download_with_progress(&filename, progress));
             let result = tokio::select! {
-                r = &mut download => r,
+                r = &mut download => AttemptOutcome::Completed(r),
                 _ = attempt_token.cancelled() => {
                     match tokio::time::timeout(Duration::from_secs(5), &mut download).await {
-                        Ok(r) => r,
-                        Err(_) => Err(hf_hub::api::tokio::ApiError::Cancelled),
+                        Ok(r) => AttemptOutcome::Completed(r),
+                        Err(_) => AttemptOutcome::Cancelled,
                     }
                 }
             };
             watchdog.abort();
 
             match result {
-                Ok(_) => break None,
-                Err(hf_hub::api::tokio::ApiError::Cancelled) if cancel_token.is_cancelled() => {
+                AttemptOutcome::Completed(Ok(_)) => break None,
+                AttemptOutcome::Cancelled if cancel_token.is_cancelled() => {
                     // User cancelled. hf-hub leaves the partially downloaded
                     // `.sync.part` in the shared cache, so a later attempt resumes
                     // instead of restarting. The guard resets is_downloading and
@@ -2038,7 +2050,7 @@ impl ModelManager {
                     info!("HF download cancelled for: {}", model_id);
                     return Ok(());
                 }
-                Err(hf_hub::api::tokio::ApiError::Cancelled) => {
+                AttemptOutcome::Cancelled => {
                     let err = anyhow::anyhow!(
                         "transfer stalled: no progress for {}s",
                         DOWNLOAD_STALL_TIMEOUT.as_secs()
@@ -2070,7 +2082,7 @@ impl ModelManager {
                     }
                     attempt += 1;
                 }
-                Err(e) => {
+                AttemptOutcome::Completed(Err(e)) => {
                     // {:?} keeps the error source chain (reset vs TLS vs timeout);
                     // Display truncates it to "error sending request".
                     let err = anyhow::anyhow!("{:?}", e);
@@ -2218,7 +2230,7 @@ impl ModelManager {
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
 
         // Don't download if complete version already exists
         if model_path.exists() {
@@ -2291,7 +2303,7 @@ impl ModelManager {
             // Use a temporary extraction directory to ensure atomic operations
             let temp_extract_dir = self
                 .models_dir
-                .join(format!("{}.extracting", &model_info.filename));
+                .join(format!("{}.extracting", model_info.filename));
             let final_model_dir = self.models_dir.join(&model_info.filename);
 
             // Clean up any previous incomplete extraction
@@ -2436,7 +2448,7 @@ impl ModelManager {
             for path in [
                 self.models_dir.join(&model_info.filename),
                 self.models_dir
-                    .join(format!("{}.partial", &model_info.filename)),
+                    .join(format!("{}.partial", model_info.filename)),
             ] {
                 if path.exists() {
                     info!("Deleting model file at: {:?}", path);
@@ -2467,7 +2479,7 @@ impl ModelManager {
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
         debug!("ModelManager: Model path: {:?}", model_path);
         debug!("ModelManager: Partial path: {:?}", partial_path);
 
@@ -2588,7 +2600,7 @@ impl ModelManager {
             if local_path.exists() {
                 let partial_path = self
                     .models_dir
-                    .join(format!("{}.partial", &model_info.filename));
+                    .join(format!("{}.partial", model_info.filename));
                 if partial_path.exists() {
                     let _ = fs::remove_file(&partial_path);
                 }
@@ -2604,7 +2616,7 @@ impl ModelManager {
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
 
         if model_info.is_directory {
             if !model_path.exists() || !model_path.is_dir() {

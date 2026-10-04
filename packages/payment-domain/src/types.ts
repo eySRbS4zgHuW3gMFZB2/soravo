@@ -13,7 +13,7 @@ export interface ProductPrice {
   status: ProductPricingStatus;
 }
 
-export interface RegionalPrice extends ProductPrice {}
+export type RegionalPrice = ProductPrice;
 
 export interface Product {
   id: ProductId;
