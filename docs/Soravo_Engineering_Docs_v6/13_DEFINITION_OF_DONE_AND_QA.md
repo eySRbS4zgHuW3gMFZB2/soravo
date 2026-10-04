@@ -12,6 +12,12 @@ Universal DoD:
 - pushed branch/PR;
 - CI recorded.
 
+`diff review` is the agent's own review of the complete diff against its base,
+performed before commit. It is mandatory and it is not satisfied by a green
+check, by a merged PR, or by owner merge authority (ADR-031): the checks prove
+the code runs, the diff review proves the change is the intended change and
+carries nothing unrelated. Both stand.
+
 Levels:
 L0 static; L1 unit; L2 integration; L3 E2E; L4 release smoke.
 
