@@ -7280,3 +7280,402 @@ After approval: merge PR #64 (human-executed), verify `main` CI green, and only 
 - **CI on the documentation commit `cf995d0f`** (a PROGRESS.md-only delta over the fully-validated `c2914e68` tree — zero source, zero manifest, zero lockfile difference): Security Audit `37159071233` = `success` (npm-audit / cargo-audit / cargo-deny) and CI `37159071251` = `success`, 7/7 (web 42s, e2e 54s, rust 18m18s, desktop 15m16s, macOS aarch64 10m1s, macOS x86_64 10m32s, Windows x86_64 13m35s). `gh pr checks 64` = **10/10 pass at head `cf995d0f`**, which is the current PR head.
 - **PR #64 was NOT merged and no merge was attempted.** Live state at head `cf995d0f`: `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, `reviewDecision=REVIEW_REQUIRED`, `mergedAt=null`. The single remaining merge blocker is the absent human approval, plus the unrecorded owner ratification of the braces posture and of the T34-L remediation classification.
 - This finalization line is a PROGRESS.md-only delta and will induce one further matrix run whose outcome is **not awaited here**. It is recorded as not-yet-observed rather than claimed as passing; with two consecutive fully-green matrix pairs on `c2914e68` and `cf995d0f`, differing only by PROGRESS.md lines, no new failure class is possible from a documentation delta.
+---
+
+## T34-O — CLOSE PR #64 GOVERNANCE GATE AND RATIFY DEPENDENCY DECISION (2026-10-04)
+
+> Owner decision received and recorded. The T34-L `shadcn` reclassification is
+> **ACCEPTED** and kept exactly as implemented; the residual dev-graph `braces`
+> HIGH is **ACCEPTED** as a documented development-only supply-chain risk.
+> This task is **governance closure only** — it changed no dependency version,
+> no manifest, no lockfile, no source, no test, no workflow and no Rust. It
+> ratifies the posture in **ADR-030**. **PR #64 was NOT merged. PR #63 was NOT
+> closed** (see Blockers — no GitHub write credential exists on this host).
+
+### Skill Selection
+
+- Task classification: documentation / specification / ADR · repository/Git operations · GitHub · CI/CD · supply chain / dependencies · security (dependency) · interruption/handoff/state audit. Inspected and found NOT applicable: Rust, Tauri (no Rust/Tauri file in the diff), React/component work, shadcn component authoring, Supabase/Postgres, payments, authentication, cloud deployment, speech/audio/STT, benchmarking, model licensing, smart contracts, MCP/agent configuration, packaging/release execution.
+- Mandatory skills selected and **LOADED in this task** (full bodies read this session, not carried from T34-L/M/N):
+  - `gh-cli` — governs every Git/GitHub/PR/CI read. **RECORDED LIMITATION:** its preferred action surface is unusable. `gh` 2.100.0 is installed but **hangs until killed** on `gh auth status`, `gh api` (even with `GH_DEBUG=api`, `GH_PROMPT_DISABLED=1`, stdin closed), and `git push --dry-run` (RC=124 at 45–60 s). `~/.config/gh/hosts.yml` contains **no `oauth_token`**; no `GITHUB_TOKEN`/`GH_TOKEN` is set; no token exists in `~/.bashrc`, `~/.profile`, `~/.zshrc`, `~/.netrc` or `~/.config/opencode`. Substitute evidence actually used, none estimated: the **unauthenticated GitHub REST API** (`/pulls/{63,64}`, `/commits/{sha}/check-runs`, `/commits/{sha}/status`, `/actions/runs`, `/compare/{a}...{b}`, `/repos/{r}/branches/main/protection`) via two read-only scripts under the gitignored `.pnpm-store/t34o/`. `gh-cli`'s own preference is honoured in spirit (all GitHub facts come from the GitHub API, not from a report); its authenticated form is unavailable and is recorded as such rather than silently substituted.
+  - `supply-chain-risk-auditor` — governs the dependency-classification and advisory judgement. **RECORDED LIMITATION (from its own body, re-confirmed on this host):** its collectors parse npm/PyPI/Go manifests and **explicitly do not read `pnpm-lock.yaml`**; the skill never installs or builds; its scripts require `uv`, which is **ABSENT** here (`command -v uv` → empty); and its step 2 requires `gh auth status`, which hangs. Its **execution claim is therefore `UNKNOWN`** per the `10_AI_SKILLS.md` matrix rule. Substitute evidence used: `pnpm audit --prod`, `pnpm audit --audit-level=high`, `pnpm why braces -r`, `pnpm list -r --depth Infinity --json`, `pnpm install --frozen-lockfile`, `npm view` (dist-tags, versions, `dist.integrity`), and direct lockfile/manifest comparison. Its rule — "an absent measurement is never a clean verdict" — is honoured by recording the gap instead of presenting a clean supply-chain bill of health.
+  - `security-guidance` — governs the no-suppression / no-fabricated-version / no-CI-weakening requirements. The loader returned only a **truncated 1,012-line summary**, so the body was read in full directly from `~/.agents/skills/security-guidance/SKILL.md`. **RECORDED GAP, re-confirmed and now WORSE than at T34-M/N:** the index entries that govern this task — **V15.1 "Secure Coding and Architecture Documentation"** (dependency risk, remediation policy) and **V15.2 "Security Architecture and Dependencies"** (dependency management, supply chain) — name `data/asvs/V15.1.md` and `data/asvs/V15.2.md`. The installed store has **no `data/` directory at all** and **zero** files anywhere under any `asvs` path (`find … -path '*asvs*' -name '*.md' | wc -l` → `0`); `V15.3`/`V15.4` are absent too. The reference files the skill's own workflow requires before acting **could not be read**. Substitute authority used: the V15.1/V15.2 index text itself, this pack's `12_SECURITY_BASELINE.md`, `09_AI_AGENT_INSTRUCTIONS.md` (never weaken security; supply-chain skill mandatory on any dependency change), `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` ("dependency strategy" requires an ADR), and `13_DEFINITION_OF_DONE_AND_QA.md`.
+  - `vitest` — mandatory because this task carries a testing acceptance criterion; governs the workspace test/build commands executed below. **RECORDED LIMITATION:** the skill body is written against **Vitest 3.x** while this repository resolves **vitest 5.0.2**; it was used only to interpret the `vitest run` output format, not as API guidance. No test was created or modified.
+  - `github` (optional per the matrix, **loaded**) — governs PR/run/check interaction. Subject to the same `gh` unavailability; REST used as the recorded substitute.
+- Optional skills considered and **DECLINED**, each with a reason: `shadcn` (no component work; the classification question is settled on source evidence and recorded in ADR-030, not re-litigated) · `react`/`vercel-react-best-practices`/`vercel-composition-patterns`/`frontend-design`/`web-design-guidelines`/`frontend-accessibility` (zero component, style or accessibility change) · `playwright` (E2E ran via the existing `pnpm e2e` script; no authoring) · `rust-engineer`/`rust-review`/`tauri`/`tauri-setup`/`tauri-development` (no Rust or Tauri file in the diff) · `semgrep`/`codeql` (CLIs **ABSENT** on this host; `pnpm audit`/`cargo audit`/`cargo deny` are the scanners of record for a dependency-scoped change) · `supabase`/`supabase-postgres-best-practices` (nothing in a Postgres database was written) · `cloudflare`/`wrangler`/`workers-best-practices`/`cloudflare-deploy` (no cloud product selection, no Workers code, no deployment run) · `securability-engineering`/`secure-workflow-guide` (code-generation and smart-contract oriented; this task writes no code) · `agent-security-audit`/`mcp-server-review` (no agent, prompt or MCP configuration touched) · `find-skills` (no install needed).
+- MCP/tools selected: `git` (state audit, provenance, scoped local commit) · `node` (two read-only GitHub-API readers under gitignored `.pnpm-store/t34o/`) · `pnpm` (`install --frozen-lockfile`, `audit --prod`, `audit --audit-level=high`, `why`, `list`, `lint`, `typecheck`, `test`, `build`, `e2e`) · `npm view` (registry dist-tags, version existence, `dist.integrity`). **No MCP server was required or invoked.** Every configured server is a deliberate non-selection under `11_MCP_AND_AGENT_TOOLING.md`'s context-budget rule.
+- Authority/source boundary: repository facts (manifests, lockfile, source, `dist/` artifacts, git history) read from the working tree and from `git`; PR/CI/protection facts from the live GitHub REST API; registry facts from live `npm view`; authority documents from the canonical pack `docs/Soravo_Engineering_Docs_v6/`. Prior T34-L/M/N entries were used as **leads only** — every figure below was re-derived in this session.
+- Conflicts found: **one recorded, resolved in favour of the pack, no STOP.** `gh-cli` and `github` mandate the authenticated `gh` CLI, which is non-functional here. `10_AI_SKILLS.md` §4 and `11_MCP_AND_AGENT_TOOLING.md` require recording the missing artifact and the substitute evidence rather than improvising, and the pack wins over a skill by its own opening rule. No selected skill conflicts with the pack, an accepted ADR, the V1 Handy-core preservation policy, the source boundary, the security baseline, `14_CI_CD_AND_BRANCHING.md` or `13_DEFINITION_OF_DONE_AND_QA.md`.
+- Result: **CLEAR** (for the governance/validation scope). Two **BLOCKED** items are recorded below — GitHub write operations and branch-protection verification — neither of which was improvised around.
+
+### Branch / SHA / PR
+
+- Branch `fix/t34-l-braces-dependency-remediation`.
+- **Start SHA: `4395e725f091df0cbc182dbe85babbd71b2520b6`** (= the T34-N documentation commit; local == `origin/fix/t34-l-braces-dependency-remediation` at session start).
+- **End SHA: recorded in the Blockers section — the commit could NOT be pushed, so no remote head advanced.**
+- `origin/main` = `ede495b55efd95cedd882d90a19d12b4777da852`, **never touched**. Merge-base `ede495b5`; branch **87 ahead / 0 behind** at session start. `git diff --check` clean. 4 worktrees (the 3 pre-existing `.swarm-worktrees/*` untouched). ~44 pre-existing untracked root files preserved and never staged.
+
+### Live state verification (A) — freshly inspected, not inherited
+
+| Item | Live value |
+|---|---|
+| Branch | `fix/t34-l-braces-dependency-remediation` |
+| Local HEAD | `4395e725f091df0cbc182dbe85babbd71b2520b6` |
+| `origin/fix/t34-l-braces-dependency-remediation` | `4395e725f091df0cbc182dbe85babbd71b2520b6` — **identical to local** |
+| `origin/main` | `ede495b55efd95cedd882d90a19d12b4777da852` |
+| PR #64 state | `open`, `draft: false`, `merged: false`, `merged_at: null` |
+| PR #64 head / base | `4395e725…` / `ede495b5…` (`main`) — **PR #64 IS based on the corrected T34-N tree** |
+| PR #64 mergeability | `mergeable: true`, `mergeable_state: clean` |
+| PR #64 reviews | `[]` — **zero approvals** |
+| PR #63 state | `open`, `merged: false`, `merged_at: null` |
+| PR #63 head / base | `02b14773c01ab6cd5efaf7f42f15e41194751521` / `ede495b5…` |
+| Repo visibility | `private: false` (public) |
+
+**Supersede proof for PR #63 (deterministic, from the GitHub compare API):**
+`/compare/02b14773…4395e725` → `status: ahead`, **`ahead_by: 9`**, **`behind_by: 0`**,
+`total_commits: 9`. PR #63's head is therefore a **strict ancestor** of PR #64's
+head — PR #64 contains every commit of PR #63 plus the 9 T34-L/M/N commits.
+**PR #64 genuinely supersedes PR #63.**
+
+**PR #64 required CI checks — observed on head `4395e725` (10/10 green):**
+- **CI run `37160153959`** — `web` PASS · `e2e` PASS · `rust` PASS ·
+  `desktop` PASS · `desktop build (macOS, aarch64-apple-darwin)` PASS ·
+  `desktop build (macOS, x86_64-apple-darwin)` PASS ·
+  `desktop build (Windows, x86_64-pc-windows-msvc)` PASS.
+- **Security Audit run** — `npm-audit` PASS · `cargo-audit` PASS · `cargo-deny` PASS.
+- All 10 check runs report `status: completed`, `conclusion: success`.
+- **This closes the observation T34-N left open.** T34-N recorded its final
+  documentation commit as "not-yet-observed rather than claimed as passing";
+  the matrix has now run on `4395e725` and all 10 contexts are green.
+- Commit-status contexts (`/commits/{sha}/status`): `total_count: 0`, no legacy
+  statuses. All gating is via check runs.
+
+**Two live readings that differ from the recorded history — recorded, not resolved by guessing:**
+1. `mergeable_state` now reads **`clean`**, where T34-M/N recorded
+   `mergeStateStatus: BLOCKED` + `reviewDecision: REVIEW_REQUIRED`. The REST
+   field read here is unauthenticated; it cannot prove the review requirement is
+   gone. **Both statements are recorded**; neither is asserted over the other.
+2. **`/repos/{repo}/branches/main/protection` returns `401 Requires authentication`.**
+   Branch protection — `required_approving_review_count`, `strict`, required
+   status-check contexts, `allow_force_pushes`, `allow_deletions`,
+   `enforce_admins` — is therefore **`UNKNOWN` from live evidence this session.**
+   The prior authenticated reading (`required_approving_review_count: 1`,
+   `strict: true`, required contexts `[web, e2e, rust, desktop]`, recorded at
+   T33-O) is **`HISTORICAL/STALE`** and must be re-verified by an authenticated
+   session before it is relied on. **No claim is made about the review
+   requirement's current value.**
+
+### Ratification record (B) — ADR-030 created
+
+**ADR-030 — `shadcn` is build/development tooling for the website (dev-only
+classification ratified).** Text: `T34-O-ADR-030-SHADCN-DEV-DEPENDENCY-CLASSIFICATION.md`
+at the repository root, following the existing convention
+(`T<task>-ADR-<number>-<slug>.md`) and the **ADR-030** number, the next free
+number after ADR-029 in the v6 sequence governed by
+`docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md`.
+
+**ADR index of record updated:** one `ADR-030` entry appended to
+`docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` in the existing entry format.
+The root mirror `Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` was **deliberately
+not** given an entry — that file states in its own banner "Do not add a current
+ADR entry to this file — add it to the index of record." The canonical/mirror
+split invariant holds.
+
+**No new governance mechanism was invented.** An ADR was used because
+`01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` requires one for a **dependency
+strategy** change and `20_ADR_INDEX.md`'s *Create/update an ADR when* list
+includes "major dependency strategy changes". ADR-030 is the smallest record
+that satisfies the owner's ratification and closes the gap T34-E/T34-I/T34-K
+recorded.
+
+The ADR states, as required: `shadcn` is build/development tooling for the
+website · it is **not** a production runtime dependency · desktop does not
+require it at runtime · its dev-only classification is **intentional** · the
+resulting **production graph excludes `braces`** · the **development graph may
+still contain `braces`** · the remaining development-only HIGH is
+**accepted/documented** because no upstream patched `braces` release exists ·
+**no audit suppression, override, fake package version or CI weakening** is
+used · the **lockfile was restored** so unrelated package movement is not
+included · future dependency-strategy changes involving `"latest"` remain a
+**separate ADR/task**.
+
+### Implementation unchanged (C) — the only intended state, verified
+
+**No dependency version changed. No manifest edited. No lockfile regenerated.
+No non-frozen install run. No Tauri/Vite/Vitest/TypeScript-ESLint/Wrangler/Rust
+change. No `.npmrc`. `components.json` retained in both workspaces.**
+
+Approved posture, each item verified first-hand on this tree:
+
+| # | Approved item | Verified value | How |
+|---|---|---|---|
+| 1 | `shadcn` website | `devDependencies` | `apps/website/package.json:37` inside `devDependencies` (opens line 29); lockfile importer entry at line 163, under `devDependencies:` (opens line 135) |
+| 2 | `shadcn` desktop | not a dependency | `grep shadcn apps/desktop/package.json` → no match; lockfile `apps/desktop` importer (lines 33–96) → no match; **0** shadcn references in `apps/desktop/src` + `index.html` |
+| 3 | `pnpm-lock.yaml` | T34-N restored version retained | sha256 `585970ceb6475686b3fa2722e6083bb9c8443172fcc6ba948968ee97b0dc18a1`, 6,066 lines — **byte-identical to the value T34-N recorded**, and unchanged by this task |
+| 4 | `@tauri-apps/api` | **2.12.0** | lockfile `1205`; exactly one version in the installed graph |
+| 5 | `vite` | **8.3.1** | lockfile `3100`; exactly one version; `vite v8.3.1` in the build log |
+| 6 | `vitest` | **5.0.2** | lockfile `3143`; exactly one version |
+| 7 | `typescript-eslint` | **8.70.1** | lockfile `3033`; exactly one version (8.71.0 subtree gone) |
+| 8 | `why-is-node-running` | **3.2.2** | lockfile `3214`; exactly one version (accidental downgrade reverted) |
+| 9 | `@tauri-apps/cli` | **2.12.0** | lockfile `1279`; exactly one version |
+| 10 | No `"latest"` pinned | floating specifiers untouched | `vite`, `react`, `eslint`, `@types/*` still `"latest"` in both `apps/*` |
+| 11 | No `overrides` | absent | grep for `overrides`/`resolutions`/`patchedDependencies`/`auditConfig`/`ignoreCves`/`ignoreGhsas`/`pnpm` across all 5 manifests + `pnpm-workspace.yaml` → **0 matches** |
+| 12 | No audit suppressions | absent | same grep → 0 matches |
+| 13 | CI thresholds unchanged | untouched by this PR's dependency delta | `git diff 02b14773 HEAD -- .github/workflows/` → **empty** |
+| 14 | `.npmrc` unmodified | does not exist | `ls .npmrc` → no such file |
+| 15 | `components.json` retained | both present | `apps/website/components.json` and `apps/desktop/components.json` both 384 B |
+
+**Scope of the whole T34-L/M/N delta** — `git diff --name-status 02b14773 HEAD`
+returns exactly **4 files**: `PROGRESS.md`, `apps/desktop/package.json`,
+`apps/website/package.json`, `pnpm-lock.yaml`. No source file, no test, no
+workflow, no `Cargo.lock`, no `deny.toml`, no other manifest.
+
+**Dependency diff (independently recomputed this session, not copied):**
+`git diff 02b14773 HEAD -- apps/website/package.json apps/desktop/package.json pnpm-lock.yaml`
+→ `3 files changed, 4 insertions(+), 8 deletions(-)`, and the **complete**
+added/removed content is **11 lines, every one of them `shadcn`**: two
+`"shadcn": "^4.21.0",` manifest lines removed and one added; and the
+three-line lockfile importer entry (`shadcn:` / `specifier: ^4.21.0` /
+`version: 4.21.0(supports-color@10.2.2)(typescript@6.0.3)`) deleted from
+`apps/desktop` `dependencies`, deleted from `apps/website` `dependencies`,
+added to `apps/website` `devDependencies`. Filtering every added/removed line
+for `tauri-apps|vite|vitest|typescript-eslint|why-is-node-running|undici|wrangler|miniflare`
+→ **ZERO hits**.
+
+**Classification basis, re-derived from source (the load-bearing evidence):**
+- **0** runtime `.ts/.tsx/.js/.jsx` imports of the `shadcn` package anywhere in
+  `apps/ packages/ services/ supabase/`.
+- **1** consumption, build-time: `apps/website/src/styles.css:3`
+  `@import "shadcn/tailwind.css";`, resolved by Vite during `vite build`.
+- `shadcn@4.21.0` is a CLI: the registry publishes
+  `bin: { "shadcn": "dist/index.js" }`.
+- The website build **still resolves it as a devDependency**: the built
+  `apps/website/dist/assets/index-*.css` carries the inlined shadcn
+  `base-nova` tokens `--primary:oklch(28.6% .053 162.6)` and dark
+  `--primary:oklch(69.7% .035 155.6)`.
+
+### Revalidation (D) — executed, exit codes observed
+
+| # | Check | Command | Result |
+|---|---|---|---|
+| 1 | Diff scoped | `git diff --name-status 02b14773 HEAD` | 4 files, dependency delta = 11 lines, all `shadcn`; churn filter 0 hits |
+| 2 | Frozen install | `pnpm install --frozen-lockfile` | **exit 0** — "Already up to date"; `Done in 391ms`. Lockfile sha256 **unchanged** after install |
+| 3 | **Production security** | `pnpm audit --prod` | **`No known vulnerabilities found`**, **exit 0** |
+| 4 | Development security | `pnpm audit --audit-level=high` (full graph incl. dev) | **11 vulnerabilities — 3 low / 5 moderate / 3 high**, exit 1 |
+| 5 | `braces` reachability | `pnpm why braces -r` | single path, terminating at **`@soravo/website@0.1.0 (devDependencies)`**; "Found 1 version of braces" |
+| 6 | Pinned versions | `pnpm list -r --depth Infinity --json`, parsed | all 7 approved pins present as **exactly one** version each and equal to the approved value |
+| 7 | Lint | `pnpm lint` | **exit 0** (website, desktop, license-api, payment-domain, checkout fn) |
+| 8 | Typecheck | `pnpm typecheck` | **exit 0** (5 projects) |
+| 9 | Tests | `pnpm test` | **exit 0** — website **179 passed** (16 files) · desktop **11 passed** · license-api **71 passed** (6 files) · supabase **200 passed** (3 files) |
+| 10 | Build | `pnpm build` | **exit 0** — website built in 366ms, desktop in 214ms, `vite v8.3.1` |
+| 11 | E2E | `pnpm e2e` | **exit 0** — **20 passed** (12.3s) |
+| 12 | Shipped-artifact scan | `grep -ri` over both `dist/` | **no occurrence** of `braces`, `micromatch`, `fast-glob`, `shadcn` in `apps/website/dist` or `apps/desktop/dist` |
+| 13 | Lockfile authenticity | `npm view <pkg>@<ver> dist.integrity` vs lockfile, 8 packages | **8/8 MATCH** (`shadcn@4.21.0`, `vite@8.3.1`, `vitest@5.0.2`, `typescript-eslint@8.70.1`, `why-is-node-running@3.2.2`, `@tauri-apps/api@2.12.0`, `@tauri-apps/cli@2.12.0`, `braces@3.0.3`) |
+| 14 | No patched `braces` exists | `npm view braces dist-tags` / `versions` / `braces@3.0.4` | `{ latest: '3.0.3' }`; 3.x list = `3.0.0 3.0.1 3.0.2 3.0.3`; **`npm error 404`** for 3.0.4 |
+| 15 | Upgrade is not a remediation | `npm view shadcn@4.21.1 dependencies` | latest still declares `fast-glob: ^3.3.3` and `ts-morph: ^26.0.0` |
+| 16 | Tree still clean after validation | `git status --porcelain -uno` | **empty** — no tracked file modified by any validation step |
+
+Local results are identical to the T34-N baseline (179/11/71/200, 20 e2e, all
+green), which is expected: T34-O changed no executable file.
+
+### Production vs development security posture
+
+- **Production graph: `braces` ABSENT.** `pnpm audit --prod` → "No known
+  vulnerabilities found", exit 0. Independently corroborated in CI by the
+  `web` job and the `npm-audit` job, both `success` on head `4395e725`. The
+  production-graph blocker that motivated T34-L is **closed and measured**, not
+  hidden.
+- **Development graph: `braces@3.0.3` present, HIGH
+  (`GHSA-vfj7-8cjw-p6xm`, vulnerable `<=3.0.3`, patched `>=3.0.4`), reachable by
+  exactly one path terminating at a `devDependency`.** Owner-**ACCEPTED** as a
+  documented development-only supply-chain risk: no upstream `braces@3.0.4`
+  exists (registry 404), `shadcn@4.21.1` still pulls `fast-glob`, and no
+  fabricated workaround is permitted. Left **visible and un-suppressed**.
+- The three HIGHs in the full-graph audit are `braces` ×1 (above) and
+  **`undici` ×2 via `wrangler > miniflare`** (`GHSA-rfgv-xxqx-mfg5`,
+  `GHSA-w293-vg96-wgc3`). The `undici` findings are **pre-existing** — versions
+  `7.29.0`/`7.29.1`/`8.10.2` are byte-identical to the pre-T34-L lockfile — are
+  **outside PR #64's scope, untouched, and out of scope for this task**.
+
+### Files changed by this task
+
+1. `T34-O-ADR-030-SHADCN-DEV-DEPENDENCY-CLASSIFICATION.md` (**new**) — ADR-030.
+2. `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` — one `ADR-030` entry appended.
+3. `PROGRESS.md` — this T34-O entry appended (insertions only, 0 deletions).
+
+**Deliberately unchanged (protected):** `apps/website/package.json`,
+`apps/desktop/package.json`, `pnpm-lock.yaml`, root `package.json`,
+`packages/payment-domain/package.json`, `services/license-api/package.json`,
+`pnpm-workspace.yaml`, every source file, every test, `Cargo.toml`, `Cargo.lock`,
+`deny.toml`, `.github/workflows/**` (`ci.yml`, `security-audit.yml`,
+`release.yml`), all other ADR text, `Soravo_Engineering_Docs_v6/**` (the
+non-authoritative mirror), the Handy pin `ba10ce19`, `apps/*/components.json`.
+No `.npmrc`. No implementation of ADR-027 / ADR-028 (PROPOSED, NOT ACCEPTED).
+No Handy upstream synchronisation. No UI, auth, Supabase, payment, model,
+licensing or release change. No dependency-strategy change. No pin of
+`"latest"`. No security exception added.
+
+Scratch artifacts (the two read-only GitHub-API readers, `graph.json`,
+`live-state*.json`, `verifygraph.mjs`) are under the **gitignored**
+`.pnpm-store/t34o/` — **nothing untracked was added to version control.**
+Staging used explicit paths; `git add -A` was never used. The ~44 pre-existing
+untracked root report files were never staged.
+
+### Decisions
+
+1. **An ADR, not a PROGRESS-only note.** The owner ratified a dependency
+   classification. `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md` requires an ADR for a
+   dependency-strategy change and `20_ADR_INDEX.md` lists "major dependency
+   strategy changes" as an ADR trigger. A PROGRESS entry alone would leave the
+   classification unratified in the index of record, which is the exact gap
+   T34-N flagged.
+2. **ADR-030 ratifies; it does not re-decide.** It changes no file and
+   authorizes no new work. The owner's technical decision was already made and
+   implemented; this records it.
+3. **The residual HIGH is documented, not suppressed.** The owner's acceptance
+   is recorded with its full justification and its expiry condition (if
+   `braces >=3.0.4` publishes, or `shadcn` drops the `fast-glob`/`micromatch`
+   chain, the posture must be revisited).
+4. **`components.json` retained.** It is CLI configuration, not a runtime edge;
+   deleting it would change the classification question instead of answering it.
+5. **The `"latest"` churn class stays deferred.** Fixing it is a
+   dependency-strategy change requiring its own ADR and owner approval. Naming
+   it in ADR-030's *Deferred* section records the boundary without deciding it.
+6. **Validation re-run rather than inherited.** Because CI counts cannot be
+   assumed from a prior task's report, the full local matrix was re-executed
+   this session on the current tree; all exit codes are observed above.
+7. **No merge, no approval, no PR close.** Explicitly withheld (see Blockers).
+
+### Implemented
+
+- ADR-030 created and the ADR index of record updated — the T34-E/T34-I/T34-K
+  ratification gap on the T34-L classification is **closed**, and the braces
+  posture is recorded as an owner-accepted development-only risk.
+- The dependency implementation was **left byte-identical**; the approved
+  posture was independently re-verified item by item.
+
+### Verified
+
+- Live branch/HEAD/`origin/main`/PR #63/PR #64/check-runs/compare inspected
+  fresh; PR #64 head == local HEAD; PR #64 base == `origin/main`; PR #64 is on
+  the corrected T34-N tree.
+- **PR #64 10/10 required CI contexts green on head `4395e725`** (CI
+  `37160153959` 7/7 + Security Audit 3/3) — closing the observation T34-N left
+  open.
+- **PR #63 head is a strict ancestor of PR #64 head** (`ahead_by: 9`,
+  `behind_by: 0`) — supersede confirmed deterministically.
+- All 15 approved-posture items verified; **0 dependency versions changed**.
+- `pnpm install --frozen-lockfile` exit 0 with the lockfile byte-identical
+  afterwards; `pnpm audit --prod` = 0; `pnpm why braces -r` shows a single
+  dev-only path.
+- 8/8 lockfile integrity hashes match the live registry.
+- Full local matrix green: lint, typecheck, test (179/11/71/200), build, e2e (20).
+- Neither `dist/` contains `braces`/`micromatch`/`fast-glob`/`shadcn`.
+- The working tree has **no tracked modification** after all validation.
+
+### Blocked
+
+1. **GitHub write operations are impossible on this host — no credential
+   exists.** `gh` 2.100.0 hangs on every network and credential subcommand
+   (`gh auth status`, `gh api`, `gh auth git-credential get`) and
+   `~/.config/gh/hosts.yml` holds **no `oauth_token`**; `GITHUB_TOKEN`/`GH_TOKEN`
+   are unset; no token exists in any shell profile, `~/.netrc`, or
+   `~/.config/opencode`. Git's credential helper for github.com is
+   `!gh auth git-credential`, so `git push` and `git push --dry-run` both hang
+   until killed (RC=124). The repository is **public** (`private: false`), so
+   anonymous reads work but **anonymous writes are impossible by design**.
+   Consequently, **not performed and NOT attempted by any workaround**:
+   - **pushing the feature branch** — the T34-O commit exists **locally only**;
+   - **closing PR #63** — the supersede precondition is *confirmed*, but the
+     close itself needs a write credential;
+   - posting any comment or review on PR #63 or PR #64.
+   **This is an environment/credential blocker, not a governance decision.** It
+   is not resolvable by an agent: re-authenticating `gh` is a human action
+   (`gh auth login`). No token was fabricated, guessed, sourced from an
+   untrusted source, or worked around.
+2. **Branch protection / review requirement is `UNKNOWN` this session.**
+   `GET /repos/{repo}/branches/main/protection` → `401 Requires authentication`.
+   The required-approval count, `strict` flag, required status-check contexts
+   and force-push/deletion settings could not be read. The T33-O authenticated
+   reading (`1` approval, `strict: true`, contexts `[web, e2e, rust, desktop]`)
+   is `HISTORICAL/STALE` pending an authenticated re-read. **No merge was
+   attempted, so this does not block anything here** — but it must be
+   re-verified before any human merges.
+3. **`mergeable_state` conflict recorded, unresolved by design.** Live
+   unauthenticated read = `clean`; T34-M/N recorded `BLOCKED` +
+   `REVIEW_REQUIRED`. Both are recorded. The distinction does not change any
+   action, because no merge was attempted either way.
+4. **PR #64 approval — 0 of 1 required (per T33-O, re-verification pending).**
+   `pr64_reviews: []`. Not bypassed, not manufactured, not requested by this
+   task.
+5. **Residual dev-graph `braces` HIGH** — accepted by owner decision (ADR-030),
+   deliberately left visible and un-suppressed. Not a blocker; a documented,
+   accepted risk with no available upstream remediation.
+6. **Pre-existing `undici` HIGH ×2** via `wrangler > miniflare` — byte-identical
+   to the pre-T34-L lockfile, out of PR #64's scope, untouched.
+7. **Release** — `release.yml` never exercised; signing secrets owner-held;
+   model licences unapproved; no tags/releases. `NOT EXECUTED`.
+
+### Not executed
+
+- Any **merge** of PR #64 or any other PR. Any **approval** or **review**
+  request. Any **force-push**, amend, or history rewrite. `main` never touched.
+- **`git push`** and **`gh pr close 63`** — blocked on the absent credential
+  (see Blockers). Not attempted via any workaround.
+- `release.yml`. Local Rust validation (no Rust change; the `rust` CI job is
+  the evidence and it passed). Implementation of ADR-027 / ADR-028 (PROPOSED,
+  NOT ACCEPTED — out of scope by instruction). Handy upstream synchronisation
+  (forbidden by policy). Any manifest change beyond the T34-L classification,
+  which was preserved verbatim. Any `overrides`/pin/`.npmrc`/audit
+  suppression/CI change. Removal of `components.json`.
+- **Full re-read of the 7,282-line `PROGRESS.md`.** RECORDED DEVIATION from the
+  reading gate: the file is ~779 KB. This session read its governance header
+  and the complete T34-L, T34-M (both runs) and T34-N entries, plus the
+  ADR-index and pack control plane in full. Earlier entries were **not** read
+  end-to-end. Every figure relied on was re-derived from the repository or the
+  live API rather than from an unverified earlier entry.
+
+### Deferred
+
+- **The floating-`"latest"` dependency-strategy change** (`vite`, `vitest`,
+  `typescript-eslint`, `@tauri-apps/api`, `@tauri-apps/cli` still declared
+  `"latest"` in `apps/*` and `services/*`). The next non-frozen `pnpm install`
+  on any workspace will re-introduce exactly the churn T34-N had to isolate.
+  Fixing it requires an ADR and owner approval — explicitly **not** decided in
+  ADR-030 and not touched here.
+- ADR-027 (D-2156 / D-2157) and ADR-028 (D-2186) — PROPOSED, awaiting explicit
+  human owner approval; untouched.
+- ADR-029 follow-ons recorded earlier: Windows ORT baseline / VC-redist staging,
+  bundle runtime transcription proof.
+- New Handy upstream commits recorded by T34-M (`345caa8` #1941, `ffbc9504`
+  transcribe 0.3.0 #2203) — future Handy-sync task only.
+
+### Exact next task
+
+**T34-O2 — restore GitHub write capability, then publish and close out
+(human-gated, two actions in order).** Not agent-executable as of this session.
+
+1. **Human:** run `gh auth login` on this host (or otherwise supply a GitHub
+   credential). This is the single blocker for everything below. Do **not**
+   substitute an agent improvisation for it.
+2. **Then, in order:**
+   a. `git push` the T34-O commit to `fix/t34-l-braces-dependency-remediation`
+      (expected **fast-forward**; no force, no amend) and verify
+      `origin/fix/t34-l-braces-dependency-remediation` == the local head.
+   b. Close **PR #63** with the comment: *"Superseded by PR #64, which contains
+      the corrected T34-L/T34-N dependency remediation."* The supersede
+      precondition is **already confirmed** (`ahead_by: 9`, `behind_by: 0`).
+   c. Verify PR #64 is still `open`, still `mergeable`, all required CI
+      contexts green on the new head, and — with an authenticated read —
+      re-verify the branch-protection review requirement (currently `UNKNOWN`).
+   d. Leave PR #64 **unmerged**. Review and approval remain a human act; do not
+      fabricate, request-on-behalf-of, or bypass.
+
+**Separately, as a scoped owner decision (not blocking this PR):** decide
+whether to replace the `"latest"` dist-tag specifiers with pinned or caret
+ranges, which needs its own ADR.
+
+**Not production-ready.** CI being green is not release readiness. The
+`17_RELEASE_RUNBOOK.md` preconditions remain unmet — 9 open V1 gates recorded
+through T33-O/T34-N (model licensing, Silero VAD asset, selected model, release
+exercise, UI truthfulness, and others), `release.yml` never exercised, and no
+macOS/Windows runtime transcription proof.
