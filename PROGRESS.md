@@ -9799,3 +9799,323 @@ Then, still under T34-T or immediately after as **T34-U**:
 3. Re-verify `SPEC_MANIFEST.json` `file_count: 24` and its 24 entries.
 4. Re-read the live branch-protection payload and confirm it still matches the
    T34-R baseline byte-for-byte.
+
+---
+
+# T34-T — REFRESH AND VERIFY PR #65 AFTER THE PR #64 MERGE (2026-10-04)
+
+PR #65 is synchronized with the repaired `main` and its four required checks are
+genuinely green on the refreshed head. **PR #65 is NOT merged.** T34-U remains
+open and owns the independent-review decision.
+
+## Skill selection (mandatory gate)
+
+Inspected the installed-skill inventory, classified this task as
+GitHub / CI-CD / branch-protection / release-governance, and selected from the
+matrix in `07_AI_SKILLS.md`:
+
+| Skill | Why selected | Actually used |
+|---|---|---|
+| `gh-cli` | Task is authenticated GitHub PR/CI/branch-protection context; skill mandates `gh` over unauthenticated `curl`/`WebFetch`/MCP fetch | Yes — every remote read below is `gh` / `gh api` |
+| `github` | Task is PR check triage and CI-run/log drill-down; skill supplies the check → run → job → step → log sequence and the `--log-failed`/`--log` procedure | Yes — used for `gh pr checks`, `gh run watch`, `gh run view --log`, and the `jobs?per_page=100` step-level API |
+
+Both were read into working context before any action. No skill is claimed that
+was not loaded. Skills reviewed and deliberately **not** loaded: `tauri` /
+`tauri-development` / `rust-engineer` / `rust-review` / `vitest` / `playwright` /
+`semgrep` / `codeql` / `supabase` / `cloudflare*` — this task authors **no**
+source, test, dependency, schema or infrastructure change, so their content
+would not have governed any decision here. See §"Governance compliance" below
+for the proof that no such file was touched.
+
+## Fresh live state read before acting (authenticated `gh`)
+
+| Fact | Observed |
+|---|---|
+| `origin/main` | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` — **matches the required SHA exactly** |
+| PR #65 state | `OPEN`, `isDraft: false` |
+| PR #65 head **before** | `c9d17d2af9d2c50e36da1198db0814da56cda720` |
+| PR #65 base `baseRefOid` **before** | `ede495b55efd95cedd882d90a19d12b4777da852` (stale pre-merge `main`) |
+| PR #65 `mergeable` **before** | **`CONFLICTING`** |
+| PR #65 `mergeStateStatus` **before** | **`DIRTY`** |
+| Checks **before** | `web` **fail**, `rust` **fail**, `desktop` **fail**, `e2e` pass (run `37188638692`) |
+| Branch protection | `strict: true`, contexts `[web, e2e, rust, desktop]`, `required_approving_review_count: 0`, `dismiss_stale_reviews: true`, `allow_force_pushes: false`, `allow_deletions: false`, `enforce_admins: false` |
+| PR #64 | `MERGED` at `2026-10-04T08:31:00Z`, merge commit `aa4cc8e8…`, head `1cf65c02e5763fc80ab93d990bb9cf3a4d7ff351` |
+
+## Exact synchronization performed
+
+**Method: `git merge --no-ff origin/main` — a merge commit.** Chosen because it
+is the only method that satisfies every constraint at once:
+
+- `allow_force_pushes` is `false` in branch protection, and the task forbids
+  force-push and history rewriting, so **rebase was not available** — a rebase
+  requires a force-push to publish.
+- `close-and-reopen` was rejected: it would destroy and recreate PR #65, discard
+  its review history, and rewrite PR #65's own published commits.
+- `git merge origin/main` is purely additive. The five PR #65 commits are
+  untouched and remain ancestors of the new head.
+- It matches this repository's own convention: every historical PR merge in
+  `main` is a two-parent merge commit and `allow_merge_commit: true`.
+
+Sequence, exactly as executed:
+
+1. `git fetch origin --prune`; confirmed `origin/main = aa4cc8e8…`.
+2. Safety net before touching anything: `git tag backup/t34-t-premerge-c9d17d2a
+   c9d17d2a` plus a file copy of the worktree `PROGRESS.md`.
+3. Committed the previously **uncommitted** T34-S `PROGRESS.md` record
+   (`+358` lines) as `e231724f`, so the merge would not have to carry uncommitted
+   work. `git add PROGRESS.md` only — never `git add -A`.
+4. `git merge --no-ff --no-edit origin/main` → 3 conflicted files.
+5. Resolved all 3 as **ordered unions** (below), staged those 3 files
+   explicitly, and committed the merge as `5743a0c9`.
+6. `git push origin t34-p-owner-merge-policy` → fast-forward
+   `c9d17d2a..5743a0c9`. **No force.**
+
+### SHAs
+
+| Role | SHA |
+|---|---|
+| Old PR #65 head | `c9d17d2af9d2c50e36da1198db0814da56cda720` |
+| T34-S record commit (pre-merge) | `e231724fb88d38731bd73ba7b89539e4b76f3e88` |
+| **New PR #65 head (merge commit)** | **`5743a0c9a2b8fb87fdd8d6cdb32d1abb2632c940`** |
+| Parents of the merge commit | `e231724f…` (this branch) + `aa4cc8e8…` (`main`) — true 2-parent merge |
+| Base `main` | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` |
+| Recovery tag | `backup/t34-t-premerge-c9d17d2a` → `c9d17d2a…` |
+
+`git merge-base --is-ancestor origin/main HEAD` → **true**, so the
+`strict: true` "branch must be up to date with base" requirement is satisfied by
+real ancestry, not by a waiver.
+
+## Conflict resolution — 3 files, ordered union, nothing dropped
+
+Every hunk was an append-only divergence: both sides added distinct content to
+the same trailing region, and neither deleted or rewrote the other's text. So
+the resolution is a union, with per-hunk ordering chosen so list items stay
+inside their list and prose sections stay after the list they close.
+
+| File | Hunks | Resolution |
+|---|---|---|
+| `PROGRESS.md` | 1 | `main`'s T34-A…T34-O log, then this branch's T34-P, T34-P-CI-DIAG, T34-R, T34-S log (chronological) |
+| `docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` | 2 | hunk 1: `main`'s `## Skill Selection` report field, then this branch's `merge state` field. hunk 2: this branch's two stop conditions first (they belong to the stop-condition list), then `main`'s `SKILL SELECTION FAILURES` block plus the `### Duty when stopped` / `## Permanence and scope` prose sections it closes |
+| `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` | 1 | `main`'s ADR-018…ADR-030 entries **and** its provenance-correction note **and** its numbering note, then this branch's ADR-031 + ADR-031-A1 entry |
+
+Post-resolution verification actually run: 0 conflict markers remain in any of
+the 3 files; `ADR-001`…`ADR-031` all present with `ADR-017` correctly absent per
+the numbering note; provenance note and numbering note each present exactly
+once; all six `09_AI_AGENT_INSTRUCTIONS.md` additions present exactly once;
+`PROGRESS.md` section order is chronological with no duplicated heading.
+
+## Governance compliance — proof the refresh changed nothing but governance
+
+A blob-level comparison of the merge result against `origin/main` was run for
+every file in the tree. The **entire** authored delta of PR #65 against current
+`main` is:
+
+```
+ PROGRESS.md                                        | 1166 +++++
+ T34-P-ADR-031-OWNER-MERGE-POLICY.md                |  352 ++++
+ docs/.../09_AI_AGENT_INSTRUCTIONS.md               |   49 +-
+ docs/.../13_DEFINITION_OF_DONE_AND_QA.md           |    6 +
+ docs/.../14_CI_CD_AND_BRANCHING.md                 |  112 ++
+ docs/.../17_RELEASE_RUNBOOK.md                     |    4 +
+ docs/.../20_ADR_INDEX.md                           |    2 +
+ 7 files changed, 1690 insertions(+), 1 deletion(-)
+```
+
+Files differing from `origin/main` = exactly those 7. Files **deleted** relative
+to `main` = **none**. Files matching a CI / dependency / source predicate
+(`.github/workflows/`, `Cargo.toml`, `Cargo.lock`, `package.json`,
+`pnpm-lock.yaml`, `deny.toml`, `*.rs`, `*.ts`, `*.tsx`, `tauri.conf*`) that
+differ from `main` = **NONE**. Every auto-merged file is byte-identical to
+`origin/main`.
+
+Deliberately **not** done: no force-push; no rebase; no amend; no history
+rewrite; no `git add -A`; no cherry-pick; no branch reconstruction or
+duplication; no direct edit or commit to `main`; no change to any
+branch-protection field (no mutation endpoint was ever called — the payload was
+only read, and read back identical); no admin/`--admin` bypass; no
+`enforce_admins` override; no disabling or weakening of any check; no fabricated
+or self-created review approval; no `.npmrc`, no `Cargo.toml`/lockfile edit, no
+CI-file edit; no weakening of any lint rule or formatter.
+
+**PR #64 was not touched.** Read back after the push: state `MERGED`, head ref
+`fix/t34-l-braces-dependency-remediation` still at
+`1cf65c02e5763fc80ab93d990bb9cf3a4d7ff351`, merge commit `aa4cc8e8…`. Not
+modified, reverted, cherry-picked, reopened or duplicated.
+
+**Unrelated untracked work preserved.** 44 untracked paths (the `T22-…`…
+`T33-P-…` reports, `apps/desktop/src-tauri/tauri.toml`, `docs/archive/`,
+`reports/`, `deno.lock`, etc.) are byte-untouched and still untracked. The two
+helper scripts written for the merge resolution live under `.swarm/`, which is
+listed in `.git/info/exclude`, so they are provably unable to enter the commit
+(`git status` does not list them).
+
+## Required checks on the refreshed head — 7/7 green
+
+Single CI run `37192156768`, `workflowName: CI`, `event: pull_request`,
+`status: completed`, `conclusion: success`, created `2026-10-04T09:26:28Z`,
+updated `2026-10-04T09:49:06Z`, **`headSha: 5743a0c9a2b8fb87fdd8d6cdb32d1abb2632c940`**.
+
+| Check | Required | Result | Duration | Job |
+|---|---|---|---|---|
+| `web` | **yes** | **pass** | 1m5s | 111406447036 |
+| `e2e` | **yes** | **pass** | 57s | 111406446957 |
+| `rust` | **yes** | **pass** | 18m8s | 111406446873 |
+| `desktop` | **yes** | **pass** | 15m49s | 111406446983 |
+| `desktop build (Windows, x86_64-pc-windows-msvc)` | no | pass | 22m32s | 111406446993 |
+| `desktop build (macOS, aarch64-apple-darwin)` | no | pass | 14m1s | 111406447343 |
+| `desktop build (macOS, x86_64-apple-darwin)` | no | pass | 11m35s | 111406447011 |
+
+### No required check is stale or inherited
+
+`gh run list --branch t34-p-owner-merge-policy` shows exactly **one** run on the
+new head. Every one of the 7 check URLs is a job of run `37192156768`, and that
+run's own `headSha` is `5743a0c9…`. The four earlier failing runs
+(`37188638692`, `37186129712`, `37185808415`, `37185799470`) are bound to the
+four superseded head SHAs `c9d17d2a`, `cda03dd2`, `c77cf55b`, `c8076519` and
+contribute nothing to current status. The three previously-failing checks are
+now recomputed green **against the merged `main` tree**, not inherited.
+
+## Rust job drill-down — proof the gates EXECUTED, not skipped
+
+Job `rust`, `conclusion: success`, started `09:26:31Z`, completed `09:44:39Z`.
+Step-level conclusions from the Jobs API — **every gate is `success`, none is
+`skipped` or `neutral`**:
+
+| Step | Conclusion | Start → end | Evidence it really ran |
+|---|---|---|---|
+| `cargo fmt --all -- --check` | `success` | 09:27:26 → 09:27:27 | Command echoed in log; **zero diff output** after the command line, i.e. formatter check ran clean |
+| `cargo clippy --workspace --all-targets -- -D warnings` | `success` | 09:27:27 → 09:35:26 | `Checking soravo-vad / soravo-licensing / soravo-diagnostics / soravo-transcript / soravo-history / soravo-stt / soravo-scheduler …` then **`Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 7m 58s`** — a real 8-minute workspace compile under `-D warnings`, not a no-op |
+| `cargo test --workspace` | `success` | 09:35:26 → 09:44:08 | **29 test binaries, 360 passed, 0 failed, 3 ignored** (incl. one 261-test suite and a 31-test suite). Zero `test result: FAILED`, zero `error:` |
+| `cargo audit --deny warnings --ignore …` | `success` | 09:44:08 → 09:44:13 | `Fetching advisory database from https://github.com/RustSec/advisory-db.git` → **`Loaded 1290 security advisories`** → `Scanning Cargo.lock for vulnerabilities (812 crate dependencies)` → no finding emitted, exit 0 |
+| `EmbarkStudios/cargo-deny-action@v2` (`cargo deny check`) | `success` | 09:44:13 → 09:44:37 | Action image built (`cargo-deny 0.20.2`), advisory DB fetched, `deny.toml` evaluated, and the decisive terminal line: **`advisories ok, bans ok, licenses ok, sources ok`** |
+
+cargo-deny additionally emitted `advisory-not-detected` warnings for ignore
+entries whose crates are no longer in the graph (`RUSTSEC-2026-0186` memmap2,
+`RUSTSEC-2025-0075/0080/0081/0098/0100` unic-* unmaintained transitive via
+`urlpattern → tauri-utils → tauri`, each with a recorded ignore reason in
+`deny.toml`). These are warnings from a check that **ran and passed**, not skips.
+
+## `web` — pass
+
+Steps, all `success`, none skipped: `pnpm install --frozen-lockfile` (5) ·
+`pnpm lint` (6) · `pnpm typecheck` (7) · `pnpm test` (8) · `pnpm build` (9) ·
+**`pnpm audit --prod` (10)**. The lockfile-frozen install also proves the refresh
+did not perturb dependency resolution.
+
+## `e2e` — pass
+
+Steps, all `success`: `pnpm install --frozen-lockfile` (5) ·
+`pnpm playwright install --with-deps chromium` (6) · **`pnpm e2e` (7)**.
+Step 8 `actions/upload-artifact@v4` is `skipped` **by design** — it is gated on
+failure to upload the Playwright report, so a pass correctly skips it. The test
+step itself executed and passed.
+
+## `desktop` — pass
+
+Steps, all `success`: `actions/checkout` · `pnpm/action-setup` ·
+`actions/setup-node` · `dtolnay/rust-toolchain@stable` (5) ·
+`Install Tauri Linux system dependencies` (6) ·
+`Prepare Vulkan SDK (Ubuntu 24.04)` (7) · `pnpm install --frozen-lockfile` (8) ·
+**`Build Tauri desktop` → `pnpm tauri build` (9)**. The three cross-build matrix
+jobs (Windows x86_64-pc-windows-msvc, macOS aarch64, macOS x86_64) are also
+green, including their `Assert lockfiles unchanged` steps.
+
+## Security / audit checks
+
+- **`Security Audit` workflow did not trigger on PR #65 — by design, and
+  stated plainly rather than glossed.** Its trigger is
+  `pull_request: paths: [Cargo.lock, Cargo.toml, crates/**/Cargo.toml,
+  apps/desktop/src-tauri/Cargo.toml]` (plus a weekly cron). PR #65's 7-file diff
+  touches **none** of those paths, so the path filter correctly did not fire.
+  This is the repository's pre-existing policy and this task did **not** alter
+  it — a path filter, not a removed or disabled check.
+- **Security coverage for this PR is nevertheless real and executed**, because
+  `cargo-audit` and `cargo-deny` also run as steps inside the **required** `rust`
+  job on every pull request — both proven green above with 812 dependencies
+  scanned and `advisories ok, bans ok, licenses ok, sources ok`.
+- **npm audit is also covered** by the required `web` job's
+  `pnpm audit --prod` step, which passed. `npm-audit` exists in the
+  `Security Audit` workflow and is likewise path-filtered; `pnpm audit --prod`
+  in `web` is what actually gated this PR.
+
+## State after synchronization
+
+| Fact | Value |
+|---|---|
+| PR #65 state | `OPEN`, `isDraft: false` |
+| PR #65 head | `5743a0c9a2b8fb87fdd8d6cdb32d1abb2632c940` |
+| PR #65 base `baseRefOid` | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` (current `main`) |
+| `mergeable` | **`MERGEABLE`** (was `CONFLICTING`) |
+| `mergeStateStatus` | **`CLEAN`** (was `DIRTY`) |
+| `reviewDecision` | `""` (empty) |
+| Required approvals | `required_approving_review_count: 0` — 0 required, 0 present; **none invented** |
+| Branch protection readback | `strict: true`, `[web, e2e, rust, desktop]`, `dismiss_stale_reviews: true`, `allow_force_pushes: false`, `allow_deletions: false`, `enforce_admins: false` — identical to the T34-R baseline |
+| PR #65 merged? | **NO — deliberately not merged. This task did not merge it.** |
+
+## Status per item
+
+| Item | State |
+|---|---|
+| Read canonical governance docs + `PROGRESS.md` before acting | **implemented** |
+| Skill selection gate, skills genuinely loaded | **implemented** |
+| `origin/main == aa4cc8e8…` verified | **verified** |
+| PR #65 still OPEN verified | **verified** |
+| Exact PR #65 head recorded before and after | **verified** |
+| Branch protection read (before and after) | **verified** |
+| Safest approved synchronization performed | **implemented** (merge commit) |
+| No force-push / no rewrite / no `main` edit / no bypass / no check disabled | **verified** |
+| PR #65 diff confirmed governance-only | **verified** |
+| PR #64 untouched | **verified** |
+| Unrelated untracked work preserved | **verified** (44 paths) |
+| `web` green on refreshed head | **verified** |
+| `e2e` green on refreshed head | **verified** |
+| `rust` green on refreshed head | **verified** |
+| `desktop` green on refreshed head | **verified** |
+| Cross-build matrix green | **verified** (3/3) |
+| `cargo-audit` executed, not skipped | **verified** (812 deps, 1290 advisories loaded) |
+| `cargo-deny` executed, not skipped | **verified** (`advisories ok, bans ok, licenses ok, sources ok`) |
+| `cargo fmt` / `clippy` / `test` executed, not skipped | **verified** (7m58s clippy; 360 tests passed) |
+| No required check stale or inherited | **verified** (1 run, headSha-bound) |
+| Merge PR #65 | **not executed — out of scope by instruction** |
+| Independent non-author review for PR #65 (ADR-031 §5) | **deferred to T34-U** |
+| `SPEC_MANIFEST.json` `file_count: 24` re-verification | **deferred to T34-U** (pre-existing T34-U item; `docs/` was reorganised by `main` in this window, so this check is materially more important now, not less) |
+| Stop condition triggered | **none** |
+
+### Stop conditions — none triggered
+
+Refreshing PR #65 required **no** shared-history rewrite, **no** application-code
+change, **no** CI weakening, and **no** new governance dependency. The merge
+commit was sufficient and fully additive.
+
+## Remaining work
+
+1. **PR #65 is green and `CLEAN` but unmerged, awaiting the ADR-031 §5
+   independent non-author review decision.** `required_approving_review_count`
+   is `0`, so GitHub will *permit* an owner merge — that is exactly why the
+   procedural gate matters and must not be skipped.
+2. The ADR-031 §8 file-level union for `09_AI_AGENT_INSTRUCTIONS.md` and
+   `20_ADR_INDEX.md` was performed **as the merge resolution** in this task
+   (ordered union, ADR-019…ADR-031 all intact, `deny`-style precedence per
+   `T34-P-ADR-031-OWNER-MERGE-POLICY.md` §8 satisfied). T34-U item 2 should now
+   be treated as **verification of this merge resolution**, not as fresh work to
+   redo — redoing it would risk a second, divergent union.
+3. `SPEC_MANIFEST.json` `file_count: 24` + its 24 entries still need
+   re-verification against the reorganised `docs/` tree.
+4. No release or production gate is claimed or satisfied by this task.
+
+## Next exact task
+
+**T34-U** — obtain the independent non-author review ADR-031 §5 requires for
+PR #65, or record the owner's decision to hold PR #65 open indefinitely. Do
+**not** merge PR #65 on owner authority alone: §5.3's exception is named for
+PR #64 and §5.4 forbids treating it as precedent. Then re-verify
+`SPEC_MANIFEST.json` and re-read the branch-protection payload once more.
+
+## Branch / commits / PR (this task)
+
+- Branch: `t34-p-owner-merge-policy` (unchanged; no new branch created)
+- Commits added: `e231724f` (T34-S record), `5743a0c9` (merge of `main`)
+- PR: **#65** — <https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/65>,
+  head `5743a0c9a2b8fb87fdd8d6cdb32d1abb2632c940`, `CLEAN`, **not merged**
+- PR #64: untouched, `MERGED` at `aa4cc8e8…`
+- Recovery tag: `backup/t34-t-premerge-c9d17d2a`
