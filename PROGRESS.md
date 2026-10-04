@@ -11446,3 +11446,27 @@ repository **read** access — should be taken, because it is the only thing
 currently preventing any HR-classified change from ever merging.
 
 Suggested task id: **T34-Y**.
+
+## T34-CI-CACHE — SAFE HIGH-VALUE CI CACHING (2026-10-05)
+
+- **Task:** T34-CI-CACHE — **date:** 2026-10-05 · **branch:** `t34-ci-cache` · **PR:** #69 · **start HEAD (origin/main):** `3467706d`
+- **Files changed:** `.github/workflows/ci.yml` (+58/−7), `PROGRESS.md` (this entry). Nothing else; unrelated untracked reports and open PR #68 on `t34-y` untouched.
+- **Caches implemented:**
+  1. `swatinem/rust-cache@v2` — added to `rust`, `desktop`, `desktop-macos` (key: matrix target), `desktop-windows`. Cargo registry + git + `target` covered; Cargo.lock-scoped; no cross-OS sharing.
+  2. Linux Vulkan SDK — `actions/cache@v4` on `/tmp/vulkan-sdk-debs`, key `vulkan-sdk-1.3.290-noble-ubuntu-24.04-v2-${{ runner.arch }}`; debs captured via `apt-get install -o Dir::Cache::Archives=/tmp/vulkan-sdk-debs`; on hit `dpkg -i` restore + mandatory `vulkan-sdk` version-prefix guard `1.3.290*` (mismatched SDK fails loudly, never masquerades).
+  3. macOS x86_64 ONNX Runtime — `actions/cache@v4` on `~/.cache/ort`, key `ort-osx-x86_64-1.24.2-sha256-590cee...a9c4`; on both hit and miss the pinned `shasum -a 256 -c` verification runs before extraction (checksum verification NOT removed).
+  4. Playwright Chromium — `actions/cache@v4` on `~/.cache/ms-playwright`, key `playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}`; `pnpm playwright install --with-deps chromium` still runs after restore.
+- **Not implemented (per task):** node_modules caching, apt system-state caches, cross-OS Cargo sharing, sccache, remote cache servers, Docker/buildx caching, model caches, custom mirrors.
+- **Cold (first) run `37236750242` (e930569a):** all 7/7 checks PASS; warm rerun exposed the Vulkan-deb-cache capture defect (`dpkg-query: no packages found matching vulkan-sdk`, correctly caught by the version guard) — fixed in `33fba6db` via dedicated apt archives dir + key bump `v2`.
+- **Warm run (head `33fba6db`, run `37239646192`):** all 7/7 checks PASS. `desktop` 5m30s, `rust` 2m45s, Windows 8m3s, macOS aarch64 4m48s, macOS x86_64 5m23s, `web` 59s, `e2e` 51s. Cache hits: rust-cache on all 4 Rust jobs, Vulkan SDK debs, ORT artifact, Playwright Chromium.
+- **Before vs after:** baseline ~18–23 min wall, Windows critical path 24m8s; post-change warm critical path Windows 8m3s; `rust` 18m41s → 2m45s. First run was a cold-cache population run; the warm run is the performance measurement.
+- **Cache hit/miss:** first run cold/populating; warm rerun — every cache HIT except Linux desktop, which correctly failed on the version guard (defect fixed); final head — every cache HIT.
+- **CI on PR #69 head `33fba6db`:** 7/7 required checks green; no gate removed, weakened, skipped, or made conditional.
+- **Risk classification (ADR-031 §5.5):** HR-2 triggered — any change under `.github/**` → **HIGH-RISK**. NOT merged by the agent. Independent non-author review required. Recorded on PR #69.
+- **Merge:** NOT merged — HR-2 / single-collaborator independent-review blocker.
+- **Implemented:** the four caches, version guards, this PROGRESS.md synchronization.
+- **Verified:** 7/7 checks green twice on final head; cache-hit behavior confirmed in run logs; YAML validated.
+- **Blocked:** merge (HR-2 / independent-review requirement).
+- **Not executed:** no local cargo build/test (no gate semantics changed); `release.yml` unchanged (already carries the same patterns); no release.
+- **Deferred / remaining CI optimization opportunities:** split `rust` job into parallel clippy/test/audit; Vulkan SDK direct-download cache; immutable versioned model caches; `sccache` evaluation; Node 24/Ubuntu 26 migration.
+- **Next task:** PR #69 merge awaits independent non-author review (owner: grant a second person repository read access); continue ordinary governed merge path afterward.
