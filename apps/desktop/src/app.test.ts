@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SESSION_CHANGED_EVENT,
   PING_EVENT,
+  TYPING_RESULT_EVENT,
   getRuntimeStatus,
   ping,
+  injectText,
   sessionTransition,
   sessionReset,
   onSessionChanged,
   onPing,
+  onTypingResult,
 } from "./ipc";
 import { PHASE_LABEL } from "./app";
 
@@ -40,6 +43,16 @@ describe("runtime bridge events", () => {
     await onPing(() => undefined);
     expect(listen).toHaveBeenCalledWith("runtime://ping", expect.any(Function));
   });
+
+  it("exposes the typed typing-result event contract", () => {
+    expect(TYPING_RESULT_EVENT).toBe("typing://result");
+  });
+
+  it("subscribes to injection results under the typing event name", async () => {
+    listen.mockResolvedValueOnce(() => undefined);
+    await onTypingResult(() => undefined);
+    expect(listen).toHaveBeenCalledWith("typing://result", expect.any(Function));
+  });
 });
 
 describe("runtime bridge commands", () => {
@@ -61,6 +74,11 @@ describe("runtime bridge commands", () => {
   it("probes the runtime through ping", () => {
     ping();
     expect(invoke).toHaveBeenCalledWith("ping");
+  });
+
+  it("routes text injection through the inject_text command", () => {
+    injectText("hello");
+    expect(invoke).toHaveBeenCalledWith("inject_text", { text: "hello" });
   });
 });
 

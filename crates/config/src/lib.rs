@@ -2,6 +2,7 @@
 //! Validated desktop configuration types with persistence.
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::fs;
 use std::path::PathBuf;
 
@@ -9,7 +10,7 @@ use std::path::PathBuf;
 const SCHEMA_VERSION: u32 = 1;
 
 /// Interaction mode for hotkey.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum InteractionMode {
     #[default]
@@ -39,41 +40,56 @@ impl Shortcut {
 }
 
 /// Settings schema version and migration metadata.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct SchemaInfo {
     pub version: u32,
+    #[serde(default, alias = "last_migrated")]
     pub last_migrated: Option<u64>,
 }
 
 /// Microphone settings.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct MicrophoneSettings {
+    #[serde(default, alias = "selected_device_index")]
     pub selected_device_index: Option<String>,
+    #[serde(default, alias = "selected_device_name")]
     pub selected_device_name: Option<String>,
+    #[serde(default, alias = "device_available")]
     pub device_available: bool,
+    #[serde(default, alias = "auto_fallback")]
     pub auto_fallback: bool,
 }
 
 /// Hotkey settings.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct HotkeySettings {
     pub binding: Option<String>,
     pub mode: InteractionMode,
+    #[serde(default)]
     pub enabled: bool,
+    #[serde(default, alias = "recording_in_progress")]
     pub recording_in_progress: bool,
 }
 
 /// Model settings.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ModelSettings {
+    #[serde(default, alias = "selected_engine")]
     pub selected_engine: Option<String>,
+    #[serde(default, alias = "selected_model")]
     pub selected_model: Option<String>,
+    #[serde(default)]
     pub available: bool,
+    #[serde(default)]
     pub status: ModelStatus,
 }
 
 /// Model status.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelStatus {
     #[default]
@@ -85,11 +101,14 @@ pub enum ModelStatus {
 }
 
 /// Complete settings document.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Settings {
     pub schema: SchemaInfo,
+    #[serde(default)]
     pub microphone: MicrophoneSettings,
+    #[serde(default)]
     pub hotkey: HotkeySettings,
+    #[serde(default)]
     pub model: ModelSettings,
 }
 

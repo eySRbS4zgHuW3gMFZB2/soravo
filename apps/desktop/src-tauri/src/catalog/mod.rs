@@ -30,6 +30,11 @@ struct CatalogRoot {
     /// values that form the HF resolve URL, so a mirror is a plain static host.
     #[serde(default)]
     mirrors: Vec<String>,
+    /// Optional so a build without a generated catalog parses instead of
+    /// aborting the process. An absent list is an empty catalogue, not a
+    /// malformed one; the registry is still populated by the legacy model table
+    /// and on-disk discovery.
+    #[serde(default)]
     models: Vec<CatalogModel>,
 }
 

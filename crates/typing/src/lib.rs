@@ -39,19 +39,22 @@
 //! can be scoped more precisely.
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::time::Instant;
 
 /// Result of a typing operation.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct TypingResult {
     pub success: bool,
     pub method: TypingMethod,
+    #[serde(default, alias = "duration_ms")]
     pub duration_ms: u64,
     pub message: String,
 }
 
 /// The method used for text injection.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
 pub enum TypingMethod {
     Native,
     ClipboardFallback,
@@ -223,8 +226,8 @@ impl TypingEngine {
     fn take_clipboard_snapshot(&self) -> Result<ClipboardSnapshot, ClipboardError> {
         #[cfg(windows)]
         {
-            use clipboard_win::{get_clipboard, ClipboardContentFormats};
-            match get_clipboard::<String>() {
+            use clipboard_win::{get_clipboard, Unicode};
+            match get_clipboard::<String, Unicode>(Unicode) {
                 Ok(content) => Ok(ClipboardSnapshot {
                     content: Some(content),
                     was_modified: true,
@@ -315,8 +318,8 @@ impl TypingEngine {
     fn write_to_clipboard(&self, text: &str) -> Result<(), ClipboardError> {
         #[cfg(windows)]
         {
-            use clipboard_win::set_clipboard;
-            set_clipboard::<String>(text).map_err(|_| ClipboardError::WriteFailed)
+            use clipboard_win::{set_clipboard, Unicode};
+            set_clipboard(Unicode, text).map_err(|_| ClipboardError::WriteFailed)
         }
 
         #[cfg(target_os = "macos")]

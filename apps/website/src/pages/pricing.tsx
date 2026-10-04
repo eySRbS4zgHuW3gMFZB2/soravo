@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { PageIntro } from "../components/page-intro";
 import { Button } from "../components/ui/button";
@@ -7,6 +7,59 @@ import { useAuth } from "../lib/auth-context";
 import { createCheckoutOrder, type CheckoutResponse, type CheckoutError } from "../lib/payment-service";
 import { trackEvent } from "../lib/analytics";
 
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount?: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id?: string;
+  subscription_id?: string;
+  handler?: (response: unknown) => void;
+  modal?: { ondismiss?: () => void };
+};
+
+type RazorpayCheckoutWindow = Window & {
+  Razorpay?: { open: (options: RazorpayCheckoutOptions) => void };
+};
+
+function razorpayCheckout(): { open: (options: RazorpayCheckoutOptions) => void } | undefined {
+  return (window as unknown as RazorpayCheckoutWindow).Razorpay;
+}
+
+// T14 F-03: load Razorpay checkout.js on demand. The SDK was previously read
+// off `window` with no loader, so `rzp.open()` could never run in a real
+// browser and the button wedged on "Processing...". This keeps the same UI
+// and only adds the missing script load plus an explicit failure path.
+const RAZORPAY_SDK_URL = "https://checkout.razorpay.com/v1/checkout.js";
+
+function ensureRazorpaySDK(): Promise<boolean> {
+  if (razorpayCheckout()) return Promise.resolve(true);
+  if (typeof document === "undefined") return Promise.resolve(false);
+  const existing = document.querySelector(`script[src="${RAZORPAY_SDK_URL}"]`);
+  if (existing) {
+    return new Promise((resolve) => {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => resolve(false), { once: true });
+      // If the script already finished loading, `load` already fired.
+      if (razorpayCheckout()) resolve(true);
+    });
+  }
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = RAZORPAY_SDK_URL;
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+// T14 F-04: displayed prices are the INR catalog rows actually charged
+// (packages/payment-domain/src/catalog.ts: INR 9900 minor = ₹99 monthly,
+// INR 41500 minor = ₹415 lifetime), not the USD literals previously shown
+// while checkout requested INR. Both rows are `evaluated_target` — the page
+// disclaimer below still states these are not a final offer.
 const PLAN_CURRENCIES: Record<string, string> = {
   Monthly: "INR",
   "One-time": "INR",
@@ -16,9 +69,9 @@ const plans = [
   {
     kicker: "EVALUATED TARGET",
     title: "Monthly",
-    price: "\u2248 $12",
+    price: "₹99",
     interval: "per month",
-    terms: "Billed monthly. Cancel anytime. Includes the full desktop app on macOS and Windows.",
+    terms: "Billed monthly in INR. Cancel anytime. Includes the full desktop app on macOS and Windows.",
     features: [
       "All V1 features while subscribed",
       "Updates for the duration of the subscription",
@@ -28,9 +81,9 @@ const plans = [
   {
     kicker: "EVALUATED TARGET",
     title: "One-time",
-    price: "\u2248 $50",
+    price: "₹415",
     interval: "once",
-    terms: "Pay once and keep the desktop app on your device.",
+    terms: "Pay once in INR and keep the desktop app on your device.",
     features: [
       "Same desktop app, no expiration",
       "Local-first guarantees unchanged",
@@ -91,8 +144,17 @@ export function Pricing() {
 
     const checkout: CheckoutResponse = result.data;
 
+    // The SDK may still be absent (offline CDN, blocked script). Surface an
+    // error and release the button instead of wedging on "Processing...".
+    const sdkReady = await ensureRazorpaySDK();
+    if (!sdkReady) {
+      setError({ code: "unknown", message: "Payment window could not be loaded. Check your connection and try again." });
+      setLoading(false);
+      return;
+    }
+
     if ("orderId" in checkout) {
-      const rzp = (window as any).Razorpay;
+      const rzp = razorpayCheckout();
       if (rzp) {
         rzp.open({
         key: checkout.keyId,
@@ -101,7 +163,7 @@ export function Pricing() {
         name: "Soravo",
         description: "Lifetime License",
         order_id: checkout.orderId,
-        handler: function (_: any) {
+        handler: function (_response: unknown) {
           setSuccess(true);
           setLoading(false);
         },
@@ -111,9 +173,12 @@ export function Pricing() {
           },
         },
       });
+      } else {
+        setError({ code: "unknown", message: "Payment window could not be loaded. Check your connection and try again." });
+        setLoading(false);
       }
     } else if ("subscriptionId" in checkout) {
-      const rzp = (window as any).Razorpay;
+      const rzp = razorpayCheckout();
       if (rzp) {
         rzp.open({
         key: checkout.keyId,
@@ -121,7 +186,7 @@ export function Pricing() {
         currency: checkout.currency,
         name: "Soravo",
         description: "Monthly Subscription",
-        handler: function (_: any) {
+        handler: function (_response: unknown) {
           setSuccess(true);
           setLoading(false);
         },
@@ -131,6 +196,9 @@ export function Pricing() {
           },
         },
       });
+      } else {
+        setError({ code: "unknown", message: "Payment window could not be loaded. Check your connection and try again." });
+        setLoading(false);
       }
     }
   }

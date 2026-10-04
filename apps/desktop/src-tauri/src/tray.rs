@@ -24,7 +24,7 @@ use crate::managers::history::{HistoryEntry, HistoryManager};
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::TranscriptionManager;
 use crate::settings;
-use crate::tray_i18n::get_tray_translations;
+use crate::tray_i18n::TrayStrings;
 use log::{debug, error, info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -61,7 +61,6 @@ struct MenuInputs {
     selected_model: String,
     /// `(id, name)` of downloaded models, sorted by name.
     downloaded_models: Vec<(String, String)>,
-    locale: String,
     update_checks_enabled: bool,
 }
 
@@ -332,7 +331,6 @@ fn compute_desired(app: &AppHandle, icon_state: TrayIconState) -> TrayDesired {
             model_loaded,
             selected_model: settings.selected_model,
             downloaded_models,
-            locale: settings.app_language,
             update_checks_enabled: settings.update_checks_enabled,
         },
     }
@@ -456,22 +454,15 @@ fn version_label() -> String {
 /// process-constant `HANDY_DISABLE_UPDATER` env flag behind
 /// `update_checks_forced_disabled()`, which cannot change during a run.
 fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri::Wry>, String)> {
-    let strings = get_tray_translations(Some(inputs.locale.clone()));
+    let strings = TrayStrings::default();
 
     // Secure Input warning entry (macOS): clicking opens the settings window
-    // where the full warning banner explains the situation. Locales that
-    // haven't translated the key yet get the English string rather than a
-    // blank menu item (build.rs emits "" for missing keys).
+    // where the full warning banner explains the situation.
     let secure_input_warning = if inputs.warning {
-        let label = if strings.secure_input_warning.is_empty() {
-            get_tray_translations(Some("en".to_string())).secure_input_warning
-        } else {
-            strings.secure_input_warning.clone()
-        };
         Some(MenuItem::with_id(
             app,
             "secure_input_warning",
-            &label,
+            &strings.secure_input_warning,
             true,
             None::<&str>,
         )?)
@@ -692,7 +683,6 @@ mod tests {
             model_loaded: true,
             selected_model: "small".to_string(),
             downloaded_models: vec![("small".to_string(), "Small".to_string())],
-            locale: "en".to_string(),
             update_checks_enabled: true,
         }
     }

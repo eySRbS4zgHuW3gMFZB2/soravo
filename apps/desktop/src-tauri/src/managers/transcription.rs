@@ -1239,7 +1239,9 @@ impl TranscriptionManager {
         // run extension and the fuzzy-correction skip are gated on
         // `model_is_whisper` instead, since non-whisper archs can advertise
         // the feature while rejecting the whisper-kind extension.
-        let mut model_takes_initial_prompt = false;
+        // Deferred initialization: assigned inside the TranscribeCpp probe
+        // below, which is the only path that reads it.
+        let model_takes_initial_prompt: bool;
         // Whether the loaded model is actually whisper-family (arch string).
         // Non-whisper archs (e.g. Voxtral Small) can advertise
         // Feature::InitialPrompt yet reject the whisper-kind run extension
@@ -1891,19 +1893,29 @@ pub fn init_transcribe_backend() {
                      disabling transcribe.cpp GPU acceleration and using CPU"
                 );
             }
-            let devices = transcribe_compute_devices();
-            info!(
-                "transcribe-cpp initialized with {} compute device(s): [{}]",
-                devices.len(),
-                devices
-                    .iter()
-                    .map(|d| format!("{} ({})", d.name, d.kind))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
         }
         Err(e) => warn!("Failed to initialize transcribe-cpp backends: {}", e),
     }
+}
+
+/// Log the compute devices [`init_transcribe_backend`] registered.
+///
+/// Listing devices is what first opens the GPU. On macOS that loads ggml's
+/// Metal library, which is compiled from source whenever the system's shader
+/// cache does not hold it yet (the first launch after an install or update),
+/// so the app calls this from a background thread instead of its startup
+/// path. A model load that comes first waits on the same one-time compile.
+pub fn report_compute_devices() {
+    let devices = transcribe_compute_devices();
+    info!(
+        "transcribe-cpp initialized with {} compute device(s): [{}]",
+        devices.len(),
+        devices
+            .iter()
+            .map(|d| format!("{} ({})", d.name, d.kind))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
 }
 
 /// Human-readable list of the transcribe-cpp compute devices registered at
@@ -2144,6 +2156,41 @@ pub fn get_available_accelerators() -> AvailableAccelerators {
         transcribe: transcribe_options,
         ort: ort_options,
         gpu_devices: cached_gpu_devices().to_vec(),
+    }
+}
+
+impl Drop for TranscriptionManager {
+    fn drop(&mut self) {
+        // Skip shutdown unless this is the very last clone. TranscriptionManager
+        // is cloned by initiate_model_load() and the watcher thread — those
+        // clones dropping must not kill the watcher. The watcher thread holds
+        // its own clone, so engine's strong_count is always >= 2 while the
+        // watcher is alive. When it reaches 1, only this instance remains
+        // and we can safely shut down.
+        if Arc::strong_count(&self.engine) > 1 {
+            return;
+        }
+
+        // Signal the watcher thread to shutdown
+        self.shutdown_signal.store(true, Ordering::Relaxed);
+
+        // Wait for the thread to finish gracefully.
+        // Use match instead of unwrap to avoid panicking if the mutex is
+        // poisoned — a panic inside Drop calls abort().
+        let mut guard = match self.watcher_handle.lock() {
+            Ok(g) => g,
+            Err(e) => {
+                warn!("Recovered poisoned watcher_handle mutex during TranscriptionManager drop — a panic occurred earlier this session");
+                e.into_inner()
+            }
+        };
+        if let Some(handle) = guard.take() {
+            if let Err(e) = handle.join() {
+                warn!("Failed to join idle watcher thread: {:?}", e);
+            } else {
+                debug!("Idle watcher thread joined successfully");
+            }
+        }
     }
 }
 
@@ -2480,40 +2527,5 @@ mod tests {
         assert!(matches!(plan.task, Task::Transcribe));
         assert_eq!(plan.language.as_deref(), Some("es"));
         assert_eq!(plan.target_language, None);
-    }
-}
-
-impl Drop for TranscriptionManager {
-    fn drop(&mut self) {
-        // Skip shutdown unless this is the very last clone. TranscriptionManager
-        // is cloned by initiate_model_load() and the watcher thread — those
-        // clones dropping must not kill the watcher. The watcher thread holds
-        // its own clone, so engine's strong_count is always >= 2 while the
-        // watcher is alive. When it reaches 1, only this instance remains
-        // and we can safely shut down.
-        if Arc::strong_count(&self.engine) > 1 {
-            return;
-        }
-
-        // Signal the watcher thread to shutdown
-        self.shutdown_signal.store(true, Ordering::Relaxed);
-
-        // Wait for the thread to finish gracefully.
-        // Use match instead of unwrap to avoid panicking if the mutex is
-        // poisoned — a panic inside Drop calls abort().
-        let mut guard = match self.watcher_handle.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                warn!("Recovered poisoned watcher_handle mutex during TranscriptionManager drop — a panic occurred earlier this session");
-                e.into_inner()
-            }
-        };
-        if let Some(handle) = guard.take() {
-            if let Err(e) = handle.join() {
-                warn!("Failed to join idle watcher thread: {:?}", e);
-            } else {
-                debug!("Idle watcher thread joined successfully");
-            }
-        }
     }
 }
