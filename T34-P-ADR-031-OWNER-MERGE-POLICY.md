@@ -15,6 +15,14 @@ Supersedes: nothing. Amends: nothing. This is a new, standalone control.
 |---|---|---|---|
 | ADR-031 original | 2026-10-04 | T34-P | Owner-merge policy adopted; `required_approving_review_count: 1 → 0`. |
 | ADR-031-A1 | 2026-10-04 | **T34-R** | Adds §5.1 (prospective-only effective date), §5.2 (anti-deadlock rule), §5.3 (named exception for PR #64), §5.4 (future policy explicitly unchanged). **No weakening of §4, of any required check, or of branch protection.** |
+| ADR-031-A2 | 2026-10-04 | **T34-U** | Closes the §5 trigger list into a **deterministic high-risk classification** (§5.5); splits dependency changes into *admission* (high-risk) vs *maintenance* (normal) so a dependency change alone can no longer create an unobtainable review (§5.6); restates owner-merge as the **default** with §4 strictly **subordinate** (§5.7); records PR #65's own classification (§5.8). **No required check, branch-protection field, non-weakening clause, or prohibition is removed, relaxed, deferred, or made optional. No bypass is authorized.** |
+
+**Reading order note.** ADR-031 §1–§5.4 and §6–§10 are preserved **verbatim**.
+A2 is **additive**: it adds §5.5–§5.9 and marks two specific sentences as
+superseded in part (§5.4's final bullet; §10's last sentence). Nothing prior is
+rewritten or erased. Where A2 and an earlier section disagree, A2 governs the
+classification question and §4 continues to govern every protection question —
+the two cannot be traded against each other.
 
 ---
 
@@ -62,7 +70,7 @@ conjunction; failing any single condition means the merge does not happen.
 | M3 | The branch is up to date with `main` (`strict`) | branch protection |
 | M4 | Force-push and branch deletion remain disabled | branch protection |
 | M5 | The PR contains no secrets, fabricated evidence, or unrelated bundled work | agent discipline + review |
-| M6 | The change is not a designated-review change (§5, applied prospectively per §5.1) | agent discipline + owner designation |
+| M6 | The change is classified **normal-risk** under §5.5 and that classification is recorded on the pull request (§5, applied prospectively per §5.1) | agent discipline + recorded classification + owner designation |
 | M7 | Security-relevant checks (`cargo-audit`, `cargo-deny`, `npm-audit`) are green or their accepted-and-documented risk is recorded in an ACCEPTED ADR | CI + ADR record |
 | M8 | Production/release gates (§6) are untouched and remain separately satisfied | release runbook |
 
@@ -216,6 +224,15 @@ or waiver. Specifically, this amendment does **not**:
 - authorize a fabricated, synthesized, self-created or impersonated review;
 - assert production readiness, close a release gate, or satisfy any
   precondition in `17_RELEASE_RUNBOOK.md`;
+> **Superseded in part by ADR-031-A2 (T34-U), 2026-10-04.** The sentence
+> below is retained verbatim as the historical record of ADR-031-A1 and is **no
+> longer the operative rule**. A2 replaces it: PR #65 is classified
+> **normal-risk (NR)** under the closed §5.5 trigger list, not high-risk — see
+> §5.8. What A2 does **not** change is the rest of this section: every
+> dependency-, CI/workflow-, security- and release-sensitive pull request
+> remains subject to §5 and §4 on the §5.5 classification, and none of the
+> bullets above is weakened.
+
 - apply to the governance pull request that carries this ADR itself (PR #65 was
   opened `2026-10-04T07:26:40Z`, on or after the effective date, and remains
   fully subject to §5 and to independent review).
@@ -240,6 +257,207 @@ grants another person read access so they can review and approve, a designated-
 review change cannot obtain a genuinely independent approval. Reviewer
 access must be granted before, not after, a designated change is authored. The
 agent will not grant access to anyone.
+
+## 5.5 Deterministic high-risk classification (added by ADR-031-A2, T34-U)
+
+**Why this section exists.** The §5 trigger list as originally written was
+*open-ended*: it made a change designated-review if it "touches a security
+boundary", and then enumerated categories broad enough — "CI/release workflow
+definitions, branch-protection settings, dependency policy,
+`Cargo.lock`/`pnpm-lock.yaml` policy" — to capture nearly every change a
+maintainer makes. Combined with §5.4's "not a precedent" clause, that produced a
+**permanent, structural deadlock**: the repository has exactly one
+collaborator, GitHub never counts an author's approval on their own pull
+request, so every ordinary PR — and the governance PR that defines the rule —
+could never obtain the review it demanded. A control that cannot be satisfied is
+not a control; it is a freeze. A2 keeps the control and **removes the
+unresolvability**, by making the classification a closed, decidable list rather
+than an open judgement.
+
+**The default is normal-risk. The carve-out is the exception.** Owner-authored
+pull requests whose classification is **normal-risk (NR)** are mergeable by the
+owner under §2 whenever M1–M8 hold. Only a **high-risk (HR)** classification
+requires independent human review by a non-author.
+
+### The closed trigger list
+
+The list is **closed**: a change that matches no HR trigger is NR. There is no
+residual catch-all, and an agent may not extend the list on its own authority.
+Adding a trigger is an owner amendment to this ADR.
+
+| # | HR trigger | Deterministic test |
+|---|---|---|
+| HR-1 | **Security-boundary implementation** | A non-Markdown change under `apps/`, `crates/`, `services/`, `packages/`, or `supabase/` touching authentication, session, entitlement/RLS, payment or webhook handling, secret/key handling, CSP or Tauri capabilities, typed IPC, model download/verification, or telemetry. |
+| HR-2 | **CI / release / deployment definition** | Any change under `.github/**`, or to any release, publish, or deployment configuration or script that CI invokes. |
+| HR-3 | **Repository-protection mutation** | Any action or IaC file that mutates branch protection, repository settings, secrets, or environment configuration. Also any change to `12_SECURITY_BASELINE.md`. |
+| HR-4 | **Dependency admission (see §5.6)** | Any change admitting a package that is **not already present in the merged lockfile**; any new dependency declaration; any change to `deny.toml`, `.cargo/config.toml`, a licence allow/deny list, an advisory ignore/suppression list, or a registry/mirror/source configuration; any model/asset pipeline or catalogue change. |
+| HR-5 | **Handy-derived desktop core** | Any change to Handy-derived core source or to the preserved upstream Handy tests, per `04`, `09`, `21` and ADR-018/019. |
+| HR-6 | **Secrets / environment / signing** | Any change to `15_ENVIRONMENT_AND_SECRETS.md`, `.env*`, secret handling, or signing-credential handling. |
+| HR-7 | **Removal or relaxation of a control** | Any diff that deletes, comments out, inverts, or makes optional an existing prohibition, gate, mandatory check, or stop condition — anywhere, including inside this ADR, `09_AI_AGENT_INSTRUCTIONS.md`, `13_DEFINITION_OF_DONE_AND_QA.md`, and `17_RELEASE_RUNBOOK.md`. |
+| HR-8 | **Owner designation** | The `requires-independent-review` label is present, or the owner has designated the change in writing. |
+
+### How the classification is decided — no judgement, no memory
+
+1. Run HR-1 … HR-8 against the pull request's **actual diff** at its head SHA.
+2. **Any** trigger matches → **HR**. The change does not merge; the agent stops
+   and requests independent review (§5).
+3. **No** trigger matches → **NR**.
+4. **Record the classification on the pull request before merge.** HR: the
+   `requires-independent-review` label, plus the trigger ids that matched. NR:
+   the literal line `risk-classification: normal (ADR-031 §5.5)` plus the list of
+   HR trigger ids tested. **If neither is present, the classification is
+   missing: STOP and do not merge.** A missing classification is a documentation
+   stop, not a security gate, and it is discharged in one line.
+5. **Escalation is always available and always unilateral.** Any agent,
+   reviewer, or the owner may apply the label at any time before merge; the
+   change becomes HR and the stop condition applies. Escalation needs no
+   agreement and no justification.
+6. **De-escalation is not available to an agent.** Only the owner may record a
+   written determination that a change is NR despite a matched trigger. It must
+   name the pull request, name the trigger ids being set aside, state the reason,
+   and be visible on the pull request. It is logged here as an amendment event.
+   **A written determination may never remove a §4 protection, waive a required
+   check, or authorize a bypass, an admin override, or a fabricated approval** —
+   those are outside the owner's classification authority and outside this ADR.
+
+**Ambiguity fails safe.** Where a trigger's match is not mechanically decidable
+from the diff, the classification is **HR** until the owner records a written
+determination under step 6. An agent never resolves ambiguity toward NR.
+
+**Why NR is not "no review".** `13_DEFINITION_OF_DONE_AND_QA.md` keeps `diff
+review` mandatory for every change, and it is not satisfied by a green check or
+by merge authority. HR is about *independent human* review of a narrow,
+enumerated class; it is not the only review in the process.
+
+## 5.6 Dependency changes: admission is high-risk, maintenance is not (added by ADR-031-A2)
+
+ADR-031-A1 §5.4 stated that every dependency-sensitive PR remains subject to §5.
+That is correct for **admission** and is corrected here for **maintenance**.
+
+| Class | Definition | Review |
+|---|---|---|
+| **HR-D — admission** | A package **not already present in the merged lockfile** enters the graph; a new dependency declaration is added; `deny.toml`, `.cargo/config.toml`, a licence allow/deny list, an advisory ignore/suppression list, or a registry/mirror/source configuration changes; or a model/asset pipeline or catalogue changes. | **Independent non-author review required.** |
+| **NR-D — maintenance** | A version **bump or removal within a package name already admitted** in the merged lockfile, where **no new package enters the graph**, no licence or source admission changes, no advisory ignore or suppression is added, and `cargo-audit`, `cargo-deny` (`bans`, `licenses`, `sources`, `advisories`) and `npm-audit` are **green**, or an ACCEPTED ADR records the residual risk — the exact mechanism ADR-030 uses for the dev-graph `braces` advisory. | **Owner-mergeable**, subject to M1–M8 and to §4 in full. |
+
+**The anti-deadlock consequence, stated as a rule.** A dependency change is
+**never** escalated to HR *merely because* no independent reviewer is available.
+That is the deadlock §5.2 was written to break, and unavailability of a reviewer
+is not a property of the change. Escalation happens only on a §5.5 trigger.
+
+**What this does not permit, stated explicitly so the boundary is not
+re-litigated later.** NR-D does **not** permit: adding an advisory ignore or
+suppression entry (that is HR-D — this is the "silence the audit warning" move
+and it stays gated); changing a licence decision; changing a registry, mirror, or
+source; adding a package to the graph by any route; or merging an NR-D change
+whose audit or deny output is red, `UNKNOWN`, or unverified. `cargo deny`'s
+`bans`/`licenses`/`sources` checks already reject an unadmitted licence or an
+unknown source, so the automated gates — not this classification — are what
+constrain *which* package a bump may land on.
+
+## 5.7 Owner-merge is the default; §4 is strictly subordinate (added by ADR-031-A2)
+
+**The rule, stated once.** The repository owner / primary maintainer may merge
+their own pull request when **all** of M1–M8 in §2 hold, including M6 read as
+"the change is classified **normal-risk** under §5.5 and that classification is
+recorded on the pull request". There is no additional standing requirement for a
+second approver.
+
+**Subordination — this is the load-bearing sentence.** Merge authority is a
+*permission*, and it is **strictly subordinate to §4**. §4 is not a guideline,
+not a default, and not a factor to be weighed. Specifically, and without
+exception:
+
+- **A CI, security, or audit failure can never be bypassed by owner authority.**
+  Owner merge authority is not a defence of a red check. If `web`, `e2e`,
+  `rust`, or `desktop` is failing, or `cargo-audit`, `cargo-deny`, or
+  `npm-audit` is failing or unverified, the change does not merge. There is no
+  owner instruction, ADR, ADR amendment, label, comment, or classification —
+  including **NR** and including a written determination under §5.5 step 6 — that
+  permits it.
+- **Force-push and history rewriting remain forbidden.** Shared history is never
+  rewritten; a merge commit is used for synchronization.
+- **GitHub's emergency "bypass rules" / admin override remains forbidden**,
+  including for an admin, and including when it would be faster.
+- **Fabricated, synthesized, self-created, or impersonated review approvals
+  remain forbidden.** An agent may never author, auto-approve, simulate, or
+  manufacture the appearance of a review. A review authored by the change's
+  author, or by an agent acting for them, is not a review. Fabricating a review
+  converts nothing: it satisfies no §5 requirement and is a §4 violation.
+- **Release authority remains separate from merge authority** (§6). Merging
+  closes no release gate and asserts no production readiness.
+- **Required checks may never be disabled, renamed, made optional, or
+  "expected"** to obtain a merge.
+- **`required_approving_review_count: 0` is not a licence.** It reflects that
+  the repository has one collaborator. It removes a *quantity* requirement; it
+  removes no §4 protection and it does not make an HR change mergeable.
+
+## 5.8 PR #65's own classification (added by ADR-031-A2)
+
+Recorded so the governance PR that defines the rule cannot be mistaken for a
+change that the rule forbids, and so the determination is auditable rather than
+implied.
+
+| # | HR trigger | PR #65 | Basis |
+|---|---|---|---|
+| HR-1 | Security-boundary implementation | **No** | The diff is Markdown only: 7 files, 0 changes to any source file under `apps/`, `crates/`, `services/`, `packages/`, `supabase/`. |
+| HR-2 | CI / release / deployment definition | **No** | No change under `.github/**`; no CI job, gate, trigger, or workflow altered. `web`, `e2e`, `rust`, `desktop` remain required and unchanged. |
+| HR-3 | Repository-protection mutation | **No** | No protection, settings, secret, or environment mutation is performed by this PR. `12_SECURITY_BASELINE.md` is untouched. Branch protection was changed once, under T34-P, and is recorded there; this PR makes no further change and asserts no correction is required. |
+| HR-4 | Dependency admission | **No** | No dependency, lockfile, `deny.toml`, or model/asset change. |
+| HR-5 | Handy-derived desktop core | **No** | No Handy-derived source or preserved upstream test touched. |
+| HR-6 | Secrets / environment / signing | **No** | `15_ENVIRONMENT_AND_SECRETS.md` untouched; no `.env*`, secret, or signing change. |
+| HR-7 | Removal or relaxation of a control | **No** | Every hunk in the diff is **additive or clarifying**. No existing prohibition, gate, mandatory check, or stop condition is deleted, commented out, inverted, or made optional. A2 itself *adds* prohibitions and a stop condition. Verified by reading the complete diff, not inferred. |
+| HR-8 | Owner designation | **No** | The `requires-independent-review` label is not present, and the owner has designated this change **normal-risk** in writing (§5.5 step 6, recorded here as amendment event ADR-031-A2). |
+
+**Classification: `risk-classification: normal (ADR-031 §5.5)` — normal-risk
+(NR).** PR #65 is therefore **not** subject to the §5 independent-review
+requirement, and its merge is governed by M1–M8 and §4.
+
+This determination is bounded and is **not a precedent**: it rests on the
+mechanical §5.5 test applied to a diff that is provably Markdown-only and
+provably additive. Any future change that matches HR-1 … HR-8 is HR, and the
+§5.4 "not a precedent" clause continues to apply to it without exception.
+
+## 5.9 What ADR-031-A2 does not change (added by ADR-031-A2)
+
+A2 is a classification amendment. It does **not**:
+
+- lower, remove, rename, "expect", or make optional any required status check
+  (`web`, `e2e`, `rust`, `desktop`);
+- alter `required_status_checks.strict`, `dismiss_stale_reviews`,
+  `require_code_owner_reviews`, `allow_force_pushes`, `allow_deletions` or
+  `enforce_admins`;
+- alter any §4 protection, or the M1–M8 conditions other than M6, which is
+  re-pointed from "not designated-review" to "classified normal-risk and
+  recorded";
+- delete or relax any entry in the `Forbidden` or `Stop conditions` lists of
+  `09_AI_AGENT_INSTRUCTIONS.md`; it adds one stop condition and one `Forbidden`
+  item;
+- delete or relax any `Forbidden` item, the `diff review` requirement in
+  `13_DEFINITION_OF_DONE_AND_QA.md`, or any release precondition in
+  `17_RELEASE_RUNBOOK.md`;
+- authorize "merge without waiting for requirements to be met", GitHub's
+  emergency "bypass rules", or any equivalent admin escape hatch;
+- authorize a fabricated, synthesized, self-created, or impersonated review;
+- weaken the designated-review requirement for any **admitting** dependency
+  change, CI/workflow change, security-boundary change, Handy-core change,
+  secrets change, or owner-designated change;
+- assert production readiness, close a release gate, or satisfy any
+  precondition in `17_RELEASE_RUNBOOK.md`;
+- change `SPEC_MANIFEST.json`. No document is added to or removed from the
+  canonical pack directory, so `file_count: 24` and its 24 entries remain exact;
+- authorize the agent to grant repository access to anyone, or to modify branch
+  protection.
+
+**The residual limitation, restated rather than papered over.** GitHub branch
+protection still cannot express a *conditional* review requirement. The §5
+independent-review requirement for HR changes therefore remains
+**procedurally and agent-enforced**, backed by the label, the recorded
+classification, the §5.5 step-6 override record, and the `09` stop condition —
+not platform-enforced. Until the owner grants a second person review access, an
+HR change genuinely cannot obtain an independent approval, and the correct
+outcome for such a change is **STOP and report**, indefinitely if necessary. That
+is the intended behaviour, not a defect to be engineered around. The agent will
+not grant access to anyone.
 
 ## 6. Production and release gates remain separate
 
@@ -266,6 +484,17 @@ Authoritative control plane: `docs/Soravo_Engineering_Docs_v6/`.
 | `13_DEFINITION_OF_DONE_AND_QA.md` | Clarified that `diff review` is the agent's independent self-review of the diff and remains mandatory; merge authority does not substitute for it. |
 | `17_RELEASE_RUNBOOK.md` | One line recording that source-merge authority (ADR-031) is separate from, and does not satisfy, any release precondition. |
 | `20_ADR_INDEX.md` | This ADR registered as ADR-031. |
+
+**Amended by ADR-031-A2 (T34-U)** — same canonical documents, classification
+scope only:
+
+| Document | A2 change |
+|---|---|
+| `14_CI_CD_AND_BRANCHING.md` | New subsection "Deterministic high-risk classification (ADR-031-A2)": the closed HR-1…HR-8 trigger list, the six-step classification procedure including the pre-merge recording requirement and unilateral escalation, the dependency admission/maintenance split, the subordination clause, and the amended step 6 of the merge decision procedure. M6 re-pointed to the classification. |
+| `09_AI_AGENT_INSTRUCTIONS.md` | `Forbidden` gains one item (never resolve a classification ambiguity toward normal-risk; never extend the HR trigger list on the agent's own authority). `Stop conditions` gains one item (classification missing or unrecorded before merge). The merge-authority section states that owner merge authority is strictly subordinate to §4 and that an unavailability of an independent reviewer is not a reason to escalate a normal-risk change. No existing item removed or relaxed. |
+| `20_ADR_INDEX.md` | ADR-031-A2 recorded as an amendment of ADR-031, index of record. |
+| `13_DEFINITION_OF_DONE_AND_QA.md` | **No change required and none made** — its existing `diff review` clause ("not satisfied by a green check, by a merged PR, or by owner merge authority") is already correct under A2 and is unchanged. |
+| `17_RELEASE_RUNBOOK.md` | **No change required and none made** — its existing separation clause is already correct under A2 and is unchanged. |
 
 Deliberately **not** changed:
 
@@ -350,3 +579,15 @@ override, no protection change, no force-push, no reconstruction — which is
 explicitly authorized by §5.3 above. This governance PR (PR #65) then becomes
 mergeable on the ordinary path and merges after, still subject to §5 and to
 independent review. Neither PR is merged by T34-P or T34-R.
+
+> **Superseded in part by ADR-031-A1 (T34-R) and ADR-031-A2 (T34-U).** PR #64
+> was merged at `aa4cc8e8` (§5.3 discharged). The final sentence above is
+> **retained verbatim as history and is no longer operative**: PR #65 is
+> classified **normal-risk** under §5.5 (§5.8), so it is **not** subject to the
+> §5 independent-review requirement. Its merge is governed by M1–M8 and §4.
+>
+> **Current next task (T34-U).** PR #65 is `CLEAN`, `MERGEABLE`, `OPEN`, and
+> green on all required checks. The owner may merge it on the ordinary path —
+> no bypass, no admin override, no protection change, no force-push — once the
+> §5.5 step-4 classification line is present on the pull request. **T34-U does
+> not merge PR #65 and does not remove any blocker from it.**
