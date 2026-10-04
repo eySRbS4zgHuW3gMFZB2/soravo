@@ -27,7 +27,7 @@
     "@eslint/js": "latest",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "latest",
-    "@types/node": "^26.5.1",
+    "@types/node": "^26.6.3",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
