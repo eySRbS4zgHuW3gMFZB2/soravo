@@ -22,3 +22,7 @@ After artifact publication:
 Do not switch Razorpay TEST to LIVE merely because code is ready. LIVE activation requires business/provider approval, LIVE secrets, production webhook configuration and approved production smoke process.
 
 Rollback must preserve entitlement/payment integrity.
+
+Source-merge authority (ADR-031, `14_CI_CD_AND_BRANCHING.md`) is separate from
+release authority and satisfies none of the preconditions above. Merging into
+`main` is not a release gate, authorizes no release, and closes no gate here.

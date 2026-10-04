@@ -264,7 +264,86 @@ Never:
 - claim deployment from a successful build alone;
 - silently bypass failing CI;
 - overwrite unrelated work;
-- force-push shared history.
+- force-push shared history;
+- fabricate, synthesize, auto-approve or self-create any review approval, or
+  impersonate a reviewer, in order to satisfy a review requirement;
+- disable, rename, make optional, "expect" or otherwise neutralize a required
+  status check in order to obtain a merge;
+- use GitHub's emergency "bypass rules" / admin override, or any equivalent
+  admin escape hatch, to work around a failing requirement;
+- merge a pull request while any required check is failing or unverified;
+- merge a designated-review change (`14_CI_CD_AND_BRANCHING.md`) instead of
+  stopping for independent review;
+- resolve an ambiguity in the ADR-031 §5.5 high-risk classification toward
+  normal-risk, or extend the HR-1…HR-8 trigger list on your own authority —
+  ambiguity is high-risk, and only the owner may add a trigger or record a
+  written de-escalation;
+- escalate a change to high-risk merely because no independent reviewer is
+  available, or treat reviewer unavailability as evidence that a change is
+  high-risk.
+
+The owner may merge their own pull request once every required automated check
+and repository-defined safety gate passes (ADR-031). That merge authority does
+not license any item above, and the agent may not exercise it to close its own
+outstanding work faster.
+
+Merge authority is a **permission** and is **strictly subordinate to the
+non-weakening clause** in `14_CI_CD_AND_BRANCHING.md`. No classification,
+including normal-risk, and no owner instruction, permits merging with a failing
+or unverified CI, security, or audit check; force-pushing or rewriting history;
+using GitHub's emergency "bypass rules" or any admin override; or fabricating,
+synthesizing, self-creating, or impersonating a review. `required_approving_review_count: 0`
+removes a review *quantity* requirement only — it removes no protection and does
+not make a high-risk change mergeable.
+
+The independent-review requirement applies **only** to changes classified
+high-risk under the closed HR-1…HR-8 list in
+`14_CI_CD_AND_BRANCHING.md`. A change matching no trigger is normal-risk and is
+owner-mergeable when M1–M8 hold; its classification must be recorded on the PR
+before merge, and its absence is a stop condition. Security-boundary, CI/workflow,
+dependency-**admission**, Handy-core, secrets, control-weakening, and
+owner-designated changes remain high-risk and are **not** self-mergeable.
+
+The designated-review carve-out is prospective: it governs PRs opened on or
+after `2026-10-04` only. It must not be used to create a circular dependency in
+which one PR is needed to restore green CI while another PR is needed to permit
+the first to merge; in that situation the older pre-existing remediation PR
+merges first, ordinarily, with every required check green. PR #64
+(`1cf65c02`) is recorded as owner-mergeable on that basis. This is not a licence
+to merge anything failing: if any required check on the head being merged is
+failing or unverified, the merge does not happen.
+
+Under ADR-031-A2 the carve-out above is bounded by the **closed** HR-1…HR-8
+trigger list: it applies to high-risk changes only, and a dependency change is
+high-risk by **admission** (a new package, a new declaration, a licence/advisory/
+source-policy change) but not by **maintenance** (a version bump within an
+already-admitted package, no new package in the graph, audit and deny green).
+See `14_CI_CD_AND_BRANCHING.md`.
+
+## Merge authority (ADR-031)
+
+The agent may, on the owner's instruction, verify and perform an ordinary merge
+of the owner's own pull request once M1–M8 in
+`14_CI_CD_AND_BRANCHING.md` are confirmed satisfied.
+
+It is not the agent's decision to relax a gate. If any condition fails, report the
+failure and stop; never re-scope the task past a non-negotiable to obtain a merge.
+Read the checks from their live state — never infer a merge outcome from an
+earlier run, a prior report, or `PROGRESS.md`.
+
+Branch protection, workflows, and required checks are repository settings the
+agent may not weaken. Changing `required_approving_review_count`, required
+check contexts, or `strict` is an owner-only decision, and reducing a required
+check is forbidden outright.
+
+**Classify before merging, and record the classification.** Before any merge the
+agent runs HR-1…HR-8 (`14_CI_CD_AND_BRANCHING.md`) against the PR's actual diff
+and records the result on the PR: the `requires-independent-review` label for a
+high-risk change, or the line `risk-classification: normal (ADR-031 §5.5)` with
+the trigger ids tested for a normal-risk change. **No recorded classification →
+no merge.** The agent never records a normal-risk classification for a change it
+could not fully inspect, never resolves ambiguity toward normal-risk, and never
+extends the trigger list.
 
 ## Completion report schema
 
@@ -290,6 +369,7 @@ Every task report MUST contain:
 - PR;
 - `## Skill Selection` (schema in `10_AI_SKILLS.md`; mandatory for every
   substantive task);
+- merge state (`merged` / `not merged`, with the observed gate state);
 - next exact task.
 
 ## Stop conditions
@@ -311,6 +391,16 @@ Stop rather than inventing information when any of the following holds:
 - security would have to be weakened;
 - a dependency change crosses subsystem boundaries;
 - the first compiler error indicates a wider migration than the task scope;
+- a change is designated-review (`14_CI_CD_AND_BRANCHING.md`) and no independent
+  non-author reviewer is available — stop and report that independent review is
+  unobtainable, rather than merging it or approving it on the owner's behalf.
+  This stop condition applies only to PRs opened on or after `2026-10-04`, when
+  ADR-031 was adopted; for an earlier PR the non-weakening clause still applies
+  in full and the carve-out does not;
+- a change's ADR-031 §5.5 risk classification is **not recorded on the pull
+  request**, or cannot be determined from the diff — stop and record the
+  classification. Ambiguity is high-risk; do not default to normal-risk;
+- a merge can only be completed by weakening, removing or bypassing a gate.
 - **SKILL SELECTION FAILURES** (STOP, document, and escalate):
   - the skill registry cannot be located, or a second registry is found;
   - a named skill's `SKILL.md` is absent from the live store;
