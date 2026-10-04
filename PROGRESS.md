@@ -1778,7 +1778,8 @@ Status: CODE-COMPLETE, Razorpay TEST API Limited (Items created; Plans via API B
 
 **TASK ID:** T34-P · **DATE:** 2026-10-04 · **TYPE:** Owner-directed governance change
 **BRANCH:** `t34-p-owner-merge-policy` · **BASE SHA:** `ede495b55efd95cedd882d90a19d12b4777da852`
-**GOV COMMIT:** `c80765192141f46609c7eccc232b2ff89d07f1ba` · **MERGE STATE:** not merged (deliberate)
+**GOV COMMIT:** `c80765192141f46609c7eccc232b2ff89d07f1ba` · **PR:** #65 · **MERGE STATE:** not merged — BLOCKED on pre-existing red `main` (deliberate: no gate weakened)
+**PROTECTION:** CHANGED — `required_approving_review_count` `1` → `0` (applied + read back; all other fields byte-identical)
 
 ## Skill Selection
 
@@ -1925,7 +1926,43 @@ are all unchanged.
 | Branch-protection read-back and field-by-field comparison after the change | **PASS** — only `required_approving_review_count` differs |
 | Required checks re-verified present after the change | **PASS** — `web`, `e2e`, `rust`, `desktop` all still required |
 | Git history integrity | **PASS** — no force-push, no rebase, no amend, no history rewrite; branch branched from `ede495b5`; `main` never edited |
-| Local test suite / build | **NOT EXECUTED** — docs-only change; no source, dependency, workflow or configuration file modified, so no compile/test/lint target is affected. `web`/`e2e`/`rust`/`desktop` CI runs on the pushed branch are the authoritative gate and are recorded below |
+| Local test suite / build | **NOT EXECUTED as a gate** — docs-only change; no source, dependency, workflow or configuration file modified. `web`/`e2e`/`rust`/`desktop` CI on the pushed branch is the authoritative gate — see *CI on the pushed branch* below |
+
+## CI on the pushed branch (PR #65, run `37185808415`)
+
+Result: `web` **fail**, `rust` **fail**, `desktop` **fail**, `e2e` **pass**.
+
+**These failures are pre-existing on `main` and were NOT caused by this task.**
+Evidence, not assumption:
+
+1. `git diff --name-only ede495b5..HEAD` returns **7 files, all `.md`**
+   (`PROGRESS.md`, `T34-P-ADR-031-OWNER-MERGE-POLICY.md`, and five canonical-pack
+   documents). The code, dependency, lockfile, workflow and configuration tree is
+   byte-identical to `origin/main`, so no lint/fmt/build target can be affected.
+2. `gh run list --branch main` shows `main` at `ede495b5` — the exact base of
+   this branch — already **CI = failure** and **Security Audit = failure**, and
+   also failing on the earlier `2f96f3d2`. `main` is red independently of this PR.
+3. Failed steps and the files named in the logs are all pre-existing source
+   violations on `main`: `Run pnpm lint` → `eslint src --max-warnings=0` failing
+   with 15 errors in `apps/website/src/pages/pricing.tsx` (`no-explicit-any`,
+   unused `FormEvent`) and `pricing.test.tsx` (unused `Mock`, unused
+   `useNavigate`); `Run cargo fmt --all -- --check` → reproduced locally at this
+   tree with `Diff in apps/desktop/src-tauri/src/audio_toolkit/mod.rs:3`;
+   `Build Tauri desktop` fails on the same unchanged code. None of these paths
+   appear in this branch's diff.
+
+T23 recorded the same condition at the time it configured protection: "Recent CI
+runs (156-158) are FAILING." `main` has been red since.
+
+**Deliberately not done, because the policy forbids it and the task forbids it:**
+
+- required checks were **not** disabled, renamed, or made optional to make this
+  PR mergeable;
+- the emergency "bypass rules" / admin override was **not** used;
+- this PR was **not** merged with failing required checks;
+- the pre-existing lint/fmt/desktop-build defects were **not** "fixed" here —
+  they are unrelated source changes, and the task forbids introducing unrelated
+  changes into a governance change.
 
 ## Status per item
 
@@ -1943,11 +1980,30 @@ are all unchanged.
   `cargo-audit`, `cargo-deny`, `npm-audit` and all three desktop build jobs
   **passing** on head `1cf65c02`, and is 0 behind / 93 ahead of `main` (so
   `strict` is satisfied). PR #64's code is byte-unchanged by this task.
+- **VERIFIED (post-change effect)** — after the protection change, PR #64's
+  `mergeStateStatus` moved `BLOCKED` → **`CLEAN`** and `reviewDecision`
+  `REVIEW_REQUIRED` → **empty**. Head SHA still `1cf65c02`, `state: OPEN`,
+  `mergedAt: null`, `reviews: 0` — untouched and unapproved by this task. The
+  owner can now merge PR #64 through the ordinary path.
+- **VERIFIED** — no other repository setting changed: `allow_merge_commit`,
+  `allow_squash_merge`, `allow_rebase_merge`, `allow_auto_merge: false`,
+  `allow_update_branch: false`, `delete_branch_on_merge: false`, `visibility:
+  public`, `archived: false`, `disabled: false`, collaborators (1), secrets, and
+  `.github/workflows/**` all verified unchanged by authenticated read-back.
 - **BLOCKED (owner action, not agent action)** — the designated-review carve-out
   cannot be satisfied today: the repository has exactly one collaborator, so no
   independent non-author reviewer exists. The owner must grant another person
   read access **before** a designated change is authored. The agent will not
   grant access.
+- **BLOCKED (pre-existing, out of scope)** — governance PR #65 cannot reach
+  green, because `origin/main` at `ede495b5` is already red: `pnpm lint` (15
+  eslint errors in `pricing.tsx`/`pricing.test.tsx`), `cargo fmt --check`
+  (`audio_toolkit/mod.rs`), and `Build Tauri desktop`. Proven pre-existing by
+  the three evidence points above. The PR is therefore left OPEN and unmerged
+  rather than unblocked by weakening a gate. Fixing those defects is a separate
+  task and must not be bundled into this governance change. Note the asymmetry:
+  PR #64 is green, so the policy unblock is fully effective in practice even
+  though this documentation PR waits on a `main` repair.
 - **NOT EXECUTED** — PR #64 was **not merged**. Deliberate: the owner reserved
   that decision, and this task's mandate is to make the merge path deterministic
   and report it. PR #64 was neither merged, closed, relabelled, nor retitled.
@@ -1980,24 +2036,31 @@ are all unchanged.
 - Branch: `t34-p-owner-merge-policy` (short-lived, branched from `origin/main`)
 - Base SHA: `ede495b55efd95cedd882d90a19d12b4777da852`
 - Governance commit: `c80765192141f46609c7eccc232b2ff89d07f1ba`
-- PR: opened against `main`, docs-only
+- PROGRESS.md commit: `c77cf55b5278e832baba31050a42ba42c2d92534`
+- PR: **#65** — https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/65 (docs-only, against `main`)
+- GitHub protection: **CHANGED** — `required_approving_review_count` `1` → `0`, applied and read back; every other field byte-identical
 - `main` was never edited; no force-push; no amend; no rebase
 
 ## Remaining work
 
-1. Owner reviews and merges the governance PR (docs-only; merge authority now
-   permits it once its four required checks are green).
-2. Owner grants a non-author read access so the designated-review carve-out is
+1. **PR #65 is open and BLOCKED on pre-existing red `main`** — it cannot be merged
+   until `main`'s lint/fmt/desktop-build defects are repaired. Not fixed here:
+   unrelated code, and unbundling it into a governance change is forbidden.
+2. Owner merges PR #64 through the ordinary path — now possible
+   (`mergeStateStatus: CLEAN`, all 10 checks green), deliberately not done here.
+3. Owner grants a non-author read access so the designated-review carve-out is
    actually satisfiable.
-3. Owner merges PR #64 through the ordinary path — now possible, but not done
-   here.
 4. Next task: apply the ADR-031 §8 union to `09` and `20_ADR_INDEX.md` when PR
    #64 merges; re-verify `file_count: 24` afterwards.
 
 ## Next exact task
 
-T34-Q — apply the ADR-031 §8 manual union to
-`docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` and
-`20_ADR_INDEX.md` immediately after PR #64 merges, preserving ADR-019…ADR-031,
-then re-verify the canonical manifest reconciliation and re-read the live
-protection payload. No new authority, no new scope.
+T34-Q — repair the pre-existing `origin/main` CI defects that block PR #65
+(`pnpm lint` unused-vars/`no-explicit-any` in `apps/website/src/pages/pricing.tsx`
+and `pricing.test.tsx`; `cargo fmt` ordering in
+`apps/desktop/src-tauri/src/audio_toolkit/mod.rs`; `Build Tauri desktop`), on its
+own branch, with no weakening of any lint rule or required check. Then
+immediately after PR #64 merges, apply the ADR-031 §8 manual union to
+`09_AI_AGENT_INSTRUCTIONS.md` and `20_ADR_INDEX.md`, preserving ADR-019…ADR-031,
+and re-verify the canonical manifest reconciliation and the live protection
+payload.
