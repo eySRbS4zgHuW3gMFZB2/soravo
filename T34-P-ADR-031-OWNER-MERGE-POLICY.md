@@ -9,6 +9,13 @@ Repository: `eySRbS4zgHuW3gMFZB2/soravo`
 Base commit at decision time: `ede495b5` (`origin/main`)
 Supersedes: nothing. Amends: nothing. This is a new, standalone control.
 
+**Amendment log**
+
+| Amendment | Date | Task | Effect |
+|---|---|---|---|
+| ADR-031 original | 2026-10-04 | T34-P | Owner-merge policy adopted; `required_approving_review_count: 1 → 0`. |
+| ADR-031-A1 | 2026-10-04 | **T34-R** | Adds §5.1 (prospective-only effective date), §5.2 (anti-deadlock rule), §5.3 (named exception for PR #64), §5.4 (future policy explicitly unchanged). **No weakening of §4, of any required check, or of branch protection.** |
+
 ---
 
 ## 1. The problem this ADR resolves
@@ -55,7 +62,7 @@ conjunction; failing any single condition means the merge does not happen.
 | M3 | The branch is up to date with `main` (`strict`) | branch protection |
 | M4 | Force-push and branch deletion remain disabled | branch protection |
 | M5 | The PR contains no secrets, fabricated evidence, or unrelated bundled work | agent discipline + review |
-| M6 | The change is not a designated-review change (§5) | agent discipline + owner designation |
+| M6 | The change is not a designated-review change (§5, applied prospectively per §5.1) | agent discipline + owner designation |
 | M7 | Security-relevant checks (`cargo-audit`, `cargo-deny`, `npm-audit`) are green or their accepted-and-documented risk is recorded in an ACCEPTED ADR | CI + ADR record |
 | M8 | Production/release gates (§6) are untouched and remain separately satisfied | release runbook |
 
@@ -132,6 +139,87 @@ For a designated-review change, independent human review by a person who is not
 the author of the change is **required**, and the agent must stop rather than
 merge.
 
+### 5.1 Effective date — the carve-out is prospective only (added by T34-R)
+
+**The designated-review carve-out in §5 applies only to pull requests opened on
+or after `2026-10-04T00:00:00Z`, the instant of the owner's authorization of
+ADR-031. It does not apply retroactively to any pull request opened before that
+instant.**
+
+Rationale, recorded rather than assumed: a governance control cannot
+retroactively impose a requirement on a change that was authored before the
+control existed, and cannot condition the control's own availability on a
+change it was not written to govern.
+
+A pull request opened before that instant is evaluated under the merge
+authority in force when it was opened, **together with §4 in full**. §4 — the
+non-weakening clause — is *not* date-bounded and applies to every merge
+regardless of when the pull request was opened: required checks must pass on the
+merged head, no force-push, no history rewrite, no disabled or renamed required
+check, no merge with failing required checks, no fabricated or self-created
+review approval, and no use of GitHub's emergency "bypass rules" / admin
+override. Non-retroactivity removes the *extra* independent-review requirement
+for pre-existing pull requests only. It removes no automated gate.
+
+### 5.2 Anti-deadlock rule (added by T34-R)
+
+A governance control must not be applied in a way that creates a circular
+dependency in which all three of the following hold:
+
+1. pull request **A** is required in order to restore green CI on `main`;
+2. pull request **B** is required in order to authorize or permit **A** to
+   merge; and
+3. **B** cannot itself become green until **A** merges.
+
+Where such a cycle would form, the older, pre-existing remediation pull request
+is authorized to merge first, by the **ordinary** merge path, with every
+required check green. This is not an emergency bypass: branch protection is not
+disabled, not reconfigured and not bypassed, no required check is disabled,
+renamed or made optional, no approval is fabricated, and the "Merge without
+waiting for requirements to be met" affordance is **not** used. The merge is
+performed exactly as GitHub's ordinary merge button performs it.
+
+### 5.3 Named exception — PR #64 (added by T34-R)
+
+**PR #64 (`fix/t34-l-braces-dependency-remediation`, head
+`1cf65c02e5763fc80ab93d990bb9cf3a4d7ff351`, opened `2026-10-03T10:47:11Z`) is
+explicitly recorded as owner-mergeable and is NOT subject to the §5
+designated-review carve-out.** It is a single named exception on four recorded
+grounds, each independently verifiable:
+
+| # | Ground | Evidence |
+|---|---|---|
+| E1 | It **predates ADR-031** | opened `2026-10-03T10:47:11Z`, before the `2026-10-04` owner authorization, therefore outside §5 by §5.1 |
+| E2 | It is the **known remediation for the pre-existing broken `main`** | `main` at `ede495b5` is red: `CI` run `36339104443` failure, `Security Audit` run `37173073676` failure (`npm-audit` and `cargo-audit`); `rust`/`desktop` trace to commit `a156c8c9` (2026-09-22), `web` to the WEB-00x/033 website payment series — all predating PR #64 |
+| E3 | Its **required CI and security checks are green** on its head: `web`, `e2e`, `rust`, `desktop`, `cargo-audit`, `cargo-deny`, `npm-audit` — all pass | `CI` run `37179463666`, `Security Audit` run `37179463669`, both `success` at `1cf65c02` |
+| E4 | Its merge is **required to restore the repository's actual CI signal**; without it every subsequent pull request — including the governance PR carrying this ADR — is permanently `BLOCKED` | `main` CI is red today; a red `main` blocks every strict-up-to-date merge |
+
+PR #64 must be merged by the ordinary path. It must **not** be reconstructed,
+re-committed, rebased, cherry-picked or duplicated; it must **not** be
+force-pushed; it must **not** be merged with any required check failing or
+unverified; and no emergency bypass or admin override may be used for it.
+
+### 5.4 The future policy is unchanged (added by T34-R)
+
+PR #64 is one named exception, not a precedent. **Every** dependency-,
+CI/workflow-, security- and release-sensitive pull request authored on or after
+`2026-10-04T00:00:00Z` remains fully subject to §5 and to §4 without exception
+or waiver. Specifically, this amendment does **not**:
+
+- lower, remove, rename, "expect", or make optional any required status check
+  (`web`, `e2e`, `rust`, `desktop`);
+- alter `required_status_checks.strict`, `dismiss_stale_reviews`,
+  `require_code_owner_reviews`, `allow_force_pushes`, `allow_deletions` or
+  `enforce_admins`;
+- authorize any use of "Merge without waiting for requirements to be met",
+  GitHub's emergency "bypass rules", or any equivalent admin escape hatch;
+- authorize a fabricated, synthesized, self-created or impersonated review;
+- assert production readiness, close a release gate, or satisfy any
+  precondition in `17_RELEASE_RUNBOOK.md`;
+- apply to the governance pull request that carries this ADR itself (PR #65 was
+  opened `2026-10-04T07:26:40Z`, on or after the effective date, and remains
+  fully subject to §5 and to independent review).
+
 **Honest limitation, recorded rather than papered over.** GitHub branch
 protection cannot express a *conditional* review requirement — it is all-or-
 nothing per branch. With `required_approving_review_count = 0`, the GitHub-side
@@ -202,6 +290,18 @@ Deliberately **not** changed:
 
 ## 8. Interaction with PR #64 (recorded for the next task)
 
+> **Superseded in part by ADR-031-A1 (T34-R).** As originally written, this
+> section told the owner to merge this governance PR **first** and PR #64
+> **second**. That sequencing was itself the circular dependency: this PR
+> cannot become green until PR #64 repairs the red `main`, so instructing
+> "merge #65, then #64" was unsatisfiable. Under §5.1 PR #64 predates ADR-031
+> and is therefore outside the carve-out, and under §5.3 it is explicitly
+> owner-mergeable. **PR #64 merges first, by the ordinary path. This governance
+> PR does not gate it.**
+>
+> What remains valid below: the file-level union that will be needed when PR #64
+> lands, because PR #64 carries newer canonical `09` and `20_ADR_INDEX.md` text.
+
 PR #64 (`fix/t34-l-braces-dependency-remediation`) is the in-flight security
 remediation. It carries the newest canonical governance text — `09` (+263 lines)
 and `20_ADR_INDEX.md` (ADR-019 … ADR-030) exist only on that branch, not on
@@ -243,6 +343,10 @@ the PR #64 head specifically so this change would not create conflicts there.
 
 ## 10. Next task
 
-The owner's next action is to decide whether to merge this governance PR, then
-to merge PR #64 through the ordinary path now that the merge gate is
-deterministic. PR #64 is **not** merged by T34-P.
+**As amended by ADR-031-A1 (T34-R).** PR #64 is no longer gated by this
+governance PR and no longer waits on it. The owner's next action is to merge
+**PR #64 (`1cf65c02`)** through the ordinary path — no bypass, no admin
+override, no protection change, no force-push, no reconstruction — which is
+explicitly authorized by §5.3 above. This governance PR (PR #65) then becomes
+mergeable on the ordinary path and merges after, still subject to §5 and to
+independent review. Neither PR is merged by T34-P or T34-R.

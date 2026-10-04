@@ -91,6 +91,15 @@ and repository-defined safety gate passes (ADR-031). That merge authority does
 not license any item above, and the agent may not exercise it to close its own
 outstanding work faster.
 
+The designated-review carve-out is prospective: it governs PRs opened on or
+after `2026-10-04` only. It must not be used to create a circular dependency in
+which one PR is needed to restore green CI while another PR is needed to permit
+the first to merge; in that situation the older pre-existing remediation PR
+merges first, ordinarily, with every required check green. PR #64
+(`1cf65c02`) is recorded as owner-mergeable on that basis. This is not a licence
+to merge anything failing: if any required check on the head being merged is
+failing or unverified, the merge does not happen.
+
 ## Merge authority (ADR-031)
 
 The agent may, on the owner's instruction, verify and perform an ordinary merge
@@ -146,5 +155,8 @@ Stop and request review when:
 - the first compiler error indicates a wider migration than the task scope;
 - a change is designated-review (`14_CI_CD_AND_BRANCHING.md`) and no independent
   non-author reviewer is available — stop and report that independent review is
-  unobtainable, rather than merging it or approving it on the owner's behalf;
+  unobtainable, rather than merging it or approving it on the owner's behalf.
+  This stop condition applies only to PRs opened on or after `2026-10-04`, when
+  ADR-031 was adopted; for an earlier PR the non-weakening clause still applies
+  in full and the carve-out does not;
 - a merge can only be completed by weakening, removing or bypassing a gate.

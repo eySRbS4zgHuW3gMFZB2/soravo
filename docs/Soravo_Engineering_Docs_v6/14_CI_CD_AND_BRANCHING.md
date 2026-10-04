@@ -75,6 +75,41 @@ CI/release workflow definitions, branch-protection settings, dependency policy
 (`deny.toml`, lockfile policy), licence or model-licensing claims, or
 Handy-derived desktop core behaviour.
 
+### Effective date — prospective only (ADR-031-A1, T34-R)
+
+The carve-out applies **only to pull requests opened on or after
+`2026-10-04T00:00:00Z`**. It is not retroactive. A pull request opened before
+that instant is judged under the merge authority in force when it was opened,
+together with the non-weakening clause above, which is not date-bounded and
+applies to every merge. Non-retroactivity removes only the extra
+independent-review requirement for pre-existing PRs; it removes no automated
+gate.
+
+**Anti-deadlock rule.** Do not apply this carve-out so as to create a cycle
+where PR A is needed to restore green CI on `main`, PR B is needed to permit A
+to merge, and B cannot go green until A merges. Where that cycle would form, the
+older pre-existing remediation PR merges first, by the **ordinary** merge path
+with all required checks green — not by disabling protection, not by bypass, not
+by "merge without waiting for requirements to be met".
+
+**Named exception — PR #64** (`fix/t34-l-braces-dependency-remediation`, head
+`1cf65c02e5763fc80ab93d990bb9cf3a4d7ff351`, opened `2026-10-03T10:47:11Z`) is
+**owner-mergeable and not subject to this carve-out**, on four recorded grounds:
+it predates ADR-031; it is the known remediation for the pre-existing red `main`
+(`CI` `36339104443` and `Security Audit` `37173073676` both failing at
+`ede495b5`); its required CI and security checks are green (`37179463666`,
+`37179463669`); and its merge is required to restore the repository's CI signal.
+It must be merged ordinarily — never reconstructed, duplicated, rebased,
+cherry-picked, force-pushed, or merged with any failing or unverified check.
+
+**Not a precedent.** Every dependency-, CI/workflow-, security- and
+release-sensitive PR authored on or after `2026-10-04T00:00:00Z` remains fully
+subject to this carve-out, without exception or waiver. This amendment changes
+no required check, no branch-protection field, and no non-weakening clause, and
+it authorizes no bypass, no admin override and no fabricated approval. The
+governance PR carrying ADR-031 itself (PR #65, opened `2026-10-04T07:26:40Z`)
+is on or after the effective date and remains fully subject to this carve-out.
+
 Recorded limitation: GitHub branch protection cannot express a *conditional*
 review requirement. Enforcement of this carve-out is procedural and
 agent-enforced, not platform-enforced. The owner must grant another person
@@ -89,8 +124,11 @@ independent approval can exist. The agent will not grant access.
 3. Confirm security checks are green or an ACCEPTED ADR records the risk.
 4. Confirm the branch is up to date with `main`.
 5. Confirm the diff contains no secrets and no unrelated bundled changes.
-6. Test the designated-review conditions. If any applies, do not merge; stop and
-   request independent review.
+6. Test the designated-review conditions. First apply the effective-date test:
+   only a PR opened on or after `2026-10-04T00:00:00Z` is in scope. If it is in
+   scope and any condition applies, do not merge; stop and request independent
+   review. A pre-existing PR is judged under the authority in force when it was
+   opened, plus the non-weakening clause, which always applies.
 7. Confirm no open conversation is unresolved and no gate is bypassed.
 8. Merge normally. Record run IDs, head SHA and the state observed.
 9. Report merged/ not-merged with evidence. Never report a merge that did not happen.
