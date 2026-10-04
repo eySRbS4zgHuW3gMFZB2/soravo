@@ -10179,3 +10179,404 @@ Verified live at completion of this task: one run per tip,
 **true**, so `strict: true` continues to be satisfied by real ancestry. PR #65
 remains **OPEN and unmerged**; T34-U still owns the ADR-031 §5
 independent non-author review decision.
+
+---
+
+## T34-U — Finalize owner-merge governance for PR #65 (ADR-031-A2)
+
+**TASK ID:** T34-U
+**Objective:** Make the owner-merge policy internally consistent with the chosen
+workflow — the owner/primary maintainer may merge their own PR when all required
+automated checks pass — while retaining meaningful independent review for
+genuinely security-sensitive/high-risk changes. Remove the ADR-031 §5 procedural
+deadlock without deleting review requirements, without GitHub bypass, without a
+fabricated review, and **without merging PR #65**.
+**Branch:** `t34-p-owner-merge-policy` (existing PR #65 branch; no new branch)
+**Start SHA:** `7ff235a5b12433590803786fde1307c48efd80a2`
+**Date:** 2026-10-04
+
+### Live GitHub state read (authenticated `gh`) before and after any change
+
+| Fact | Value |
+|---|---|
+| `origin/main` | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` (PR #64 merge commit) |
+| PR #65 | `OPEN`, `isDraft: false`, base `main` |
+| PR #65 head (start of task) | `7ff235a5b12433590803786fde1307c48efd80a2` |
+| `mergeable` / `mergeStateStatus` | `MERGEABLE` / **`CLEAN`** |
+| `reviewDecision` | `""` (empty — 0 approvals required, 0 present, **none invented**) |
+| Reviews on PR #65 | `[]` — **0**; no review fabricated, synthesized, or self-created |
+| Repository collaborators | **1** (`eySRbS4zgHuW3gMFZB2`, admin) — no independent reviewer exists |
+| Required checks | `web`, `e2e`, `rust`, `desktop` — **7/7 pass**, run `37194987954` |
+| Branch protection | `required_approving_review_count: 0`, `strict: true`, contexts `[web, e2e, rust, desktop]`, `dismiss_stale_reviews: true`, `require_code_owner_reviews: false`, `require_last_push_approval: false`, `allow_force_pushes: false`, `allow_deletions: false`, `enforce_admins: false`, `required_signatures: false` |
+| Branch protection changed by T34-U? | **NO — zero API mutations. Read-only.** |
+| `origin/main` is ancestor of HEAD | **true** — `strict: true` satisfied by real ancestry |
+| PR #65 merged? | **NO — deliberately not merged. This task did not merge it.** |
+
+### The governance defect this task fixed
+
+ADR-031-A1 §5.4 asserted that *every* dependency-, CI/workflow-, security- and
+release-sensitive PR authored on or after `2026-10-04` stays fully subject to
+the §5 independent-review carve-out, and explicitly asserted that **PR #65
+itself** remained fully subject to it. That is **unsatisfiable in this
+repository**: one collaborator, and GitHub never counts an author's approval on
+their own PR. §5.2's anti-deadlock rule had already been forced to invent a
+*named single-PR exception* (PR #64) and to state "not a precedent" — which is
+the signature of a rule that cannot operate generally. A control that cannot be
+satisfied is not a control; it is a permanent freeze on the repository's only
+maintainer.
+
+The root cause was that §5's trigger list was **open-ended** ("touches a security
+boundary: … CI/release workflow definitions, branch-protection settings,
+dependency policy, `Cargo.lock`/`pnpm-lock.yaml` policy"), so it swept in nearly
+every change a maintainer makes — including the governance PR that defines the
+rule. ADR-031-A2 closes the list.
+
+### Governance change made — ADR-031-A2, additive
+
+`T34-P-ADR-031-OWNER-MERGE-POLICY.md` gains an amendment-log row and
+**§5.5–§5.9**. **§1–§5.4 and §6–§10 are preserved verbatim.** Nothing is
+rewritten or erased; two now-incorrect sentences (§5.4's final bullet, §10's
+final sentence) are *marked superseded in part* with the original text retained.
+
+| § | What it establishes |
+|---|---|
+| **§5.5** | The **default is normal-risk**; the independent-review requirement is the **exception**. A **closed, decidable** HR-1…HR-8 trigger list — security-boundary implementation; CI/release/deployment definition; repository-protection mutation (incl. `12_SECURITY_BASELINE.md`); dependency **admission**; Handy-derived desktop core; secrets/environment/signing; **removal or relaxation of a control**; owner designation. A **deterministic six-step procedure** run against the PR's actual diff: any match → HR → stop; no match → NR; the classification **must be recorded on the PR before merge** (label for HR, or the literal line `risk-classification: normal (ADR-031 §5.5)` for NR) and **neither present → STOP**; **escalation is unilateral and always available**; **de-escalation is the owner's alone**, in writing, naming the PR, the trigger ids set aside and the reason, and may never remove a §4 protection, waive a required check, or authorize a bypass; **ambiguity fails safe to high-risk**; an agent may never extend the list. |
+| **§5.6** | **Dependency changes split by admission, not by liveness.** *HR-D admission* — a package not already in the merged lockfile enters the graph, a new dependency declaration, `deny.toml`/`.cargo/config.toml`/licence allow-deny/advisory ignore-suppression/registry-mirror-source change, or a model/asset pipeline or catalogue change → independent non-author review required. *NR-D maintenance* — a version bump or removal **within an already-admitted package name**, no new package in the graph, no licence/source admission change, **no advisory ignore or suppression added**, and `cargo-audit`/`cargo-deny`/`npm-audit` green or an ACCEPTED ADR recording the residual risk (ADR-030's exact mechanism) → owner-mergeable. **A dependency change is never escalated to HR merely because no independent reviewer is available** — reviewer unavailability is not a property of the change. Adding an advisory ignore/suppression, changing a licence decision, or changing a registry/mirror/source **stays high-risk**; no class may merge with red/unknown/unverified audit output. |
+| **§5.7** | **Merge authority is a permission, strictly subordinate to §4.** No owner instruction, ADR, ADR amendment, label, comment, or classification — including **NR** and including a written de-escalation — permits: merging with a failing or unverified CI/security/audit check; force-pushing or rewriting history; using GitHub's emergency "bypass rules" or any admin override; fabricating/synthesizing/self-creating/impersonating a review; disabling/renaming/"expecting" a required check; treating a merge as release readiness. `required_approving_review_count: 0` removes a review *quantity* requirement only — it removes no protection and does not make an HR change mergeable. **Release authority remains separate** (§6 unchanged). |
+| **§5.8** | PR #65's own trigger-by-trigger classification, recorded and auditable rather than implied. |
+| **§5.9** | The explicit **non-weakening** list, plus the residual limitation restated: GitHub still cannot express a *conditional* review requirement, so the HR requirement stays procedurally/agent-enforced; until a second person has review access an HR change genuinely cannot obtain an independent approval and **STOP and report, indefinitely if necessary, is the correct outcome**. |
+
+### Is PR #65 subject to independent review? — No, and why
+
+**`risk-classification: normal (ADR-031 §5.5)` — normal-risk (NR).** Trigger by
+trigger, read from the actual diff, not inferred:
+
+| Trigger | PR #65 | Basis |
+|---|---|---|
+| HR-1 security-boundary implementation | **No** | Markdown only; 7 files; zero changes under `apps/`, `crates/`, `services/`, `packages/`, `supabase/` |
+| HR-2 CI/release/deployment definition | **No** | No change under `.github/**`; no job, gate, trigger, or workflow altered |
+| HR-3 repository-protection mutation | **No** | No protection/settings/secret/environment mutation; `12_SECURITY_BASELINE.md` untouched; branch protection changed only under T34-P, recorded there |
+| HR-4 dependency admission | **No** | No dependency, lockfile, `deny.toml`, or model/asset change |
+| HR-5 Handy-derived desktop core | **No** | No Handy-derived source or preserved upstream test touched |
+| HR-6 secrets/environment/signing | **No** | `15_ENVIRONMENT_AND_SECRETS.md` untouched; no `.env*`/secret/signing change |
+| HR-7 removal or relaxation of a control | **No** | Every hunk is **additive or clarifying**; the only deleted lines are (a) the M6 row, re-pointed to a *stronger* recorded-classification test, (b) a trailing `.` → `;` on the last `Forbidden` item, (c) superseded sentences each retained verbatim with an explicit supersession note. Verified by reading the complete diff — see the deleted-line audit below. A2 itself *adds* 2 `Forbidden` items and 1 stop condition. |
+| HR-8 owner designation | **No** | No `requires-independent-review` label; the owner designated this change normal-risk in writing (§5.5 step 6, logged as amendment event ADR-031-A2) |
+
+This determination is **bounded and not a precedent**: it rests on the mechanical
+§5.5 test applied to a diff that is provably Markdown-only and provably additive.
+A1's §5.4 "not a precedent" clause continues to apply, without exception, to
+every future change that *does* match HR-1…HR-8.
+
+### Files changed (exact)
+
+| File | Change |
+|---|---|
+| `T34-P-ADR-031-OWNER-MERGE-POLICY.md` | +245/−4 — amendment-log row for ADR-031-A2; reading-order note; M6 re-pointed; **new §5.5–§5.9**; supersession markers on §5.4's final bullet and §10's final sentence (originals retained); §7 gains the A2 canonical-document table |
+| `docs/Soravo_Engineering_Docs_v6/14_CI_CD_AND_BRANCHING.md` | +99/−6 — M6 re-pointed; supersession marker on the open-ended designated-review paragraph; **new** *Deterministic high-risk classification*, *Dependency changes: admission vs maintenance*, *Subordination of merge authority*; merge decision procedure step 6 rewritten; supersession marker on the PR #65 sentence |
+| `docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md` | +45/−1 — `Forbidden` gains **2** items (never resolve classification ambiguity toward normal-risk / never extend the trigger list; never escalate merely because no reviewer is available); **subordination** paragraph; the requirement is bounded to high-risk only; A2 dependency admission-vs-maintenance note; new *Classify before merging, and record the classification* paragraph; `Stop conditions` gains **1** item (classification missing or undeterminable → stop) |
+| `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` | +1 — ADR-031-A2 recorded as an amendment of ADR-031 (index of record) |
+| `PROGRESS.md` | this T34-U entry |
+
+**Total: 5 files, Markdown only.** No `.rs`, `.ts`, `.tsx`, `.json`, `.yml`,
+`.toml`, lockfile, workflow, or configuration file was created, modified, or
+deleted.
+
+### Files deliberately unchanged (protected)
+
+- `docs/Soravo_Engineering_Docs_v6/12_SECURITY_BASELINE.md` — no security
+  requirement weakened; contains no merge-authority rule.
+- `docs/Soravo_Engineering_Docs_v6/13_DEFINITION_OF_DONE_AND_QA.md` — its
+  existing clause (`diff review` "is not satisfied by a green check, by a merged
+  PR, or by owner merge authority") is **already correct** under A2. No change
+  required; none made. `diff review` remains mandatory for every change.
+- `docs/Soravo_Engineering_Docs_v6/17_RELEASE_RUNBOOK.md` — its existing
+  separation clause is **already correct** under A2. No change required; none
+  made.
+- `docs/Soravo_Engineering_Docs_v6/SPEC_MANIFEST.json` — **unchanged**; no pack
+  document added or removed.
+- `.github/workflows/**`, `Cargo.toml`, `Cargo.lock`, `package.json`,
+  `pnpm-lock.yaml`, `deny.toml`, `.env*`, `15_ENVIRONMENT_AND_SECRETS.md`.
+- Root mirror `Soravo_Engineering_Docs_v6/**` — declared **non-authoritative**
+  by `docs/…/00_README.md` ("Do not edit the control plane here").
+- Root `SPEC_MANIFEST.json` and root `01_`–`14_*.md` — `HISTORICAL/STALE`, open
+  item O-5. Verified: **none of them contains any merge-authority or
+  second-approver rule**, so nothing stale had to be reconciled and nothing was.
+- `decisions/`, `docs/archive/**`, `docs/spec-v2-archive/**` — historical.
+- PR #64 — untouched: not modified, not force-pushed, not rebased, not
+  cherry-picked, not reconstructed, not duplicated.
+- All 44 unrelated untracked paths (T2x/T3x/T34 reports, `reports/`,
+  `apps/desktop/.env.example`, `deno.lock`, `docs/archive/spec-v3/spec-v3/`) —
+  preserved, still untracked, untouched. **No `git add -A` was used**; every path
+  was staged explicitly.
+
+### `SPEC_MANIFEST.json` — verified, not changed
+
+Re-verified against the reorganised `docs/` tree, as T34-T flagged necessary:
+
+| Check | Result |
+|---|---|
+| `"file_count"` declared | `24` |
+| `files[]` entry count | `24` |
+| `read_order` entry count | `24` |
+| `read_order` keys contiguous `1`…`24` | **true** |
+| `files[]` == `read_order` values, in order | **true** |
+| Manifest entries missing on disk | **none** (0) |
+| Directory entries on disk but not in manifest | **2** — `22_IMPLEMENTATION_COMPLETION_MATRIX.md`, `22_IMPLEMENTATION_COMPLETION_MATRIX_UPDATE.md` |
+| Those 2 disclosed in `00_README.md`? | **yes** — *Directory contents versus the manifest* declares them retained milestone artifacts, not control plane, not read by the gate, and states the manifest "is **not** amended to absorb them" |
+| Total files in pack directory | `26` = 24 manifest + 2 disclosed extras |
+| Manifest / `00_README.md` changed vs `origin/main`? | **no** — byte-identical |
+
+**Verdict: `file_count: 24` remains exact and valid. The manifest was not
+changed, and must not be** — the two extras are correctly disclosed in
+`00_README.md`, which is the reconciliation the pack itself specifies. A
+governance-text amendment adds no pack document, so the count is unaffected.
+
+### Validation performed
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Read the **complete** canonical pack in `SPEC_MANIFEST.json` read order — all 24 entries, `docs/Soravo_Engineering_Docs_v6/`, in full | **done** |
+| 2 | Read root `SPEC_MANIFEST.json` + confirmed root `01_`–`14_*.md` are `HISTORICAL/STALE` (O-5) and contain no merge-authority rule | **done** |
+| 3 | Read ADR-031 **and** ADR-031-A1 in full (single file `T34-P-ADR-031-OWNER-MERGE-POLICY.md`, amendment log + §1–§10) | **done** |
+| 4 | Read `PROGRESS.md` head (1–80) + the full T34-S/T/T-U tail (10040–10181) and the complete `##` heading index | **partial — declared deviation, see below** |
+| 5 | Inspect live PR #65 (`state`, `mergeable`, `mergeStateStatus`, `headRefOid`, `reviewDecision`, `commits`) | **done** |
+| 6 | Inspect live branch protection (full payload) | **done, twice** |
+| 7 | Inspect repository collaborators | **done — 1** |
+| 8 | Verify ADR references internally consistent across the whole pack (`grep` for `ADR-031`, `designated-review`, `merge authority`, `risk-classification`) | **done — 5 documents, all consistent** |
+| 9 | Verify no source/dependency/workflow file changed | **done — `git status` non-untracked shows 4 modified files, all `.md`; no `.json`/`.yml`/`.toml`/lockfile** |
+| 10 | HR-7 self-audit: list **every** deleted line in the diff and classify it | **done — 10 deleted lines, all classified below; none removes a control** |
+| 11 | `SPEC_MANIFEST.json` structural validation | **done — see table above** |
+| 12 | PR #65 required checks green | **done — 7/7 pass, run `37194987954`, head-bound** |
+| 13 | `origin/main` is ancestor of HEAD (`strict: true` satisfied by real ancestry) | **done — true** |
+| 14 | Re-read branch protection after all edits | **done — unchanged, zero mutations** |
+| 15 | Confirm no security/test gate weakened | **done — see below** |
+| 16 | Markdown sanity: every `§` reference introduced by A2 resolves to a section that exists in the same file | **done** |
+
+**Declared deviation, recorded rather than hidden.** `PROGRESS.md` is
+**965 KB / 10,181 lines / ~240 k tokens**. Reading it "in full" is not possible
+inside one context window without discarding the working state this task
+depends on. What was actually read: lines 1–80 (header, `Last audited` chain,
+`Main SHA`, `Current Authority`, `Current Architecture`, strategy, progress
+summary), the complete `##` heading index (170 headings), and lines
+10040–10181 (the whole T34-S → T34-T tail that owns the current state, including
+the `Next exact task` that named T34-U). Historical T01–T33 bodies were **not**
+re-read. Consequence for this task: **none identified** — the ADR-031 rule chain
+lives in the canonical pack and in the T34-P…T34-T entries, all of which were
+read in full. This is a real gap in gate compliance and is recorded as
+`deferred`, not as `verified`.
+
+**HR-7 deleted-line audit — every removed line, classified.**
+
+| Deleted line | Classification | Control removed? |
+|---|---|---|
+| `\| M6 \| The change is not a designated-review change …` | **Re-pointed**, not removed. M6 still blocks the merge; its test is now *stronger* (a recorded normal-risk classification is required, absent → STOP). | **No** |
+| `independent review. Neither PR is merged by T34-P or T34-R.` | **False positive of the grep** — this is the trailing fragment of §10's final sentence, which is **still present verbatim** at line 581 of the ADR. Nothing deleted. | **No** |
+| ` stopping for independent review.` | The last `Forbidden` item in `09`; only its terminating `.` became `;` so two items could be appended. The prohibition itself is intact. | **No** |
+| `is on or after the effective date and remains fully subject to this carve-out.` | PR #65 sentence in `14`. **Retained verbatim** immediately above its supersession note; the governing sentence is replaced by the §5.5 classification, which is recorded per-PR. | **No** |
+| `-6. Test the designated-review conditions. First apply the effective-date test:` … 5 lines | Merge-procedure step 6 **rewritten** to run HR-1…HR-8 and require the recorded classification. The effective-date test is **kept** as the first sub-step; "do not merge; stop and request independent review" is **kept**. | **No** |
+
+**No prohibition, gate, mandatory check, stop condition, required check, or
+branch-protection field was deleted, commented out, inverted, or made optional.**
+
+### Security / CI results
+
+| Item | State |
+|---|---|
+| CI/security source changes | **none** — Markdown only; no workflow, job, check, script, or dependency touched |
+| `web`, `e2e`, `rust`, `desktop` (required) | **pass** — run `37194987954` on head `7ff235a5…`, 7/7 |
+| `rust` sub-gates | `cargo fmt --check` `success`; `cargo clippy --workspace --all-targets -- -D warnings` `success` (6m11s real compile); `cargo test --workspace` `success` (29 binaries, 360 passed / 0 failed / 3 ignored) |
+| `cargo-audit` | `success` — 1290 advisories loaded, 812 crate dependencies scanned, no finding |
+| `cargo-deny` | `success` — `advisories ok, bans ok, licenses ok, sources ok` |
+| `desktop` cross-build matrix | 3/3 `success` (Windows x86_64-pc-windows-msvc, macOS aarch64, macOS x86_64) |
+| Security Audit workflow | no post-merge `main` run at T34-U commit time; per-PR `cargo-audit`/`cargo-deny` green inside the `rust` job |
+| Security gate weakened? | **NO.** No advisory ignore or suppression added; no `deny.toml` change; no audit input narrowed; `cargo deny`'s `bans`/`licenses`/`sources` remain the binding constraint on which package an NR-D bump may land on |
+| Test gate weakened? | **NO.** No test file touched; no required check renamed, "expected", or made optional |
+| Branch protection mutated? | **NO — zero API write calls in this task** |
+
+### Status per item
+
+| Item | State |
+|---|---|
+| Read canonical control-plane docs before acting | **implemented** (all 24, in read order) |
+| Read ADR-031 + ADR-031-A1 in full | **implemented** |
+| Read `PROGRESS.md` | **partial — deviation declared above; historical T01–T33 bodies not re-read** |
+| Inspect live PR #65 + branch protection + collaborators | **implemented** |
+| Verify `SPEC_MANIFEST.json` and the canonical docs tree | **verified** — `file_count: 24` exact |
+| Skill selection gate, skills genuinely loaded | **implemented** |
+| Amend ADR-031 additively with an amendment/supersession record | **implemented** (ADR-031-A2, §5.5–§5.9; §1–§5.4 and §6–§10 verbatim) |
+| Close the §5 trigger list deterministically | **implemented** (HR-1…HR-8, six-step procedure, pre-merge recording) |
+| Remove the dependency-change deadlock | **implemented** (§5.6 admission vs maintenance) |
+| Stop requiring a second approver for normal owner-authored PRs | **implemented** (M6 re-pointed; no standing second-approver requirement) |
+| Keep independent review for security-sensitive/high-risk changes | **implemented** (§5 retained, closed and scoped; the HR list is narrow and real) |
+| Ensure CI/security/audit failures are unbypassable by owner authority | **implemented** (§5.7; §4 untouched) |
+| Ensure force-push / history rewrite stays forbidden | **implemented** (§5.7; §4 untouched) |
+| Ensure emergency bypass stays forbidden | **implemented** (§5.7; §4 untouched) |
+| Ensure fabricated/self-created approvals stay forbidden | **implemented** (§5.7; `09` `Forbidden` retained) |
+| Ensure release authority stays separate | **implemented** (§6 unchanged; §5.7 restated; `17` untouched) |
+| Ensure future agents stop when a genuinely designated review is required and unavailable | **implemented** (`09` stop conditions retained and extended; §5.9 states STOP-and-report-indefinitely is the intended outcome) |
+| PR #65 must not classify itself into the carve-out | **implemented** (§5.8, trigger-by-trigger, recorded) |
+| Update ADR index, CI/CD + branching policy, AI-agent instructions | **implemented** (`20`, `14`, `09`) |
+| Do **not** merge PR #65 | **honoured — not merged** |
+| Do **not** use GitHub bypass / admin override | **honoured — none used** |
+| Do **not** fabricate a review | **honoured — 0 reviews, unchanged** |
+| Do **not** weaken branch protection | **honoured — read-only, 0 mutations** |
+| No force-push / no rebase / no history rewrite / no `main` edit | **honoured** |
+| No `git add -A`; unrelated untracked paths preserved | **honoured** (44 paths) |
+| PR #64 untouched | **honoured** |
+| Stale/historical mirrors not modified | **honoured** (root mirror, root manifest, root `01_`–`14_`, `decisions/`, archives) |
+| T34-T item 2 — verify the §8 union of `09` and `20_ADR_INDEX.md` | **verified** — deliberately not redone. `20_ADR_INDEX.md` holds ADR-019…ADR-031 intact and untruncated plus both amendment paragraphs; `09` holds both the report-field additions and the stop-condition additions. Redoing it would risk a second, divergent union. |
+| `PROGRESS.md` read in full per `18_INTERRUPTION_AND_HANDOFF.md` | **deferred** — file size exceeds a single context window; see declared deviation |
+| Independent non-author review for any future **high-risk** change | **deferred** — not obtainable; the owner must grant a second person review access. The agent will not grant access. |
+| Release / production gate | **not executed** — out of scope; no release claim |
+| Merge PR #65 | **not executed — explicitly forbidden in this task** |
+| Stop condition triggered | **none** — no security gate needed bypassing; no ambiguous rule created |
+
+### Exact remaining blocker
+
+**None inside the governance.** ADR-031 §5's procedural independent-review
+requirement is discharged for PR #65 by §5.5/§5.8 (classified normal-risk, HR-1
+… HR-8 all not matched, determination recorded).
+
+The one item still outstanding on PR #65 is the **§5.5 step-4 pre-merge
+recording**: the literal line `risk-classification: normal (ADR-031 §5.5)` plus
+the HR trigger ids tested must be visible on the pull request. This is a
+documentation step, not a security gate, and it is discharged in one line —
+**it has not been written in this task, because writing it would assert a
+merge-readiness step on the owner's behalf.** Until it is present, §5.5 step 4
+requires STOP, and that is the correct state.
+
+Standing, unchanged, and **not** a blocker on PR #65: any future **high-risk**
+change genuinely cannot obtain an independent approval in this one-collaborator
+repository. The correct outcome there is STOP and report, indefinitely if
+necessary. Resolving it requires the **owner** to grant a second person review
+access.
+
+### Remaining work
+
+1. **Owner action, one line:** post on PR #65
+   `risk-classification: normal (ADR-031 §5.5) — HR-1..HR-8 tested, none
+   matched (diff is Markdown-only and wholly additive)`. PR #65 is then
+   mergeable on the ordinary path.
+2. **Owner action, separate decision:** merge PR #65 ordinarily — or do not.
+   T34-U merged nothing.
+3. **Owner action, standing:** grant a second person repository read access
+   **before** the next high-risk change is authored. The agent will not do this.
+4. `PROGRESS.md` full read remains deferred (see deviation).
+5. Open item **O-5** (root `SPEC_MANIFEST.json` + root `01_`–`14_*.md`
+   `HISTORICAL/STALE` reconciliation) is untouched and still open.
+
+### Next exact task
+
+**T34-V** — after the owner records the §5.5 step-4 classification line on PR
+#65: verify it live, re-read the branch-protection payload one final time,
+re-confirm the required checks are green **on the current head SHA** (a new
+commit invalidates the current run), and report merge-readiness state. **Do not
+merge PR #65 unless the owner separately instructs it.** Then T34-W: resolve open
+item **O-5** (root pack reconciliation), the last known stale governance surface.
+
+### Branch / commits / PR (this task)
+
+- Branch: `t34-p-owner-merge-policy` — **unchanged**; no new branch created
+- Start SHA: `7ff235a5b12433590803786fde1307c48efd80a2`
+- End SHA: recorded in the commit messages; the branch tip is deliberately not
+  hard-coded here because `PROGRESS.md` is itself inside PR #65 and recording
+  the tip would invalidate the record (see the T34-T addendum). Read it live:
+  `gh pr view 65 --repo eySRbS4zgHuW3gMFZB2/soravo --json headRefOid`
+- Method: focused commits, **no `git add -A`**, **no force-push**, **no
+  rebase**, **no amend**, **no history rewrite**, **no direct `main` edit**
+- PR: **#65** — <https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/65>,
+  `OPEN`, `CLEAN`, `MERGEABLE`, **not merged**
+- PR #64: untouched, `MERGED` at `aa4cc8e8…`
+
+### Skill Selection
+
+- Task classification: repository/Git operations — **applicable**; GitHub —
+  **applicable**; CI/CD — **applicable**; documentation/specification/ADR —
+  **applicable**; security (agent configuration) — **applicable**;
+  interruption/handoff/state audit — **applicable**; packaging/release —
+  inspected, **not applicable** (no release action; §6 only restated); supply
+  chain/dependencies — inspected, **not applicable** (no dependency change;
+  verified the diff is Markdown-only); Rust; Tauri; TypeScript/JavaScript;
+  React; shadcn/ui; frontend; backend/API; database/Supabase; authentication;
+  payments; benchmarking; Handy upstream analysis; speech/audio/STT;
+  model/catalog/asset; MCP/tooling — all inspected and **not applicable**: this
+  change touches no source, no dependency, no workflow, no runtime, no data, no
+  provider, no model, and no MCP configuration.
+- Skill inventory: `~/.agents/skills` = **32 skills**, matching the
+  `10_AI_SKILLS.md` matrix registry state ("32 skills") exactly — **no drift**.
+  The project-local store `.opencode/skills/` does not exist on this checkout,
+  which the matrix explicitly anticipates ("a project-local store may differ
+  from the host-global store"). Every matrix-named skill verified present on
+  disk; no matrix entry is `UNKNOWN`.
+- Mandatory skills selected and **loaded in this task**:
+  - `gh-cli` — governs every GitHub read and write in this task: authenticated
+    `gh` over raw HTTP for PR #65 state, the branch-protection payload, reviews,
+    collaborators, check runs, and run/step evidence. **Used** for all of it.
+  - `agent-security-audit` — governs the security review of the change itself,
+    because this task **changes agent instructions and agent authority**
+    (`09_AI_AGENT_INSTRUCTIONS.md`, and ADR-031 §5.7, which governs the agent's
+    owner-merge authority). OWASP LLM06 *Excessive Agency* is the applicable
+    risk: granting an agent merge authority is an agency grant, so the permission
+    inventory, escalation path and guardrails were assessed before writing. Its
+    six assessment steps were applied: (1) **permission inventory** — the agent
+    holds `gh` read + PR operations and `git push` to a feature branch; **no**
+    branch-protection or settings write is authorized anywhere in this change;
+    (2) **prompt-injection surface** — PR bodies, comments, CI logs and MCP
+    output are untrusted input per `12_SECURITY_BASELINE.md`, and an instruction
+    embedded in a PR body cannot re-classify that PR; (3) **excessive agency** —
+    the grant is bounded by M1–M8 and §4, escalation to high-risk is unilateral
+    and free, de-escalation is owner-only and written, and ambiguity fails safe
+    to high-risk, so the agent cannot widen its own remit; (4) **exfiltration
+    paths** — no secret, token or credential is in scope; the diff contains none
+    and introduces none; (5) **tool-call injection** — the only write path is
+    `git push` to the existing feature branch, staged by explicit path, never
+    `git add -A`; (6) **guardrails** — the `Forbidden` list gained 2 items,
+    `Stop conditions` gained 1, the merge-authority section gained a mandatory
+    classify-and-record step, and the report schema already requires merge
+    state. **Missing artifacts, recorded not hidden:** the skill's
+    `plays/agent-security-audit.md` and `templates/finding.md` are **absent from
+    the store** (the installed skill directory contains only `SKILL.md`). The
+    `SKILL.md` body was read in full and its six steps applied directly; the two
+    absent reference files are recorded here rather than paraphrased as if read.
+- Optional skills considered: `github` — **loaded and used**. It governs
+  PR/workflow interaction (`gh pr checks`, `gh run view`, `gh api --jq`) and was
+  used for the 7/7 check evidence and the branch-protection payload. Not
+  mandatory, but this task is GitHub-evidence-bound, so it was loaded rather
+  than declined.
+- MCP/tools selected: `gh` CLI (GitHub reads), local `git`, and
+  `read`/`grep`/`edit` for repository documents. Every configured MCP server this
+  task does not need — Supabase, Cloudflare, and all Swarm plugin tools — is a
+  **deliberate non-selection**: no Supabase, Cloud, or agent-orchestration
+  action is required.
+- Skills deliberately not selected: `supply-chain-risk-auditor` — declined, no
+  dependency is added, removed, upgraded or pinned (`git status` shows zero
+  non-Markdown changes); `security-guidance` and `securability-engineering` —
+  declined, no network/API endpoint, trust boundary, secret, IPC or user-data
+  path is written; `rust-engineer` / `rust-review` / `tauri` / `tauri-setup` /
+  `react` / `vitest` / `playwright` / `shadcn` / `frontend-design` /
+  `frontend-accessibility` / `web-design-guidelines` / `web-perf` /
+  `vercel-react-best-practices` / `vercel-composition-patterns` — declined, no
+  source, test or UI is written; `supabase` / `supabase-postgres-best-practices` /
+  `cloudflare` / `cloudflare-deploy` / `wrangler` / `workers-best-practices` —
+  declined, no database and no deployment; `semgrep` / `codeql` — declined, no
+  static-analysis finding is required and both CLIs are absent on this host (so
+  any such claim would be `UNKNOWN`); `mcp-server-review` — declined, no MCP
+  server or configuration is changed; `secure-workflow-guide` — declined, not a
+  smart-contract workflow; `find-skills` — declined, no capability gap was found.
+- Authority/source boundary: classification and merge authority were read from
+  `docs/Soravo_Engineering_Docs_v6/` (the canonical pack) and from
+  `T34-P-ADR-031-OWNER-MERGE-POLICY.md`; implementation truth (PR state, checks,
+  protection, collaborators) was read live from GitHub via authenticated `gh`,
+  never from `PROGRESS.md` or a prior report. `10_AI_SKILLS.md` supplied
+  procedure only and supplied no authority.
+- Conflicts found: **none requiring a STOP.** One tension was resolved on the
+  record rather than by preference: the owner's instruction to finalize
+  owner-merge governance pulls against ADR-031 §5's independent-review
+  requirement. Authority ladder (`00_README.md`): an explicit owner amendment
+  outranks an earlier owner-directed ADR, so ADR-031-A2 is the correct
+  instrument. The resolution is constrained so it cannot become a general
+  weakening: §4 is untouched and strictly subordinate, the trigger list is closed
+  and cannot be extended by an agent, `12_SECURITY_BASELINE.md` is untouched,
+  `diff review` remains mandatory, and every high-risk class remains genuinely
+  unmergeable without an independent reviewer.
+- Result: **CLEAR**
