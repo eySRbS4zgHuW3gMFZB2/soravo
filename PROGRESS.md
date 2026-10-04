@@ -8551,3 +8551,85 @@ head regardless, because `strict: true`.
 The two owner decisions recorded in Blocker 2 (recurring worktree rollback —
 mechanism `UNKNOWN`) and Blocker 3 (ADR-030 "11" → 12 count correction) remain
 open and neither blocks the PR. **Not production-ready.**
+
+### T34-P — ADR-030 objective count correction "11" → 12 (documentation only)
+
+- **Date:** 2026-10-04. **Start SHA `2a126961b63813903fb16f5e38f4b6bac5ee5ade`**
+  → **End SHA `(this commit)`**. Branch `fix/t34-l-braces-dependency-remediation`.
+  `origin/main` unchanged at `ede495b5`.
+- **Correction made — count only.** ADR-030 asserted the T34-L/T34-N dependency
+  delta was "**11 changed lines**". Measured against the ADR's own stated
+  baseline `02b14773`, the real figure is **12 changed lines total
+  (4 insertions, 8 deletions)**. Corrected in the two places the number is
+  asserted: the ADR text itself
+  (`T34-O-ADR-030-SHADCN-DEV-DEPENDENCY-CLASSIFICATION.md`, *Lockfile
+  retention*) and its index entry
+  (`docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md`, ADR-030 line).
+- **ADR-030 verification — measured, not assumed.** `git diff --numstat 02b14773
+  HEAD -- package.json apps/desktop/package.json apps/website/package.json
+  pnpm-lock.yaml` = **4 added / 8 removed**. Filtering every added/removed line
+  for `tauri|vite|vitest|typescript-eslint|why-is-node-running|undici|wrangler|miniflare`
+  returns **zero hits**. No `@tauri-apps/api`, Vite, Vitest, TypeScript-ESLint or
+  `why-is-node-running` change; no unrelated dependency churn. Measured facts
+  matched the expected state, so the edit proceeded.
+- **Scope note recorded honestly.** The 4/8 measurement is the delta against
+  `02b14773` — the baseline ADR-030 itself names. Diffed against `origin/main`
+  the manifests show 10 changed lines, but that larger figure includes the
+  **unrelated** root-`package.json` lint/typecheck script and
+  `eslint`/`typescript` devDependency work from earlier tasks (T32/T33), not the
+  T34-L/T34-N shadcn remediation. The 12 belongs to the shadcn delta only.
+- **Substantive decision untouched.** Classification, accepted `braces`
+  posture, `pnpm audit --prod` = 0, the deferred `"latest"` churn class, and the
+  "authorizes no merge / no release claim" clause are all byte-identical. **No
+  ADR-031, no second ADR.**
+- **Validation actually executed:**
+  - `pnpm install --frozen-lockfile` → **exit 0**, "Already up to date".
+  - `pnpm-lock.yaml` sha256 **before == after ==
+    `585970ceb6475686b3fa2722e6083bb9c8443172fcc6ba948968ee97b0dc18a1`**.
+  - `pnpm audit --prod` → **"No known vulnerabilities found"**, exit 0.
+  - `git status --porcelain` over `pnpm-lock.yaml` + all three manifests →
+    **empty**. Dependency state unchanged; no non-frozen install, no lockfile
+    regeneration, no upgrade/downgrade/pin/override/suppression.
+  - Narrowest documentation validation available: **none exists** — no
+    markdownlint/remark/docs-lint step in `ci.yml`, `security-audit.yml`,
+    `pages-deployment.yaml` or `release.yml`. Recorded as absent, not passed.
+- **Security.** No `.npmrc`, no CI change, no Rust change, no Handy desktop
+  behaviour change, no Supabase/payment/licensing change. `release.yml` not run.
+- **Files changed (3, staged explicitly — no `git add -A`):**
+  `T34-O-ADR-030-SHADCN-DEV-DEPENDENCY-CLASSIFICATION.md` (+2/−1),
+  `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` (+1/−1), plus this
+  `PROGRESS.md` entry. 46 pre-existing untracked entries left untouched.
+- **Worktree rollback observation.** T34-O reported a second occurrence of an
+  unexplained rollback/deletion of the ratified deliverable. **Not reproduced
+  during T34-P**: `T34-O-ADR-030-SHADCN-DEV-DEPENDENCY-CLASSIFICATION.md` is
+  present and tracked at HEAD (`eeb4775`) with content intact, and `git status`
+  shows **no deletions anywhere** in the worktree. **Mechanism remains UNKNOWN;
+  no forensic investigation was attempted** and no unrelated work was deleted,
+  reset, cleaned, stashed or checked over.
+- **PR #64 live state (authenticated).** `state=OPEN` · `isDraft=false` ·
+  `mergeable=MERGEABLE` · `mergeStateStatus=BLOCKED` ·
+  `reviewDecision=REVIEW_REQUIRED` · `mergedAt=null`. Required checks
+  (`strict: true`): **`web`, `e2e`, `rust`, `desktop`**.
+- **Human approval state: 0/1.** `required_approving_review_count = 1`;
+  `reviews=[]`. No approval was requested, fabricated or bypassed. Therefore
+  **`mergeStateStatus=BLOCKED` is expected and correct** — the block is the
+  human approval gate, not a technical failure. **PR #64 NOT merged.**
+
+**Technically merge-ready; human approval required.**
+
+**Still to observe:** the checks beyond the four required contexts
+(`cargo-audit`, `cargo-deny`, `npm-audit`, and the three platform desktop
+builds) were `SUCCESS` on the pre-push head and must be re-observed on the
+pushed head. `strict: true` means any merge re-verifies the four required
+contexts on the then-current head regardless.
+
+**Not production-ready.** Separate release gates remain open regardless of this
+merge: `release.yml` exercise, signing, model licensing, benchmark evidence,
+clean-machine validation, macOS/Windows runtime transcription proof, and the
+remaining V1 gates.
+
+**Exact next action:** a human owner reviews PR #64 and records **1 approving
+review** on the current head. Once `reviewDecision=APPROVED` and the four
+required contexts are green on that exact head, an authorised agent may merge
+per the project's existing merge authorization. Nothing else is blocked on the
+documentation side; ADR-030's count is now consistent with the measured diff.

@@ -140,7 +140,8 @@ No audit weakening of any kind was used, and none is authorized:
 The `pnpm-lock.yaml` is retained **exactly** as T34-N restored it: the
 pre-T34-L resolutions, plus the six-line `shadcn` importer relocation. The
 complete T34-L/T34-N dependency delta against the pre-remediation tree
-`02b14773` is **11 changed lines, every one of them `shadcn`** — two manifest
+`02b14773` is **12 changed lines total (4 insertions, 8 deletions), every one
+of them belonging to `shadcn`** — two manifest
 lines moved and one added, and the three-line lockfile importer entry deleted
 from `apps/desktop` `dependencies`, deleted from `apps/website`
 `dependencies`, and added to `apps/website` `devDependencies`. Filtering all
