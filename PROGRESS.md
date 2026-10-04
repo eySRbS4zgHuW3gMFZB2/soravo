@@ -7825,3 +7825,253 @@ exactly one merge candidate exists.
 
 **Still deferred, unchanged:** ADR-027 (D-2156/D-2157) and ADR-028 (D-2186) —
 PROPOSED, NOT ACCEPTED; ADR-029 follow-ons; Handy upstream synchronisation.
+
+---
+
+## T34-O RE-VERIFICATION — independent governance closure pass (2026-10-04)
+
+A second T34-O session was opened to close the PR #64 governance gate. It found
+that the prior T34-O session had **already executed and published** the whole
+deliverable (`bae66d9c` + `836bb3ae`, pushed, PR #63 closed, CI green). Per
+`19_STATE_AUDIT_PROTOCOL.md` ("If VM differs from GitHub, classify and preserve
+local work before deciding what to do") and `01_AUTHORITY_AND_SOURCE_OF_TRUTH.md`
+("a statement in PROGRESS.md must be revalidated before being reused"), nothing
+below was taken on trust. Every T34-O claim was **re-derived from live GitHub,
+the working tree and the registry**, and the only change this session made to the
+repository is **this `PROGRESS.md` block**. Nothing above is deleted; this block
+appends, per `14_CI_CD_AND_BRANCHING.md` (no history rewriting).
+
+### FINDING 1 — an uncommitted rollback of the T34-O deliverable was present (corrected)
+
+On session open the tracked worktree carried **three unstaged deletions** that
+together reverted the entire T34-O governance output:
+
+| Path | Unstaged delta | Effect |
+|---|---|---|
+| `T34-O-ADR-030-SHADCN-DEV-DEPENDENCY-CLASSIFICATION.md` | **184 deletions** | ADR-030 deleted from the worktree |
+| `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md` | **1 deletion** | the ADR-030 index entry removed |
+| `PROGRESS.md` | **545 deletions** | both T34-O blocks (399 + 146) removed |
+
+Total `3 files changed, 730 deletions(-)`. The worktree `PROGRESS.md` was
+**byte-identical to `4395e725`** — the commit immediately preceding T34-O
+(`git diff --numstat 4395e725 -- PROGRESS.md` = empty). The revert was therefore
+a pure, total undo of the ratified deliverable, not a partial edit.
+
+Assessment and action:
+
+- This was **not** unrelated dirty work and **not** an owner instruction. It
+  directly contradicts the T34-O objective (ratify the classification) and the
+  already-**published** history: ADR-030 is present on
+  `origin/fix/t34-l-braces-dependency-remediation`, so GitHub and the local
+  `HEAD` already carried the ratification.
+- The delta contained **no uncommitted content of its own** — it was exclusively
+  deletions of committed bytes, so restoring it discarded nothing
+  unrecoverable. A copy was taken to
+  `/tmp/opencode/t34o/pre-restore-uncommitted-revert.patch` (755 lines) before
+  the restore.
+- Restored with `git checkout --` on **exactly those three paths**. No
+  `git add -A`, no reset, no clean, no stash, no history rewrite. The ~44
+  pre-existing untracked root files were **not touched**, and `apps/desktop/.env.example`,
+  `apps/desktop/src-tauri/tauri.toml`, `deno.lock`, `docs/archive/spec-v3/spec-v3/`
+  and `reports/` remain untracked exactly as found.
+- Post-restore `git status` shows **zero** tracked-file deltas.
+
+### FINDING 2 — every ADR-030 load-bearing claim re-verified independently
+
+All measured this session, not inherited.
+
+**Dependency scope — the operative check.** `git diff 02b14773 836bb3ae`
+(pre-remediation baseline → head) restricted to manifests and the lockfile is
+**11 changed lines, every one of them `shadcn`**: `apps/desktop/package.json` −1,
+`apps/website/package.json` −1/+1 (moved from `dependencies` to
+`devDependencies`, `^4.21.0` unchanged), `pnpm-lock.yaml` three-line importer
+entry deleted from `apps/desktop.dependencies`, deleted from
+`apps/website.dependencies`, added to `apps/website.devDependencies`. Same
+`4.21.0(supports-color@10.2.2)(typescript@6.0.3)` resolution, no re-resolution.
+`git diff --name-only 02b14773 836bb3ae -- .npmrc '**/.npmrc' '**/components.json'
+.github/workflows` returns **empty** — no `.npmrc`, no `components.json`
+removal, no CI-threshold change.
+
+Full T34-L → head range (`ee6b4420^..836bb3ae`) is **6 files**: `PROGRESS.md`,
+the new ADR-030, `20_ADR_INDEX.md`, and the three dependency files above. No
+Rust, no `Cargo.toml`/`Cargo.lock`, no workflow, no source, no test file.
+
+**Manifest positions.** `shadcn` appears in exactly one manifest, as
+`apps/website/package.json` `devDependencies: "^4.21.0"`. Absent from
+`dependencies` in all five workspace manifests; absent entirely from
+`apps/desktop/package.json`, the root `package.json`,
+`packages/payment-domain/package.json` and `services/license-api/package.json`.
+
+**Versions — each exactly one resolution.** `@tauri-apps/api` **2.12.0**,
+`@tauri-apps/cli` **2.12.0**, `vitest` **5.0.2**, `typescript-eslint` **8.70.1**,
+`why-is-node-running` **3.2.2**, `shadcn` **4.21.0**, `vite` **8.3.1**.
+Correction to a naive grep: `pnpm why vite` also matches
+`@tailwindcss/vite@4.3.3`; `vite` itself resolves to **8.3.1 only**. Both
+`apps/website` and `apps/desktop` still declare `"vite": "latest"` — untouched,
+and deferred by ADR-030.
+
+**Source classification.** A scan for `from "shadcn"`, `require("shadcn")` and
+`import("shadcn")` across every `.ts`/`.tsx`/`.js`/`.jsx` under `apps/`,
+`packages/`, `services/`, `supabase/` returns **0 matches**. A case-insensitive
+scan of `apps/desktop/src` and `apps/desktop/index.html` for `shadcn` returns
+**0 matches** — desktop has no JS import and no CSS import. The sole consumption
+is build-time: `apps/website/src/styles.css:3` = `@import "shadcn/tailwind.css";`.
+
+**Production graph.** `pnpm audit --prod` → **`No known vulnerabilities found`**,
+**exit 0**. `pnpm list braces -r --prod` → **empty**.
+
+**Development graph.** `pnpm why braces -r` → **`Found 1 version of braces`**,
+`braces@3.0.3`, one path, terminating at a devDependency:
+
+```
+braces@3.0.3 → micromatch@4.0.8 → fast-glob@3.3.3 →
+  ├─ @ts-morph/common@0.27.0 → ts-morph@26.0.0 → shadcn@4.21.0
+  │    └── @soravo/website@0.1.0 (devDependencies)
+  └─ shadcn@4.21.0 [deduped]
+```
+
+`pnpm audit --audit-level=high` (full graph) → **11 vulnerabilities,
+3 low / 5 moderate / 3 high**. The three HIGHs are `braces` ×1 (dev-only, the
+accepted residual) and `undici` ×2 via `.>wrangler>miniflare` (pre-existing,
+out of scope, untouched).
+
+**No upstream remediation exists — re-checked against the registry today.**
+`npm view braces dist-tags` → `{ latest: '3.0.3' }`; the full version list ends
+at `3.0.3`; `npm view braces@3.0.4` → **`npm error 404`**. `npm view shadcn@latest`
+→ `4.21.1`, still declaring `dependencies.fast-glob: ^3.3.3` and
+`dependencies.ts-morph: ^26.0.0`, so the `braces` path is unchanged at the
+newest published version. The accepted-risk premise in ADR-030 holds.
+
+**Validation actually executed this session.**
+
+| Check | Command | Result |
+|---|---|---|
+| Diff scoped | `git diff 02b14773 836bb3ae -- '*package.json' pnpm-lock.yaml` | 11 lines, all `shadcn` |
+| Frozen install | `pnpm install --frozen-lockfile` | **exit 0**, "Already up to date"; `pnpm-lock.yaml` sha256 `585970ce…18a1` **byte-identical** before and after; `git status` on the lockfile empty |
+| Production audit | `pnpm audit --prod` | **0 vulnerabilities**, exit 0 |
+| Full audit | `pnpm audit --audit-level=high` | 11 (3L/5M/3H) — matches ADR-030 |
+| Build-time resolution | `pnpm --filter @soravo/website build` | **exit 0**, `✓ built in 342ms` |
+| DevDep actually resolves at build | `dist/assets/index-C0PXRoxp.css` | shadcn `base-nova` tokens inlined — `--primary:oklch(28.6% .053 162.6)`, dark `--primary:oklch(69.7% .035 155.6)` |
+| No toolchain in shipped artifact | grep `braces\|micromatch\|fast-glob\|shadcn` over `apps/website/dist` | **0 files** match |
+| Tests | `pnpm --filter @soravo/website test` | **16 files / 179 tests passed**, exit 0 |
+| Manifest drift | `git status --short` (tracked) | **empty** — the build produced no tracked-file delta |
+
+### FINDING 3 — live GitHub state re-read (authenticated, `gh` per `gh-cli`)
+
+`gh auth status` → `✓ Logged in to github.com account eySRbS4zgHuW3gMFZB2
+(keyring)`, scopes `repo`, `workflow`, `read:org`, `gist`.
+
+**PR #64** — `state=OPEN`, `isDraft=false`, `headRefName=fix/t34-l-braces-dependency-remediation`,
+`headRefOid=836bb3ae5cd4135c849c51ba0030943001a1a8fe` (== local HEAD ==
+`origin/fix/t34-l-braces-dependency-remediation`; ahead/behind **0/0**),
+`mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`,
+`reviewDecision=REVIEW_REQUIRED`, `reviews=[]`, **`mergedAt=null`**,
+`changedFiles=255`.
+
+**`gh pr checks 64` → 10/10 pass** on head `836bb3ae`:
+`cargo-audit`, `cargo-deny`, `desktop`, `desktop build (Windows, x86_64-pc-windows-msvc)`,
+`desktop build (macOS, aarch64-apple-darwin)`, `desktop build (macOS, x86_64-apple-darwin)`,
+`e2e`, `npm-audit`, `rust`, `web`.
+
+**Branch protection on `main` (`GET /branches/main/protection`, authenticated):**
+
+| Setting | Value |
+|---|---|
+| `required_status_checks.strict` | **true** |
+| required contexts | **`web`, `e2e`, `rust`, `desktop`** (all four green) |
+| `required_approving_review_count` | **1** |
+| `dismiss_stale_reviews` | true |
+| `require_last_push_approval` / `require_code_owner_reviews` | false / false |
+| `allow_force_pushes` / `allow_deletions` | **false / false** |
+| `enforce_admins` | false |
+
+This confirms the T33-O reading and the prior T34-O correction — branch
+protection is **not** `UNKNOWN`. All four required contexts are satisfied; the
+**sole** remaining merge blocker is **0 of 1** approving review.
+
+**PR #63 — supersede confirmed, closure confirmed, and left closed.**
+`state=CLOSED`, `closed=true`, `closedAt=2026-10-04T00:11:14Z`,
+**`mergedAt=null`** (closed, not merged), `headRefOid=02b14773c01ab6cd5efaf7f42f15e41194751521`.
+Its closing comment is present and verbatim-correct:
+*"Superseded by PR #64, which contains the corrected T34-L/T34-N dependency
+remediation."* (author `eySRbS4zgHuW3gMFZB2`, `2026-10-04T00:11:13Z`).
+Supersede precondition re-verified: `git merge-base --is-ancestor 02b14773
+836bb3ae` → **true**; `/compare/02b14773...836bb3ae` → `status: ahead`,
+`ahead_by: 11`, `behind_by: 0`. PR #63's head is a **strict ancestor** of PR
+#64's head. **This session did not re-close, re-comment on, or otherwise touch
+PR #63** — it was already correctly closed and nothing about the live state
+called for a second action.
+
+### Start / end SHA, branch, files changed
+
+- **Start SHA** `836bb3ae5cd4135c849c51ba0030943001a1a8fe` (== the prior
+  session's published end SHA; local == remote, ahead/behind 0/0).
+- **End SHA** `d8b7ec96…` — see the commit recorded below; local == remote after
+  the fast-forward push. `origin/main` unchanged at
+  `ede495b55efd95cedd882d90a19d12b4777da852` throughout.
+- **Branch** `fix/t34-l-braces-dependency-remediation` (feature branch; `main`
+  never edited).
+- **Files changed by this session: 1** — `PROGRESS.md` (this block, insertions
+  only). **No dependency, manifest, lockfile, Rust, workflow, ADR, source or test
+  file was changed.** ADR-030 and the index entry were **not** modified — both
+  were already correct at HEAD and were restored, not rewritten. The committed
+  ratification therefore remains exactly `bae66d9c`'s content, byte-for-byte.
+
+### What was NOT done (explicit)
+
+- **PR #64 was not merged**, not queued, not auto-merged. No approval was
+  fabricated, requested on the owner's behalf, or bypassed. No branch protection
+  was circumvented.
+- **No dependency version was changed.** No non-frozen `pnpm install` was run —
+  the only install was `--frozen-lockfile`. The lockfile was not regenerated and
+  is byte-identical.
+- **No Handy desktop behaviour was changed.** No Handy-derived file, the Handy
+  pin `ba10ce19`, `Cargo.toml` or `Cargo.lock` was touched. No Handy
+  synchronisation was performed or attempted.
+- **No ADR-027 / ADR-028 implementation**, no transcription behaviour, no UI
+  redesign, no account/auth, no Supabase, no payment, no model, no licensing
+  change. `release.yml` not run. **No production-ready claim is made** — the
+  `17_RELEASE_RUNBOOK.md` preconditions remain unmet (9 V1 gates open from
+  T33-O/T34-N, `release.yml` never exercised, model licences unapproved, no
+  macOS/Windows runtime transcription proof). **Green CI is not release
+  readiness.**
+- **No audit suppression, override, `patchedDependencies`, `.npmrc`, CI
+  threshold change, fabricated package version, or `"latest"` pinning** was
+  introduced. No audit was weakened.
+
+### Blockers
+
+1. **PR #64 needs 1 human approving review — 0 of 1.** Not bypassed, not
+   manufactured, not requested on the owner's behalf. **This is the only merge
+   blocker.**
+2. **Residual dev-graph `braces` HIGH** — owner-**accepted** in ADR-030 as a
+   documented development-only supply-chain risk. Visible, un-suppressed, and
+   re-confirmed above to have no available upstream remediation. Not a blocker.
+3. **Pre-existing `undici` HIGH ×2** via `wrangler > miniflare` — out of PR #64
+   scope, byte-identical to the pre-T34-L lockfile, untouched.
+4. **Release gates** — 9 V1 gates open; `release.yml` never exercised.
+   `NOT EXECUTED`.
+
+### Exact next task
+
+**T34-P — human review and merge decision on PR #64 (human-executed).**
+All agent-reachable governance work is complete and independently
+re-verified: the ratification is recorded as ADR-030 and indexed, the
+dependency scope is 11 `shadcn` lines and nothing else, the production graph is
+clean, all four required CI contexts are green on the current head, and PR #63
+is closed so exactly one merge candidate exists.
+
+1. Review PR #64 and **approve** it (1 required), or request changes.
+2. Because `strict: true`, re-verify the four required contexts are green on the
+   then-current head immediately before merging.
+3. **Merge is a human act.** Not performed, requested, or simulated by any agent.
+
+**Separately, as a scoped owner decision with its own ADR (not blocking this
+PR):** whether to replace the floating `"latest"` dist-tag specifiers with
+pinned or caret ranges. ADR-030 defers this explicitly and it was not touched.
+
+**Still deferred, unchanged:** ADR-027 (D-2156/D-2157) and ADR-028 (D-2186) —
+PROPOSED, NOT ACCEPTED; ADR-029 follow-ons (Windows ORT baseline, VC-redist
+staging, bundle runtime transcription proof); Handy upstream synchronisation.
+
+**Not production-ready.** CI being green is not release readiness.
