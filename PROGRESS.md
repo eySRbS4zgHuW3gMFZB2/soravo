@@ -7679,3 +7679,149 @@ ranges, which needs its own ADR.
 through T33-O/T34-N (model licensing, Silero VAD asset, selected model, release
 exercise, UI truthfulness, and others), `release.yml` never exercised, and no
 macOS/Windows runtime transcription proof.
+### T34-O FINALIZATION — authenticated re-read, corrections, push, CI, PR #63 close
+
+This block **corrects three findings recorded above**, which were made from the
+**unauthenticated** REST API and a **transient credential-tool hang**. Both were
+superseded once `gh` became responsive. Nothing above is deleted; the
+corrections are recorded here per `14_CI_CD_AND_BRANCHING.md` (no history
+rewriting) and so the audit trail shows what was known when.
+
+**Root cause of the earlier blocker: transient keyring latency, not a missing
+credential.** `gh auth status` later returned instantly and reported
+`✓ Logged in to github.com account eySRbS4zgHuW3gMFZB2 (keyring)` with a
+`gho_`-scoped token carrying `repo` + `workflow` + `read:org` + `gist`. The
+credential was present in the **keyring** all along; `~/.config/gh/hosts.yml`
+simply does not store it on disk, which is why my on-disk search found nothing
+and why the earlier hangs were the keyring blocking rather than an absent
+token. `gh-cli`'s prescribed action surface was therefore usable after all, and
+it is what performed the push and the PR close below.
+
+#### CORRECTION 1 — the `mergeable_state` conflict is RESOLVED
+
+- Above, the unauthenticated read reported `mergeable_state: clean` and this
+  was flagged as an unresolved conflict against T34-M/N's `BLOCKED` +
+  `REVIEW_REQUIRED`.
+- **Authenticated read supersedes it:** `gh pr view 64` →
+  `mergeStateStatus: "BLOCKED"`, `reviewDecision: "REVIEW_REQUIRED"`,
+  `reviews: []`, `mergedAt: null`, `mergeable: "MERGEABLE"`.
+- **The T34-M/N record was correct all along.** The anonymous `mergeable_state`
+  field was misleading and is **withdrawn**. This is recorded because it is
+  concrete evidence that an unauthenticated substitute is not equivalent to the
+  authenticated surface for this decision.
+
+#### CORRECTION 2 — branch protection is NOT `UNKNOWN`; it is now read
+
+`GET /repos/{repo}/branches/main/protection` (authenticated) returns:
+
+| Setting | Value |
+|---|---|
+| `required_status_checks.strict` | **true** |
+| required status-check contexts | **`["web", "e2e", "rust", "desktop"]`** |
+| `required_approving_review_count` | **1** |
+| `dismiss_stale_reviews` | true |
+| `require_last_push_approval` | false |
+| `require_code_owner_reviews` | false |
+| `allow_force_pushes` | **false** |
+| `allow_deletions` | **false** |
+| `enforce_admins` | false |
+| `required_conversation_resolution` | false |
+
+The `UNKNOWN` recorded above is **cleared**. This matches the T33-O reading
+exactly, so that record is re-confirmed rather than stale. **The single merge
+blocker on PR #64 is the one absent approving review** — the four required
+contexts are green.
+
+#### CORRECTION 3 — the credential blocker did NOT apply; push and close succeeded
+
+Everything listed above as "not performed" under that blocker **was performed**,
+with the prescribed `gh` workflow and no workaround of any kind:
+
+- **Pushed:** `4395e725..bae66d9c` on
+  `fix/t34-l-braces-dependency-remediation`. **Fast-forward** — verified by
+  `git merge-base --is-ancestor 4395e725 bae66d9c` → true. **No force-push, no
+  amend, no history rewrite, `main` never touched.**
+- **Remote verified:** local HEAD == `origin/fix/t34-l-braces-dependency-remediation`
+  == **`bae66d9c1b353c5bd5e0644d417d33a0b3cde4f7`**. `origin/main` still
+  `ede495b55efd95cedd882d90a19d12b4777da852`. Branch **88 ahead / 0 behind**.
+- **PR #63 closed** via `gh pr close 63 --comment`, with exactly the required
+  reason: *"Superseded by PR #64, which contains the corrected T34-L/T34-N
+  dependency remediation."* `--delete-branch=false` (its head branch
+  `t31/soravo-wrapper-completion` is preserved).
+  Result: `state: "CLOSED"`, `closed: true`, `closedAt: 2026-10-04T00:11:14Z`,
+  **`mergedAt: null`** — closed, **not** merged.
+- The supersede precondition was re-verified authenticated immediately before
+  closing: `/compare/02b14773…bae66d9c` → `status: ahead`, **`ahead_by: 10`**,
+  **`behind_by: 0`**. PR #63's head is a strict ancestor of PR #64's head.
+
+#### End SHA
+
+- **Start SHA `4395e725f091df0cbc182dbe85babbd71b2520b6`** →
+  **End SHA `bae66d9c1b353c5bd5e0644d417d33a0b3cde4f7`** (local == remote).
+- Commit contents: 3 files, **584 insertions, 0 deletions** —
+  `T34-O-ADR-030-SHADCN-DEV-DEPENDENCY-CLASSIFICATION.md` (new, 184),
+  `PROGRESS.md` (this entry), `docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md`
+  (+1). **No dependency, manifest, lockfile, Rust, workflow, source or test file
+  in the commit.** Secret scan of the staged diff: no credential patterns.
+
+#### CI on the T34-O head `bae66d9c` — observed, not assumed
+
+| Run | ID | Jobs | Conclusion |
+|---|---|---|---|
+| **Security Audit** | `37164102864` | `npm-audit` 19s · `cargo-audit` 11s · `cargo-deny` 37s | **success** |
+| **CI** | `37164102865` | `web` 1m1s · `e2e` 56s · `rust` 18m7s · `desktop` 13m22s · macOS aarch64 13m40s · macOS x86_64 10m50s · Windows x86_64 14m2s | **success** |
+
+`gh pr checks 64` → **10/10 pass**. Both runs report `headSha: bae66d9c`,
+`status: completed`, `conclusion: success`. All **four required contexts**
+(`web`, `e2e`, `rust`, `desktop`) are green on the exact head being reviewed.
+
+#### Final PR #64 state
+
+`state: OPEN` · `isDraft: false` · `mergeable: MERGEABLE` ·
+`mergeStateStatus: BLOCKED` · `reviewDecision: REVIEW_REQUIRED` · `reviews: []`
+· `mergedAt: null` · `headRefOid: bae66d9c` · `changedFiles: 255` (254 + the new
+ADR file; `additions` 46,952 = 46,368 + 584).
+
+- **NOT merged. No approval fabricated, requested, or bypassed.** No branch
+  protection was circumvented. Exactly one merge candidate now exists (PR #63 is
+  closed), which was the point of closing it.
+- **Technically merge-ready: YES** — four required contexts green, mergeable,
+  no conflicts, dependency scope exactly as ratified in ADR-030.
+- **Required human approval exists: NO** — 0 of 1. This is the sole remaining
+  merge blocker and it is a human act.
+
+#### Corrected Blockers list
+
+Blockers **1** (no credential) and **2** (protection `UNKNOWN`) above are
+**RESOLVED** and closed. Blocker **3** (the `mergeable_state` conflict) is
+**RESOLVED** in favour of the T34-M/N record. What genuinely remains:
+
+1. **PR #64 needs 1 human approving review** — 0 of 1. Not bypassed, not
+   manufactured. Sole merge blocker.
+2. **Residual dev-graph `braces` HIGH** — owner-**accepted** in ADR-030, left
+   visible and un-suppressed. Not a blocker.
+3. **Pre-existing `undici` HIGH ×2** via `wrangler > miniflare` — out of scope,
+   untouched.
+4. **Release** — `release.yml` never exercised; model licences unapproved;
+   9 V1 gates from T33-O/T34-N still open. `NOT EXECUTED`. **Not
+   production-ready.**
+
+#### Corrected exact next task
+
+**T34-P — human review and merge decision on PR #64 at head `bae66d9c`
+(human-executed).** All agent-reachable preparation is now complete: the
+ratification is recorded (ADR-030), the dependency scope is verified and
+minimal, all required CI is green on the current head, and PR #63 is closed so
+exactly one merge candidate exists.
+
+1. Review PR #64 and **approve** it (1 required), or request changes.
+2. Re-verify the four required contexts are green on the then-current head
+   before merging (`strict: true`, so the check must be current).
+3. **Merge is a human act.** Not performed, requested, or simulated here.
+4. After merge: verify `main` CI green.
+
+**Separately (owner decision, own ADR, not blocking):** whether to replace the
+`"latest"` dist-tag specifiers with pinned or caret ranges.
+
+**Still deferred, unchanged:** ADR-027 (D-2156/D-2157) and ADR-028 (D-2186) —
+PROPOSED, NOT ACCEPTED; ADR-029 follow-ons; Handy upstream synchronisation.
