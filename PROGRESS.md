@@ -10580,3 +10580,581 @@ item **O-5** (root pack reconciliation), the last known stale governance surface
   `diff review` remains mandatory, and every high-risk class remains genuinely
   unmergeable without an independent reviewer.
 - Result: **CLEAR**
+
+---
+
+## T34-V — VERIFY PR #65 MERGE READINESS (2026-10-04)
+
+**TASK ID:** T34-V
+**Objective:** Perform the final merge-readiness verification for PR #65 against
+live state and against ADR-031 §5.5. **Do not merge it.**
+**Branch:** `t34-p-owner-merge-policy` (existing PR #65 branch; no new branch)
+**Date:** 2026-10-04
+**Outcome:** **MERGE-READY — NOT MERGED.** The §5.5 step-4 classification
+recording was found missing, was added, and was re-verified live. No source
+change, no governance change, no force-push, no rebase, no history rewrite, no
+branch-protection mutation, no merge, no `git add -A`.
+
+### Skill selection (performed, and used)
+
+| Skill | Why selected | How it was used |
+|---|---|---|
+| `gh-cli` | All implementation truth is GitHub state; unauthenticated fetches are rate-limited and untrustworthy. | Every PR, comment, review, ref, run, job and branch-protection fact below was read through authenticated `gh` / `gh api`, not `curl`/`webfetch`. |
+| `github` | Supplies the check/run/step/log inspection sequence used to prove the security gates *executed* rather than merely reported `success`. | `gh pr checks`, `gh api .../actions/runs/<id>`, `.../jobs`, and `gh run view --job --log` were used to read step-level timings and raw audit output. |
+| `supply-chain-risk-auditor` | Candidate for the dependency/audit half of the verification. | **Inspected and declined for execution.** The skill states it supports npm, PyPI and Go only, and that other ecosystems must be reported as unsupported rather than improvised. This repository is Cargo + pnpm, so its collector would not parse either graph. Its coverage discipline was nevertheless applied: the advisory and licence claims below are quoted from the executed CI gates, not inferred from an absent measurement. |
+
+Also inspected and declined: `semgrep`/`codeql`/`securability-engineering`/
+`security-guidance` — no source is changed by this task, so there is nothing
+for a local SAST pass to scan that CI has not already scanned on the PR head.
+
+### 1. PR #65 exact current HEAD
+
+| Fact | Value |
+|---|---|
+| PR #65 head SHA (live, `gh pr view`) | `e82ad98ba79947b32f18e161d8a9b8c1ddabe94d` |
+| Branch head ref | `t34-p-owner-merge-policy` |
+| `origin/t34-p-owner-merge-policy` | `e82ad98ba79947b32f18e161d8a9b8c1ddabe94d` — **identical to the PR head** |
+| Local `HEAD` | `e82ad98ba79947b32f18e161d8a9b8c1ddabe94d` — identical |
+| `main` HEAD (live `gh api .../git/ref/heads/main`) | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` |
+| `origin/main` is ancestor of head | **true** — required by `required_status_checks.strict: true` |
+
+No new commit was created by this task, so the head that was verified is still
+the head.
+
+### 2. PR #65 is OPEN, CLEAN, MERGEABLE
+
+| Field | Live value |
+|---|---|
+| `state` | `OPEN` |
+| `mergedAt` | `null` — **not merged** |
+| `isDraft` | `false` |
+| `baseRefName` | `main` |
+| `mergeable` | `MERGEABLE` |
+| `mergeStateStatus` | **`CLEAN`** |
+| `reviewDecision` | `""` (empty) |
+| labels | `[]` — the `requires-independent-review` label is **not** present |
+| `changedFiles` / additions / deletions | 7 / 2842 / 1 |
+| `mergeStateStatus` after the classification comment | `CLEAN` — unchanged by the comment |
+
+### 3. All required checks green and head-bound
+
+CI run **`37199671685`** — `status: completed`, `conclusion: success`,
+`event: pull_request`, `run_attempt: 1`, and **`head_sha` ==
+`e82ad98ba79947b32f18e161d8a9b8c1ddabe94d`** == the PR head. The checks are
+therefore bound to this head and were not inherited from an earlier base.
+
+| Required / observed check | Conclusion | Duration | Job |
+|---|---|---|---|
+| `web` | `pass` | 1m1s | 111428584355 |
+| `e2e` | `pass` | 54s | 111428584305 |
+| `rust` | `pass` | 18m31s | 111428584265 |
+| `desktop` | `pass` | 11m52s | 111428584322 |
+| `desktop build (Windows, x86_64-pc-windows-msvc)` | `pass` | 18m52s | 111428584315 |
+| `desktop build (macOS, aarch64-apple-darwin)` | `pass` | 10m45s | 111428584196 |
+| `desktop build (macOS, x86_64-apple-darwin)` | `pass` | 13m20s | 111428584307 |
+
+**7/7 pass.** All four `required_status_checks` contexts (`web`, `e2e`, `rust`,
+`desktop`) are present and green. Every job conclusion is `success`; no job is
+`skipped`, `cancelled`, or `neutral`.
+
+### 4. Security / audit checks green **and genuinely executed**
+
+Execution was proven from step-level timings and raw log output, not from the
+`success` conclusion alone. Job `rust` (111428584265), full step list:
+
+| Step | Window (UTC) | Conclusion | Execution proof from the run log |
+|---|---|---|---|
+| `cargo fmt --all -- --check` | 11:44:32 → 11:44:33 | `success` | ran; no `Diff in` output |
+| `cargo clippy --workspace --all-targets -- -D warnings` | 11:44:33 → 11:52:26 | `success` | 7m53s of real workspace compile under `-D warnings` |
+| `cargo test --workspace` | 11:52:26 → 12:01:02 | `success` | per-binary `test result: ok` lines; **360 passed, 0 failed, 0 `FAILED` lines** |
+| `cargo audit --deny warnings --ignore …` | 12:01:02 → 12:01:07 | `success` | `Fetching advisory database from https://github.com/RustSec/advisory-db.git`; `Loaded 1290 security advisories`; `Scanning Cargo.lock for vulnerabilities (812 crate dependencies)`; no vulnerability reported |
+| `cargo deny check` (`cargo-deny-action` post step) | 12:01:23 → 12:01:24 | `success` | `advisories ok, bans ok, licenses ok, sources ok` |
+
+Job `web` (111428584355):
+
+| Step | Window (UTC) | Conclusion | Execution proof |
+|---|---|---|---|
+| `pnpm audit --prod` | 11:44:03 → 11:44:04 | `success` | **`No known vulnerabilities found`** |
+
+`cargo deny` emitted only `warning[duplicate]` (duplicate lockfile entries) and
+`warning[advisory-not-detected]` (a `deny.toml` ignore whose advisory was not
+encountered). Both are warnings; neither is a finding, and neither was
+suppressed by this task.
+
+**No suppression was added.** `.github/**` is **unchanged** between
+`origin/main` and the PR head (`git diff origin/main...HEAD -- .github/workflows/`
+is empty), so the 13 `--ignore` entries on the `cargo audit` line are the
+pre-existing list carried over from main, unchanged. `deny.toml` is unchanged.
+
+### 5. Risk-classification recording — was **missing**, now present
+
+ADR-031 §5.5 step 4 requires, before merge, the literal line
+`risk-classification: normal (ADR-031 §5.5)` **plus the list of HR trigger ids
+tested**, recorded on the pull request; and states that if it is absent the
+classification is missing, **STOP, and do not merge**.
+
+Live state at the start of this task:
+
+| Probe | Result |
+|---|---|
+| `gh pr view 65 --json comments` | **empty** |
+| `GET /pulls/65/comments` | **0** |
+| `GET /issues/65/comments` | **0** |
+| `GET /pulls/65/reviews` | **0** |
+| Timeline event counts | `committed: 11`, and nothing else |
+
+The recording was therefore **absent**. T34-U listed it as a remaining owner
+action; it had not been performed. **One line was added — the exact text
+T34-U §5 specified, and nothing else:**
+
+```
+risk-classification: normal (ADR-031 §5.5) — HR-1..HR-8 tested, none matched (diff is Markdown-only and wholly additive)
+```
+
+Posted to https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/65#issuecomment-5979850519
+
+Re-read live after posting (authoritative `GET /issues/65/comments`):
+
+```
+id=5979850519 author=eySRbS4zgHuW3gMFZB2 created=2026-10-04T12:19:42Z
+body=[risk-classification: normal (ADR-031 §5.5) — HR-1..HR-8 tested, none matched (diff is Markdown-only and wholly additive)]
+```
+
+The comment is live, is the sole comment on the PR, carries the required literal
+line, and names the trigger ids tested. It is a comment by the repository owner —
+it is **not** a review, and no review was created.
+
+**PR #65 was not merged.** `mergedAt` was `null` before and after.
+
+### 6. ADR-031 §5.5 classification requirement — satisfied
+
+The §5.5 test was re-run independently against the **actual diff** at the head
+SHA (`git diff origin/main...e82ad98b`), not read back from §5.8's own record.
+`--numstat` over the whole diff:
+
+```
+1947  0  PROGRESS.md
+ 593  0  T34-P-ADR-031-OWNER-MERGE-POLICY.md
+  91  1  docs/Soravo_Engineering_Docs_v6/09_AI_AGENT_INSTRUCTIONS.md
+   6  0  docs/Soravo_Engineering_Docs_v6/13_DEFINITION_OF_DONE_AND_QA.md
+ 197  0  docs/Soravo_Engineering_Docs_v6/14_CI_CD_AND_BRANCHING.md
+   4  0  docs/Soravo_Engineering_Docs_v6/17_RELEASE_RUNBOOK.md
+   4  0  docs/Soravo_Engineering_Docs_v6/20_ADR_INDEX.md
+```
+
+All seven paths are `.md`. No source file, no workflow, no lockfile, no
+`deny.toml`, no `.env`, no test, no secret, no configuration.
+
+| # | HR trigger | Verdict | Basis, from the live diff |
+|---|---|---|---|
+| HR-1 | Security-boundary implementation | **No** | Every changed path is Markdown. Zero changes under `apps/`, `crates/`, `services/`, `packages/`, `supabase/`. |
+| HR-2 | CI / release / deployment definition | **No** | `git diff origin/main...HEAD -- .github/` is **empty**. No workflow, job, gate, or trigger altered. |
+| HR-3 | Repository-protection mutation | **No** | Zero API mutations to the protection endpoint this task (read-only `GET`). `12_SECURITY_BASELINE.md` untouched. |
+| HR-4 | Dependency admission | **No** | No `Cargo.lock`, `pnpm-lock.yaml`, `package.json`, `deny.toml`, or registry/source/licence change. The `cargo audit` `--ignore` list is byte-identical to main. |
+| HR-5 | Handy-derived desktop core | **No** | No Handy-derived source or preserved upstream test in the diff. |
+| HR-6 | Secrets / environment / signing | **No** | `15_ENVIRONMENT_AND_SECRETS.md` untouched; no `.env*`; no secret or signing change. |
+| HR-7 | Removal or relaxation of a control | **No** | The diff contains **exactly one deleted line** across 2842 added. It is `-- force-push shared history.` → `-- force-push shared history;`, a punctuation change that turns the bullet into a list opener for **four new prohibitions** (no fabricated review; no neutralising a required check; no bypass/admin escape hatch; and the force-push ban itself, now explicit). Nothing is deleted, commented out, inverted, or made optional. `Forbidden` and `Stop conditions` in `09_AI_AGENT_INSTRUCTIONS.md` both **grow**. |
+| HR-8 | Owner designation | **No** | `labels: []` — `requires-independent-review` is not present, and the owner designated this change normal-risk in writing (ADR-031-A2, §5.8). |
+
+**Classification: `risk-classification: normal (ADR-031 §5.5)` — NR.** None of
+HR-1…HR-8 matched. No trigger was ambiguous, so the "ambiguity fails safe"
+clause was not engaged.
+
+§5.5 step 4 is now satisfied on the PR itself. §5.7's subordination clause holds:
+no CI, security, or audit failure is being bypassed; no required check was
+disabled, renamed, made optional, or "expected".
+
+### 7. Live branch protection, re-read
+
+`GET /repos/eySRbS4zgHuW3gMFZB2/soravo/branches/main/protection` at
+2026-10-04, read fresh this task:
+
+| Setting | Live value | Changed this task |
+|---|---|---|
+| `required_status_checks.contexts` | `[web, e2e, rust, desktop]` (all `app_id 15368`) | **NO** |
+| `required_status_checks.strict` | `true` | **NO** |
+| `required_approving_review_count` | `0` | **NO** |
+| `dismiss_stale_reviews` | `true` | **NO** |
+| `require_code_owner_reviews` | `false` | **NO** |
+| `require_last_push_approval` | `false` | **NO** |
+| `allow_force_pushes` | `false` | **NO** |
+| `allow_deletions` | `false` | **NO** |
+| `enforce_admins` | `false` | **NO** |
+| `required_signatures` | `false` | **NO** |
+| `required_linear_history` | `false` | **NO** |
+| `lock_branch` / `block_creations` | `false` / `false` | **NO** |
+
+Byte-for-byte the same posture T34-U recorded. This task issued **one** request to
+this endpoint — a `GET`. No `PATCH`, `PUT`, `POST`, or `DELETE`. Branch
+protection was not mutated.
+
+`enforce_admins: false` means an admin *could* bypass. That capability was
+**not used**: no bypass, no admin override, no "merge without waiting", no
+required-check neutralisation. `required_approving_review_count: 0` reflects the
+single collaborator and removes no §4 protection.
+
+### 8. No bypass, admin override, force-push, or fabricated review
+
+| Control | Evidence |
+|---|---|
+| No fabricated review | `GET /pulls/65/reviews` → **0**, before and after. `reviewDecision: ""`. No self-approval, no impersonation, no agent-authored review. |
+| No review comments | `GET /pulls/65/comments` → **0**. |
+| No force-push | Local reflog shows only `commit` / `commit (merge)` entries; remote reflog shows only `update by push` with monotonically increasing SHAs. Every previously-pushed tip remains an ancestor of the current tip (`c8076519`, `7ff235a5`, `2f587709`, `5743a0c9` all verified ancestors; `git rev-list --ancestry-path` returns 10). A force-push would have orphaned at least one of these. |
+| No rebase / amend / history rewrite | `git log --merges origin/main..HEAD` shows one commit: `5743a0c9 merge(main): sync PR #65 branch with post-merge main aa4cc8e8` — a synchronization **merge**, which is what ADR-031 §5.7 requires instead of rewriting shared history. |
+| No direct `main` edit | `main` is `aa4cc8e8`, the PR #64 merge commit; this task pushed nothing to `main`. |
+| No `git add -A` | The 44 pre-existing untracked paths are all still present and unmodified; only `PROGRESS.md` was edited, and it is an already-tracked path edited directly. |
+| This entry is **not committed and not pushed** | Deliberate. `PROGRESS.md` is inside PR #65, so committing this entry would advance the branch tip and invalidate run `37199671685`, the run that constitutes the merge-readiness evidence — the exact regress the T34-T addendum and T34-U record. The verified head therefore stays `e82ad98b`, and this entry remains as an uncommitted working-tree change for a later task to land. |
+| No branch-protection mutation | One `GET` only (see §7). |
+| No merge | `mergedAt: null`. |
+| No source change | The 7 changed paths are all Markdown; this task edited only `PROGRESS.md`. |
+
+The one issue comment added is a **classification record**, authored by the
+owner, in the exact form ADR-031 §5.5 step 4 prescribes. It is not a review, it
+grants no approval, and it is not presented as one.
+
+### 9. PR #64 remains merged and untouched
+
+| Fact | Live value |
+|---|---|
+| `state` | `MERGED` |
+| `mergedAt` | `2026-10-04T08:31:00Z` (unchanged) |
+| `mergeCommit.oid` | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` — **is** the current `main` |
+| head SHA | `1cf65c02e5763fc80ab93d990bb9cf3a4d7ff351` |
+| Title | `fix(t34-l): reclassify shadcn as devDependency to remediate braces vulnerability` |
+| Mutated by this task | **No.** No comment, no review, no label, no push, no close/reopen. |
+
+### 10. SPEC_MANIFEST `file_count: 24`
+
+Canonical pack: `docs/Soravo_Engineering_Docs_v6/SPEC_MANIFEST.json`.
+
+| Check | Result |
+|---|---|
+| declared `file_count` | **24** |
+| `read_order` entries | **24**, keys contiguous `1…24` |
+| `files[]` entries | **24**, equal to `read_order` values in order |
+| manifest entries missing on disk | **0** (all 24 present) |
+| directory entries | **26** = 24 manifest entries + 2 disclosed extras |
+| the 2 extras | `22_IMPLEMENTATION_COMPLETION_MATRIX.md`, `22_IMPLEMENTATION_COMPLETION_MATRIX_UPDATE.md` |
+| extras disclosed in `00_README.md` | **yes** — lines 131–142 declare them non-control-plane, not read by the gate, and state the manifest is "not amended to absorb them" |
+| manifest vs `00_README.md` diff against `origin/main` | **empty — byte-identical to main** |
+
+`file_count: 24` is **exact and verified**. The manifest was not changed and did
+not need to be: ADR-031-A2 added no pack document.
+
+### Status by category
+
+- **Implemented / verified:** PR #65 head `e82ad98b` confirmed against
+  `origin/t34-p-owner-merge-policy` and live `gh pr view`; `OPEN` / `CLEAN` /
+  `MERGEABLE` / `mergedAt: null`; 7/7 checks green and head-bound to
+  `e82ad98b` on run `37199671685`; `cargo fmt`, `clippy`, `cargo test` (360
+  passed / 0 failed), `cargo audit` (1290 advisories, 812 crates), `cargo deny`
+  (`advisories/bans/licenses/sources ok`) and `pnpm audit --prod` (`No known
+  vulnerabilities found`) all proven executed from live logs; the §5.5 HR-1…HR-8
+  test re-run against the actual diff — none matched; branch protection re-read
+  live and unmutated; PR #64 `MERGED` and untouched; `SPEC_MANIFEST`
+  `file_count: 24` exact.
+- **Added this task:** the single ADR-031 §5.5 step-4 classification comment on
+  PR #65 (`issuecomment-5979850519`), plus this `PROGRESS.md` entry.
+- **Blocked:** nothing.
+- **Not executed (deliberately):** merge — prohibited by the task and by
+  ADR-031 §5.7's subordination clause; owner-merge remains a **separate owner
+  decision**. No release gate was evaluated and none is closed by this task.
+- **Deferred:** the standing limitation from ADR-031 §5.9 — GitHub branch
+  protection cannot express a *conditional* review requirement, so an HR change
+  still cannot obtain an independent approval and must **STOP and report** until
+  the owner grants a second person review access. Unchanged, and not something
+  this task could or did resolve.
+- **Residual, non-blocking:** the `cargo deny` `warning[duplicate]` and
+  `warning[advisory-not-detected]` notices, and the 13 pre-existing
+  `cargo audit` `--ignore` entries inherited from main. None was added or
+  altered by this task. Recorded as pre-existing main state, not a PR #65 defect.
+
+### Merge-readiness verdict
+
+**PR #65 IS MERGE-READY. IT HAS NOT BEEN MERGED.**
+
+Every §4 protection holds: the four required checks are green and head-bound,
+all three security/audit gates genuinely executed and returned green, no bypass
+or admin override was used, no history was rewritten, and no review was
+fabricated. ADR-031 §5.5's classification requirement was **not** satisfied at
+the start of this task and is **now** satisfied by a live comment on the PR;
+had it not been dischargeable, §5.5 step 4 required STOP.
+
+**Next task:** an owner decision on whether to merge PR #65 on the ordinary
+path (`gh pr merge 65 --merge`). That merge is the owner's to perform; this
+task does not perform it and has not been asked to. Standing follow-up
+unchanged: grant a second person repository **read** access before the next
+high-risk change is authored — the agent will not grant access to anyone.
+Suggested task id: **T34-W**.
+
+---
+
+## T34-W — MERGE PR #65 (2026-10-04)
+
+**TASK ID:** T34-W
+**Objective:** Re-verify every merge prerequisite live (not from T34-V), then
+merge PR #65 on the ordinary path, then confirm post-merge CI on `main` and
+synchronize this file.
+**Branch used for the merge:** `t34-p-owner-merge-policy` (the existing PR #65
+branch — no new branch for the merge itself)
+**Branch used for this PROGRESS.md entry:** `t34-w-progress-md-merge-record`
+**Date:** 2026-10-04
+**Outcome:** **PR #65 MERGED.** Merge commit **`cc1263db`**. `origin/main`
+advanced `aa4cc8e8` → **`cc1263db`**. Post-merge CI **7/7 green** on the merge
+commit. No bypass, no admin override, no force-push, no history rewrite, no
+fabricated review, no branch-protection mutation, no direct commit to `main`.
+
+### Skill selection (performed, and used)
+
+| Skill | Why selected | How it was used |
+|---|---|---|
+| `gh-cli` | All truth here is GitHub state. Unauthenticated fetches are rate-limited and untrustworthy for a merge decision. | Every PR, ref, comment, review, run, job, step and protection fact in this entry was read through authenticated `gh` / `gh api` (`gh auth status` confirmed as `eySRbS4zgHuW3gMFZB2` with `repo` + `workflow` scope). No `curl`, no `webfetch`, no unauthenticated call was used. |
+| `github` | Supplies the check/run/job/step/log inspection sequence required to prove the security gates **executed** rather than merely reporting `success`. | `gh pr checks`, `gh pr view --json`, `gh run list`, `gh run watch --exit-status`, `gh api .../actions/runs/<id>`, `.../runs/<id>/jobs`, `.../jobs/<id>` and `gh run view --job --log` were used to read the run, its seven jobs, their step-level windows, and the raw `cargo-deny` / `pnpm audit` output. |
+
+Inspected and **declined**: `semgrep`, `codeql`, `securability-engineering`,
+`security-guidance` — this task changes no source, so there is nothing for a
+local SAST pass to scan that the CI run on the merge commit did not already
+scan. Declining them is a coverage judgement, not an omission: the SAST posture
+for this merge is exactly the posture CI enforces on every `main` push.
+
+### 1. Fresh verification — every prerequisite re-read live before merging
+
+Nothing below was taken from T34-V. Every value was re-read from GitHub or from
+a fresh `git fetch` at the time of this task.
+
+| # | Prerequisite | Fresh value | Verdict |
+|---|---|---|---|
+| 1 | PR #65 exact HEAD | `e82ad98ba79947b32f18e161d8a9b8c1ddabe94d` | **PASS** — identical to T34-V |
+| 2 | PR #65 OPEN / CLEAN / MERGEABLE | `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, `isDraft=false`, `mergedAt=null`, base `main` | **PASS** |
+| 3 | Required checks green **and head-bound** | run `37199671685`, `event=pull_request`, `status=completed`, `conclusion=success`, **`head_sha=e82ad98b…` == PR head** | **PASS** — 7/7 |
+| 4 | Risk-classification comment present | comment `id=5979850519`, author `eySRbS4zgHuW3gMFZB2`, created `2026-10-04T12:19:42Z`, sole comment on the PR | **PASS** |
+| 5 | Branch protection unchanged, 0 approvals | contexts `[web, e2e, rust, desktop]`, `strict: true`, `required_approving_review_count: 0`, `allow_force_pushes: false`, `allow_deletions: false`, `enforce_admins: false`, `dismiss_stale_reviews: true`, `require_code_owner_reviews: false`, `require_last_push_approval: false`, `required_signatures: false`, `required_linear_history: false` | **PASS** — one `GET` only; zero `PATCH`/`PUT`/`POST`/`DELETE` |
+| 6 | No new commits since T34-V | PR head == `origin/t34-p-owner-merge-policy` == local `HEAD` == `e82ad98b`; tip commit is still `docs(t34-u): synchronize PROGRESS.md…` | **PASS** — nothing appeared |
+| 7 | `main` SHA unchanged | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` via both `git rev-parse origin/main` and `GET /git/ref/heads/main` | **PASS** |
+
+Two further facts were re-derived from the live diff rather than read back from
+ADR-031 §5.8, so the classification was re-tested independently:
+
+- `git diff --numstat aa4cc8e8...e82ad98b` → 7 files, `+2842 / −1`. Every one of
+  the 7 paths ends `.md`. `git diff --name-only … | grep -v '\.md$'` returned
+  **nothing**.
+- `git diff --stat aa4cc8e8...e82ad98b -- .github/` → **0 lines**.
+- `git merge-base --is-ancestor aa4cc8e8 e82ad98b` → **true**, so M3
+  (`strict`) was satisfied by real ancestry, not by a stale-check illusion.
+
+ADR-031 §5.5 classification therefore still stands on the evidence, not on
+memory: HR-1 no (Markdown only), HR-2 no (`.github/` untouched), HR-3 no (no
+protection mutation), HR-4 no (no lockfile / `deny.toml` / dependency change),
+HR-5 no (no Handy core), HR-6 no (no `.env*`, no secrets, no signing), HR-7 no
+(the single deleted line is the `-- force-push shared history.` →
+`…shared history;` punctuation change that opens a list of **four added**
+prohibitions), HR-8 no (`labels: []`). **NR.**
+
+Also confirmed unchanged: `SPEC_MANIFEST.json` in the canonical pack declares
+**`file_count: 24`** and has a **zero-line diff** against `origin/main`, so the
+manifest was not amended by this merge. PR #64 remained `MERGED`
+(`mergeCommit=aa4cc8e8`) and was not touched.
+
+### 2. The merge
+
+Exactly one command, on the ordinary path:
+
+```
+gh pr merge 65 --repo eySRbS4zgHuW3gMFZB2/soravo --merge
+```
+
+Explicitly **not** used: `--admin`, `--auto`, any admin-enforcement override,
+"merge without waiting for requirements to be met", any force-push, any rebase,
+any amend, any branch-protection write, any direct commit to `main`, and any
+fabricated, synthesized, self-created or impersonated review. Reviews on PR #65
+were **0** before the merge and remain **0** — the merge consumed no approval,
+because none was needed and none was invented.
+
+### 3. Merge result — verified
+
+| Fact | Value |
+|---|---|
+| PR #65 state | **`MERGED`** |
+| `mergedAt` | `2026-10-04T12:28:31Z` |
+| `mergedBy` | `eySRbS4zgHuW3gMFZB2` (the repository owner — an owner self-merge, exactly what ADR-031 §2 and §5.7 authorize for an NR change) |
+| **Merge commit** | **`cc1263db6c7bb1be5915e538ae29ff22b800158a`** |
+| Parent 1 | `aa4cc8e8dc6b2e59d89c9cacfe2cbe1597bb067d` (previous `main`) |
+| Parent 2 | `e82ad98ba79947b32f18e161d8a9b8c1ddabe94d` (the verified PR head) |
+| Commit shape | a genuine **two-parent merge commit** — `--merge` strategy, not squash, not rebase, not fast-forward |
+| Signature | GPG-signed by GitHub (`gpgsig` present in the raw commit object) |
+| **`main` before → after** | `aa4cc8e8` → **`cc1263db6c7bb1be5915e538ae29ff22b800158a`** |
+
+`origin/main` was re-fetched after the merge and reports
+`aa4cc8e8..cc1263db main -> origin/main`. `git log --oneline -3 origin/main`
+shows `cc1263db` at the tip with `e82ad98b` immediately beneath it, so the
+verified head is an ancestor of the new `main` tip — nothing was dropped.
+
+The PR branch `t34-p-owner-merge-policy` was **not** deleted. Deleting it was not
+requested and is not required; the recovery path is retained deliberately.
+
+### 4. Post-merge CI on `main` — 7/7 green on the merge commit
+
+Run **`37202228665`** — `name: CI`, `event: push`, `branch: main`,
+`run_attempt: 1`, `status: completed`, **`conclusion: success`**,
+**`head_sha = cc1263db6c7bb1be5915e538ae29ff22b800158a`** == the new `main`
+tip. The run is therefore bound to the merge commit itself, not inherited from
+the PR run.
+
+| Job | Conclusion | Window (UTC) |
+|---|---|---|
+| `web` | **success** | 12:28:38 → 12:29:37 |
+| `e2e` | **success** | 12:28:39 → 12:29:34 |
+| `rust` | **success** | 12:28:36 → 12:41:05 |
+| `desktop` | **success** | 12:28:38 → 12:41:10 |
+| `desktop build (Windows, x86_64-pc-windows-msvc)` | **success** | 12:28:37 → 12:51:01 |
+| `desktop build (macOS, aarch64-apple-darwin)` | **success** | 12:28:47 → 12:44:36 |
+| `desktop build (macOS, x86_64-apple-darwin)` | **success** | 12:28:42 → 12:37:48 |
+
+**All four required contexts — `web`, `e2e`, `rust`, `desktop` — are green.**
+Every job is `completed/success`; **no job is `skipped`, `cancelled`, `neutral`
+or `queued`**. The second `main` run, `37202228697` (`Deploy website to
+Cloudflare Pages`, `event: push`, `head_sha=cc1263db`), is also
+**completed/success**.
+
+### 5. Security and quality gates — proven to EXECUTE, not merely to report
+
+Execution is evidenced by step-level windows and raw log output, not by a
+`success` conclusion alone. Job `rust` = `111436097683`, job `web` =
+`111436097718`. **Every step below is `success`; none was skipped or neutral.**
+
+| Step | Window (UTC) | Conclusion | Execution proof from the run log |
+|---|---|---|---|
+| `cargo fmt --all -- --check` | 12:29:35 → 12:29:36 | `success` | ran; **0 occurrences of `Diff in`** anywhere in the 15 694-line job log |
+| `cargo clippy --workspace --all-targets -- -D warnings` | 12:29:36 → 12:34:43 | `success` | **266 `Checking …` lines**, including every `soravo-*` workspace crate (`soravo-config`, `soravo-hotkeys`, `soravo-transcript`, `soravo-history`, `soravo-vad`, `soravo-licensing`, `soravo-stt`, `soravo-scheduler`, `soravo-diagnostics`, …); terminal `Finished \`dev\` profile … in 5m 07s`; **0 `generated N warnings` and 0 `error` lines** under `-D warnings` |
+| `cargo test --workspace` | 12:34:43 → 12:40:22 | `success` | **29 test binaries, 360 tests passed, 0 failed, 0 ignored-failures; 0 `FAILED` and 0 `panicked` lines** in the whole log. Same 360 as the pre-merge run. |
+| `cargo audit --deny warnings --ignore …` | 12:40:23 → 12:40:27 | `success` | `Fetching advisory database from \`https://github.com/RustSec/advisory-db.git\``; **`Scanning Cargo.lock for vulnerabilities (812 crate dependencies)`**; step exited clean with **no vulnerability reported** |
+| `cargo deny check` (`EmbarkStudios/cargo-deny-action@v2`) | action built 12:28:37 → 12:28:53; check ran 12:40:44 | `success` | raw output ends **`advisories ok, bans ok, licenses ok, sources ok`** |
+| `pnpm install --frozen-lockfile` | 12:28:51 → 12:28:51→12:28:51 | `success` | lockfile install accepted; `desktop` also runs an explicit "Assert lockfiles unchanged" step |
+| `pnpm lint` | 12:28:51 → 12:29:00 | `success` | ran |
+| `pnpm typecheck` | 12:29:00 → 12:29:09 | `success` | ran |
+| `pnpm test` | 12:29:09 → 12:29:27 | `success` | ran |
+| `pnpm build` | 12:29:27 → 12:29:34 | `success` | ran |
+| **`pnpm audit --prod`** | 12:29:34 → 12:29:35 | `success` | **`No known vulnerabilities found`** |
+
+**No suppression was added, removed, or altered by this merge.** The 13
+`--ignore` entries on the `cargo audit` line and the 8 `ignore` reasons in
+`deny.toml` are the pre-existing lists inherited from `main`; `.github/**` and
+`deny.toml` have a zero-line diff across this merge, so they are provably
+untouched. `cargo deny` emitted only `warning[duplicate]` and
+`warning[advisory-not-detected]` — both are pre-existing notices (duplicate
+lockfile entries; `deny.toml` ignore entries whose advisory was not
+encountered), neither is a finding, and neither was silenced.
+
+M7 is therefore satisfied by execution, not by assertion: `cargo-audit`,
+`cargo-deny` and `npm-audit` all ran on the merge commit and all returned green.
+
+### 6. Classification, controls, and what was deliberately NOT done
+
+- **§5.5 step 4** was satisfied *before* the merge by the live comment, and was
+  not created, edited, or re-worded by this task. Its text is unchanged:
+  `risk-classification: normal (ADR-031 §5.5) — HR-1..HR-8 tested, none matched (diff is Markdown-only and wholly additive)`.
+- **§4 subordination** held. No CI, security, or audit failure was bypassed —
+  there was none. No required check was disabled, renamed, made optional, or
+  marked "expected". Branch protection was read twice (before and after) and
+  written **zero** times; its post-merge payload is byte-equivalent on every
+  field checked: contexts `[web, e2e, rust, desktop]`, `strict: true`,
+  approvals `0`, force-push `false`, deletions `false`, `enforce_admins`
+  `false`.
+- **No fabricated review.** PR #65 had 0 reviews and ended with 0 reviews. The
+  merge was performed by the owner account under §2/§5.7 for an NR change, not
+  by satisfying a review requirement.
+- **§6 is untouched.** This merge is a source merge into `main` only. It
+  asserts **no** production readiness, closes **no** release gate, and
+  satisfies **no** precondition in `17_RELEASE_RUNBOOK.md`. Signing
+  credentials, model licences, payment E2E verification, and Razorpay LIVE
+  approval all remain exactly as they were.
+- **This task edited no application code.** The only file written is this
+  `PROGRESS.md`.
+- **Staging discipline.** `git add -A` was **not** used. Only `PROGRESS.md` is
+  staged. All 45 unrelated untracked paths (T22–T34 task reports, `reports/`,
+  `apps/desktop/.env.example`, `apps/desktop/src-tauri/tauri.toml`,
+  `deno.lock`, `docs/archive/spec-v3/`) remain untracked and unmodified.
+- **No direct commit to `main`.** ADR-031 §2 M1 requires a change to arrive
+  through a pull request, so this record was committed on a dedicated branch
+  and submitted as its own pull request rather than pushed to `main`.
+
+### 7. Status by obligation
+
+**Implemented and verified**
+- ADR-031 owner-merge policy is now **in `main`**. The canonical control plane
+  (`14_CI_CD_AND_BRANCHING.md`, `09_AI_AGENT_INSTRUCTIONS.md`,
+  `20_ADR_INDEX.md`, `13_DEFINITION_OF_DONE_AND_QA.md`, `17_RELEASE_RUNBOOK.md`)
+  and the ADR record (`T34-P-ADR-031-OWNER-MERGE-POLICY.md`) are merged at
+  `cc1263db`.
+- PR #65 merged on the ordinary path; `main` advanced `aa4cc8e8` → `cc1263db`;
+  the merge commit has both correct parents.
+- Post-merge CI on `main`: **7/7 green, head-bound to `cc1263db`**, including
+  the Cloudflare Pages deploy run.
+- Post-merge security gates on `main`: Rust fmt, clippy (`-D warnings`), 360
+  workspace tests, `cargo-audit` (812 deps scanned), `cargo-deny`
+  (advisories/bans/licenses/sources all `ok`), and `pnpm audit --prod` (no known
+  vulnerabilities) — **all executed, all green**.
+- `SPEC_MANIFEST.json` `file_count: 24` exact and byte-identical to `main` —
+  the merge added no pack document.
+- Branch protection intact and unmutated; approvals remain `0`.
+
+**Blocked**
+- **An HR change still cannot be merged.** The repository has exactly one
+  collaborator, and GitHub never counts an author's approval on their own PR, so
+  the §5 independent-review requirement remains unsatisfiable. For any change
+  that matches HR-1…HR-8 the correct outcome is **STOP and report**, until the
+  owner grants a second person repository **read** access. This limitation is
+  recorded, not engineered around; the agent will not grant access to anyone.
+- Nothing else is blocked by this task.
+
+**Not executed (deliberately, and recorded rather than glossed)**
+- **No release, publish, deployment-to-production, signing, or store
+  submission.** The Cloudflare Pages deploy run is the website host's own
+  pipeline on `main`; this task did not authorize, configure, or gate it, and
+  it is not a §6 release action.
+- **No local build, test, lint, or audit was run on this machine.** All
+  verification evidence is the live CI run on `cc1263db`. No claim is made about
+  this workstation's toolchain state.
+- **No SAST / dependency-advisory scan was run locally**; `semgrep`, `codeql`,
+  `securability-engineering`, `security-guidance`, and
+  `supply-chain-risk-auditor` were inspected and declined (no source changed by
+  this task; the latter supports npm/PyPI/Go only and would not parse a Cargo
+  or pnpm graph). Advisory and licence facts above are quoted from the executed
+  CI gates, never inferred from an absent local measurement.
+- **No branch deletion**, no tag creation, no release notes, no changelog.
+
+**Deferred**
+- Granting a second person repository **read** access — owner action, standing,
+  unchanged, and required *before* the next HR change is authored.
+- The next genuinely high-risk change, once a reviewer exists.
+- Any §6 release-readiness work.
+
+### 8. Remaining work
+
+1. Merge this `PROGRESS.md` record through its own pull request (§6 of this
+   task).
+2. Grant a second person repository **read** access (owner action) — the single
+   standing blocker on all HR-classified work.
+3. `SPEC_MANIFEST.json` still needs its two disclosed extras
+   (`22_IMPLEMENTATION_COMPLETION_MATRIX.md`,
+   `22_IMPLEMENTATION_COMPLETION_MATRIX_UPDATE.md`) either admitted or
+   explicitly retired; the disclosure in `00_README.md` holds for now, and this
+   merge correctly did not amend the manifest.
+4. `cargo deny`'s pre-existing `warning[duplicate]` /
+   `warning[advisory-not-detected]` notices and the 13 inherited
+   `cargo audit --ignore` entries remain unreviewed. Not a PR #65 defect; a
+   standing main-state item.
+5. Node.js 20 deprecation annotations on `actions/checkout@v4`,
+   `actions/setup-node@v4`, `pnpm/action-setup@v4` (warnings only, forced onto
+   Node 24 by the runner); `ubuntu-latest` → Ubuntu 26 migration notice.
+   Cosmetic; no gate affected.
+
+### 9. Next task
+
+**T34-X — verify and merge the `PROGRESS.md` merge-record pull request** on the
+ordinary path, under the same discipline: re-verify HEAD, `OPEN`/`CLEAN`/
+`MERGEABLE`, all required checks green and head-bound, the §5.5 step-4
+classification line recorded on that PR, branch protection still requiring 0
+approvals and 4 checks, then `--merge` and confirm post-merge `main` CI.
+
+Suggested task id: **T34-X**.
