@@ -281,6 +281,14 @@ Never:
 - escalate a change to high-risk merely because no independent reviewer is
   available, or treat reviewer unavailability as evidence that a change is
   high-risk.
+- submit an `APPROVE` review on your own pull request, or author any review
+  action that manufactures the appearance of independent review — the
+  High-Risk AI Self-Review (ADR-031 §5.10) is recorded as a PR **comment**
+  (`High-Risk AI Self-Review: PASS`), never as a review approval;
+- describe a High-Risk AI Self-Review as "independent review", or state "I
+  approve my own PR" — the only permitted affirmative statement is
+  "High-Risk AI Self-Review: PASS", and only when every §5.10.6 precondition
+  holds.
 
 The owner may merge their own pull request once every required automated check
 and repository-defined safety gate passes (ADR-031). That merge authority does
@@ -345,6 +353,16 @@ no merge.** The agent never records a normal-risk classification for a change it
 could not fully inspect, never resolves ambiguity toward normal-risk, and never
 extends the trigger list.
 
+**Self-review before merging a high-risk change without a reviewer (ADR-031
+§5.10).** Where independent review is unobtainable, the agent performs the
+High-Risk AI Self-Review as a distinct post-implementation phase with fresh
+reads, re-derives HR-1…HR-8 on the final diff, works the fixed C1–C18 checklist,
+and records `High-Risk AI Self-Review: PASS` with the reviewed/base SHAs, run
+IDs, and the no-fabrication/no-bypass statement as a PR comment. Merge is
+permitted only if the final head is still the reviewed head and every §5.10.6
+precondition holds; any new commit reopens the review. The HR label stays on
+the PR throughout.
+
 ## Completion report schema
 
 Every task report MUST contain:
@@ -393,7 +411,10 @@ Stop rather than inventing information when any of the following holds:
 - the first compiler error indicates a wider migration than the task scope;
 - a change is designated-review (`14_CI_CD_AND_BRANCHING.md`) and no independent
   non-author reviewer is available — stop and report that independent review is
-  unobtainable, rather than merging it or approving it on the owner's behalf.
+  unobtainable, rather than merging it or approving it on the owner's behalf,
+  **unless** the change completes the High-Risk AI Self-Review (ADR-031 §5.10)
+  with a recorded `PASS` and every §5.10.6 precondition true. An HR change with
+  no recorded `PASS` remains stopped.
   This stop condition applies only to PRs opened on or after `2026-10-04`, when
   ADR-031 was adopted; for an earlier PR the non-weakening clause still applies
   in full and the carve-out does not;
