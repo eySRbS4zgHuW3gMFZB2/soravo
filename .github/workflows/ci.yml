@@ -34,6 +34,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm playwright install --with-deps chromium
       - run: pnpm e2e
       - uses: actions/upload-artifact@v4
@@ -47,6 +52,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
       - name: Install Tauri Linux system dependencies
         run: |
           sudo apt-get update
@@ -76,6 +83,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
       - name: Install Tauri Linux system dependencies
         run: |
           sudo apt-get update
@@ -84,13 +93,41 @@ jobs:
       # Mirrors cjpais/Handy @ 8605699d build.yml "Prepare Vulkan SDK for
       # Ubuntu 24.04". Runner pinned to ubuntu-24.04 (was ubuntu-latest) to
       # match that tested setup.
+      - name: Cache Vulkan SDK packages (Ubuntu 24.04)
+        id: vulkan-sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/vulkan-sdk-debs
+          key: vulkan-sdk-1.3.290-noble-ubuntu-24.04-v3-${{ runner.arch }}
       - name: Prepare Vulkan SDK (Ubuntu 24.04)
         run: |
+          set -euo pipefail
+          # Trust anchor on the cold AND warm paths alike: the GPG-signed
+          # Lunarg apt repository. Cached .debs are NEVER installed via bare
+          # `dpkg -i`; installation always goes through `apt-get install`,
+          # which verifies every package hash against the signed Packages
+          # index (a tampered cache entry fails verification and is
+          # re-fetched from the signed repo). The version-prefix guard below
+          # is defense-in-depth only, never the integrity control.
           wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
           sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-noble.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-noble.list
           sudo apt update
-          sudo apt install vulkan-sdk -y
+          sudo mkdir -p /tmp/vulkan-sdk-debs && sudo chmod 755 /tmp/vulkan-sdk-debs
+          if [ "${{ steps.vulkan-sdk-cache.outputs.cache-hit }}" = "true" ]; then
+            echo "Reusing cached Vulkan SDK packages (apt verifies hashes against the signed index)"
+          else
+            echo "Populating Vulkan SDK package cache"
+          fi
+          sudo apt-get install -y -o Dir::Cache::Archives=/tmp/vulkan-sdk-debs vulkan-sdk
+          sudo chmod -R a+rX /tmp/vulkan-sdk-debs
           sudo apt-get install -y mesa-vulkan-drivers
+          # Version guard: the restored/installed SDK must be the pinned one.
+          VULKAN_SDK_VERSION=$(dpkg-query -W -f='${Version}' vulkan-sdk)
+          echo "vulkan-sdk version: ${VULKAN_SDK_VERSION}"
+          case "${VULKAN_SDK_VERSION}" in
+            1.3.290*) ;;
+            *) echo "::error::Vulkan SDK version ${VULKAN_SDK_VERSION} does not match the pinned 1.3.290"; exit 1 ;;
+          esac
       - run: pnpm install --frozen-lockfile
       - name: Build Tauri desktop
         working-directory: apps/desktop
@@ -126,6 +163,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
       - name: Record host toolchain (diagnostics)
         run: |
           echo "runner_os=${{ runner.os }} runner_arch=${{ runner.arch }}"
@@ -143,6 +184,13 @@ jobs:
       # build.yml "Install ONNX Runtime (x86_64 macOS)"); the sha256 pin is a
       # Soravo-observed integrity value (measured 2026-10-02), not an
       # upstream-published checksum — see ADR-026 §7.
+      - name: Cache ONNX Runtime artifact (x86_64 macOS)
+        id: ort-cache
+        if: matrix.target == 'x86_64-apple-darwin'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ort
+          key: ort-osx-x86_64-1.24.2-sha256-590cee05699047b85e4a8115b4cec792073c2972ce78de383356a552a296a9c4
       - name: Provision ONNX Runtime (x86_64 macOS only)
         if: matrix.target == 'x86_64-apple-darwin'
         shell: bash
@@ -150,10 +198,16 @@ jobs:
           set -euo pipefail
           ORT_VERSION="1.24.2"
           ORT_SHA256="590cee05699047b85e4a8115b4cec792073c2972ce78de383356a552a296a9c4"
-          curl -L --fail -o ort.tgz "https://blob.handy.computer/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
+          mkdir -p ~/.cache/ort
+          ORT_TGZ="$HOME/.cache/ort/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
+          if [ -f "${ORT_TGZ}" ]; then
+            echo "Found cached ORT artifact; verifying integrity"
+          else
+            curl -L --fail -o "${ORT_TGZ}" "https://blob.handy.computer/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
+          fi
           # shasum ships with macOS (sha256sum is GNU-only); same check format.
-          echo "${ORT_SHA256}  ort.tgz" | shasum -a 256 -c -
-          tar xzf ort.tgz
+          echo "${ORT_SHA256}  ${ORT_TGZ}" | shasum -a 256 -c -
+          tar xzf "${ORT_TGZ}"
           ORT_DIR="$GITHUB_WORKSPACE/onnxruntime-osx-x86_64-${ORT_VERSION}"
           echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> "$GITHUB_ENV"
           echo "ORT_PREFER_DYNAMIC_LINK=1" >> "$GITHUB_ENV"
@@ -186,6 +240,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
       - name: Record host toolchain (diagnostics)
         shell: bash
         run: |
