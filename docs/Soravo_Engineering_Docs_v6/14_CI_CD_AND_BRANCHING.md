@@ -197,6 +197,27 @@ agent-enforced, not platform-enforced. The owner must grant another person
 review access before a designated change is authored, or no genuinely
 independent approval can exist. The agent will not grant access.
 
+### High-Risk AI Self-Review (ADR-031-A3)
+
+Where independent non-author review of an HR change is **unobtainable** (one
+collaborator; reviewer access not granted), the authoring AI agent may perform
+the mandatory **High-Risk AI Self-Review** defined in ADR-031 §5.10. It is a
+substitute control, never "independent review": a distinct post-implementation
+phase re-evaluating the final diff, live repo and PR state, re-derived HR-1…HR-8
+classification (higher-risk wins), security/CI/protection/secrets/supply-chain/
+rollback/test-evidence implications, against the fixed C1–C18 checklist, with
+workflow semantics inspected hunk by hunk for HR-2 (green CI alone is not
+evidence). The HR classification and the `requires-independent-review` label
+stay; the agent records `High-Risk AI Self-Review: PASS` (never "I approve my
+own PR", never an `APPROVE` review) with reviewed/base SHAs, run IDs, and the
+no-fabrication/no-bypass statement as a PR comment. Merge requires the reviewed
+head to still be the head, mergeability, all required and security checks green,
+no unresolved `BLOCKED` finding, synchronized `PROGRESS.md`, and no bypass of
+any kind — otherwise STOP. Where a reviewer is available, independent review
+remains the path. Governance-policy amendments adopt through the narrow §5.11
+bootstrap (owner-directed, governance-text-only, all-gates-green, PASS recorded,
+no enforcement change, auditable) — never as a general bypass.
+
 ### Deterministic merge decision procedure
 
 1. Confirm the PR is against `main` and is not a draft.
@@ -209,11 +230,14 @@ independent approval can exist. The agent will not grant access.
    classification*). Apply the effective-date test first: only a PR opened on or
    after `2026-10-04T00:00:00Z` is in scope. Then run HR-1…HR-8 against the
    actual diff. Any match → HR → do not merge; stop and request independent
-   review. No match → NR. In both cases the classification must be **recorded on
-   the PR** (label, or the `risk-classification: normal (ADR-031 §5.5)` line);
-   if it is not recorded, stop. A PR opened before the effective date is judged
-   under the authority in force when it was opened, plus the non-weakening
-   clause, which always applies.
+   review, **unless** the §5.10 High-Risk AI Self-Review path applies
+   (independent review unobtainable, full C1–C18 review, `PASS` recorded with the
+   §5.10.5 evidence comment, §5.10.6 preconditions all true). No match → NR. In
+   both cases the classification must be **recorded on the PR** (label, or the
+   `risk-classification: normal (ADR-031 §5.5)` line); if it is not recorded,
+   stop. A PR opened before the effective date is judged under the authority in
+   force when it was opened, plus the non-weakening clause, which always
+   applies.
 7. Confirm no open conversation is unresolved and no gate is bypassed.
 8. Merge normally. Record run IDs, head SHA and the state observed.
 9. Report merged/ not-merged with evidence. Never report a merge that did not happen.

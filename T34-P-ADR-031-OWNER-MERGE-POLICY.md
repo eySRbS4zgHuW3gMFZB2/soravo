@@ -16,13 +16,19 @@ Supersedes: nothing. Amends: nothing. This is a new, standalone control.
 | ADR-031 original | 2026-10-04 | T34-P | Owner-merge policy adopted; `required_approving_review_count: 1 → 0`. |
 | ADR-031-A1 | 2026-10-04 | **T34-R** | Adds §5.1 (prospective-only effective date), §5.2 (anti-deadlock rule), §5.3 (named exception for PR #64), §5.4 (future policy explicitly unchanged). **No weakening of §4, of any required check, or of branch protection.** |
 | ADR-031-A2 | 2026-10-04 | **T34-U** | Closes the §5 trigger list into a **deterministic high-risk classification** (§5.5); splits dependency changes into *admission* (high-risk) vs *maintenance* (normal) so a dependency change alone can no longer create an unobtainable review (§5.6); restates owner-merge as the **default** with §4 strictly **subordinate** (§5.7); records PR #65's own classification (§5.8). **No required check, branch-protection field, non-weakening clause, or prohibition is removed, relaxed, deferred, or made optional. No bypass is authorized.** |
+| ADR-031-A3 | 2026-10-05 | **T34-AD** | Adds the **High-Risk AI Self-Review** substitute control (§5.10) for HR changes where independent non-author review is unobtainable, and the narrow **governance-amendment bootstrap** (§5.11) that permits this amendment's own adoption. **No required check, branch-protection field, §4 protection, or HR-1…HR-8 trigger is removed, relaxed, or redefined. No bypass, admin override, fabricated approval, or force-push is authorized.** |
 
 **Reading order note.** ADR-031 §1–§5.4 and §6–§10 are preserved **verbatim**.
 A2 is **additive**: it adds §5.5–§5.9 and marks two specific sentences as
-superseded in part (§5.4's final bullet; §10's last sentence). Nothing prior is
-rewritten or erased. Where A2 and an earlier section disagree, A2 governs the
-classification question and §4 continues to govern every protection question —
-the two cannot be traded against each other.
+superseded in part (§5.4's final bullet; §10's last sentence). A3 is likewise
+**additive**: it adds §5.10–§5.12 and marks the §5.9 residual-limitation
+"STOP and report, indefinitely" outcome as conditionally dischargeable through
+the §5.10 substitute control (original retained verbatim; see §5.10). Nothing
+prior is rewritten or erased. Where A2 and an earlier section disagree, A2
+governs the classification question; where A3 and an earlier section disagree
+on the *merge path for an HR change with unobtainable independent review*, A3
+governs that path question; and §4 continues to govern every protection
+question — none of the three can be traded against each other.
 
 ---
 
@@ -459,6 +465,211 @@ outcome for such a change is **STOP and report**, indefinitely if necessary. Tha
 is the intended behaviour, not a defect to be engineered around. The agent will
 not grant access to anyone.
 
+> **A3 qualification (T34-AD, 2026-10-05).** The "STOP and report, indefinitely"
+> outcome above is retained verbatim as the default and remains operative for
+> every HR change **except** one that completes the §5.10 High-Risk AI
+> Self-Review substitute control with a recorded `PASS`. §5.10 is a defined,
+> auditable substitute — not a waiver, not a reclassification, and not a
+> precedent for any other exception.
+
+## 5.10 High-Risk AI Self-Review — substitute control (added by ADR-031-A3, T34-AD)
+
+**The problem.** The repository has exactly one collaborator, who is also the
+sole author and is not a programmer. For an HR change, §5 requires independent
+non-author human review, which is unobtainable until reviewer access is granted
+to a second person. The owner does not want to be required to perform
+meaningless technical review. Without a defined substitute, every HR change —
+including CI/workflow fixes the repository needs — is frozen indefinitely.
+
+**The decision.** For an HR change where independent non-author human review is
+**unobtainable**, the authoring AI agent may perform a mandatory high-risk
+self-review. This is called a **"High-Risk AI Self-Review"**. It is explicitly a
+**substitute control, not an independent human review**, and it must never be
+described as one. Where an independent non-author reviewer **is** available,
+independent review remains the required path and this section does not apply.
+Human review remains allowed in all cases and must never be falsely represented
+as having occurred.
+
+**A high-risk classification stays high-risk.** A change reviewed under this
+section is **not** reclassified as normal-risk. The `requires-independent-review`
+label (HR-8) stays on the pull request; the review evidence of this section is
+recorded **in addition to** it, never as a replacement for it. An agent may
+never resolve classification ambiguity toward normal-risk (§5.5), never extend
+or narrow the HR-1…HR-8 list on its own authority, and never remove the label to
+manufacture mergeability.
+
+### 5.10.1 Fresh review phase
+
+The self-review occurs **after implementation is complete**, as a distinct
+review phase. The agent independently re-evaluates, from fresh reads rather than
+from the implementation's summary:
+
+- the final diff at the reviewed head SHA;
+- the actual repository state and the live PR state;
+- the risk classification (re-derived per §5.10.2);
+- the governing documents (this ADR, `14`, `09`, `12`, the release runbook);
+- security implications, including secrets exposure and security-control bypass;
+- CI implications, including the semantics of any workflow change;
+- branch protection and required checks;
+- dependency and supply-chain implications where relevant;
+- rollback and recovery implications;
+- test evidence and the logs behind it.
+
+The review must not repeat the implementation summary. A finding that the
+implementation record misstates a fact is itself a review finding.
+
+### 5.10.2 Re-derived risk classification
+
+The agent re-runs HR-1…HR-8 against the **final** diff. It does not trust the
+implementation's earlier classification. If the re-derivation differs, the
+**higher-risk** classification wins. Ambiguity fails safe to HR (§5.5).
+
+### 5.10.3 Deterministic review checklist
+
+The checklist is fixed for every review; the HR-category-specific rows apply as
+marked. Each item is verified, not assumed:
+
+| # | Check | Applies to |
+|---|---|---|
+| C1 | Exact reviewed HEAD SHA and base SHA recorded | all |
+| C2 | No unexpected files changed; no unrelated bundled changes | all |
+| C3 | No secrets added or exposed (source, logs, comments, evidence) | all |
+| C4 | No security control bypassed, removed, or weakened | all |
+| C5 | No CI gate removed, weakened, renamed, made optional, or "expected" | all |
+| C6 | No branch-protection weakening (protection read back live) | all |
+| C7 | No force-push or history rewrite in the PR's history | all |
+| C8 | No fabricated, synthesized, self-created, or impersonated GitHub approval | all |
+| C9 | No admin/bypass merge path used or prepared | all |
+| C10 | Required checks (`web`, `e2e`, `rust`, `desktop`) are green **and bound to the reviewed head SHA** — read live, never inferred | all |
+| C11 | Required tests/checks actually executed (not skipped, neutral, or inherited from another head); step timings or logs confirm execution | all |
+| C12 | Failures are not ignored, retried into silence, or re-scoped away | all |
+| C13 | Relevant logs and evidence actually inspected | all |
+| C14 | For CI/security/workflow changes: the workflow **semantics** inspected hunk by hunk — green CI alone is not evidence the change is safe | HR-2 |
+| C15 | For dependency changes: admission vs maintenance (§5.6) re-verified; no advisory ignore/suppression added | HR-4 |
+| C16 | Repository is in a mergeable state (`MERGEABLE`, strict-sync satisfied by real ancestry) | all |
+| C17 | Rollback/recovery understood (`git revert` of the merge suffices; no migration, secret rotation, or external coordination required — or the requirement is stated) | all |
+| C18 | `PROGRESS.md` synchronized with the work performed | all |
+
+**Remaining uncertainty = STOP.** Any checklist item that cannot be verified is
+a `BLOCKED` review, not a passed one with a caveat.
+
+### 5.10.4 Fresh-context requirement (behavioral protocol)
+
+The review must be a genuinely independent pass: the agent re-reads the diff,
+the live PR/CI state, and the governing documents in the review phase itself,
+and records evidence that could only come from those fresh reads (exact SHAs,
+run IDs, protection payload). A fresh review session or context is preferred
+where the harness supports one. **This repository cannot technically enforce
+which context an agent reviews from**, so this is a behavioral protocol, not a
+platform guarantee — and it is auditable afterward through the evidence comment
+(§5.10.5). No OpenCode capability beyond what exists is assumed or asserted.
+
+### 5.10.5 PR evidence comment
+
+The agent leaves an explicit PR comment containing, at minimum:
+
+- `High-Risk AI Self-Review: PASS` or `High-Risk AI Self-Review: BLOCKED`;
+- exact reviewed HEAD SHA and base SHA;
+- HR classification and the matched HR categories;
+- checklist (C1–C18) result, item by item for failures, summarized for passes;
+- tests and checks verified, with run IDs;
+- security review result;
+- unresolved findings, if any;
+- the statement "No GitHub approval was fabricated, and no admin/bypass merge was used."
+
+This comment is **evidence**. It is **not** a GitHub review approval. The agent
+never submits an `APPROVE` review on its own change as a substitute for it, and
+never describes the self-review as "independent review".
+
+The agent must never state "I approve my own PR." The only permitted
+affirmative statement is **"High-Risk AI Self-Review: PASS"**, and only when
+every precondition in §5.10.6 holds.
+
+### 5.10.6 Merge preconditions for a self-reviewed HR change
+
+A HIGH-RISK self-reviewed PR may merge **only when all** of the following are
+true (conjunction; any failure means STOP):
+
+1. M1–M8 hold, except M6 which reads "classified high-risk under §5.5, the
+   classification recorded on the PR, and this §5.10 review recorded PASS";
+2. the final head **is** the reviewed head (any new commit reopens the review);
+3. the PR is clean and mergeable with the base as required (`strict` by real
+   ancestry);
+4. all required checks pass on the reviewed head;
+5. the self-review result is `PASS` with the §5.10.5 comment present;
+6. all applicable security checks pass (`cargo-audit`, `cargo-deny`,
+   `npm-audit` green, or an ACCEPTED ADR records the residual risk);
+7. no unresolved `BLOCKED` finding remains;
+8. `PROGRESS.md` is synchronized;
+9. no prohibited bypass is used: no admin merge, no fabricated approval, no
+   force-push, no disabled/renamed/"expected" check, no history rewrite.
+
+§4 continues to govern every protection question and is not derogated by this
+section.
+
+## 5.11 Governance-amendment bootstrap (added by ADR-031-A3, T34-AD)
+
+**The circularity.** HR-7 classifies removal or relaxation of a control as
+high-risk, and §5 requires independent review for HR changes. This amendment
+narrows the unconditional scope of the §5 stop condition, so it is itself
+plausibly HR-7 — and the independent reviewer its adoption would require is
+exactly what it exists to replace. Applied naively, the old rule makes its own
+replacement unadoptable forever.
+
+**The narrow mechanism.** An owner-directed governance-policy amendment may be
+adopted through the §5.10 protocol it introduces, **if and only if all** of the
+following hold:
+
+| # | Bootstrap condition |
+|---|---|
+| B1 | **Owner-directed in writing.** The amendment is undertaken on an explicit owner instruction (as T34-P, T34-R, T34-U, and T34-AD each were). Owner direction is the authority; the protocol is the procedure. Without it, this section is unavailable. |
+| B2 | **Governance-text only.** The diff is Markdown/ADR/pack-text only: no change under `.github/**`, no branch-protection, repository-setting, secret, or environment change, no source change, no dependency/lockfile change, no test-behavior change. |
+| B3 | **All automated gates green.** Required checks pass on the reviewed head, strict-sync holds, and §4 applies in full. |
+| B4 | **Full §5.10 self-review with a recorded PASS** (§5.10.5 comment present on the PR). |
+| B5 | **No enforcement change inside the bootstrap.** The PR must not modify branch protection, required checks, or §4 itself; must not bypass CI; must not use admin merge; must not fabricate approval. |
+| B6 | **Rationale and exact diff recorded** in the ADR amendment entry and on the PR. |
+| B7 | **Auditable afterward**: `PROGRESS.md` entry with task ID, SHAs, files, checks, and merge result. |
+
+**This section is not a general bypass.** It applies only to a
+governance-policy amendment meeting B1–B7. It authorizes no other merge, no
+implementation change, no enforcement change, and no future governance bypass:
+each future use must independently satisfy B1–B7 and is recorded as its own
+amendment event. A PR that modifies enforcement (protection, required checks,
+§4) **cannot** use this bootstrap.
+
+**Adoption record.** This amendment (ADR-031-A3) is itself adopted through this
+bootstrap: owner-directed by the T34-AD instruction, governance-text-only,
+all-checks-green, §5.10-reviewed with a recorded `PASS`, no enforcement change,
+rationale recorded here, audited in `PROGRESS.md`.
+
+## 5.12 What ADR-031-A3 does not change (added by ADR-031-A3)
+
+A3 is a substitute-control amendment. It does **not**:
+
+- lower, remove, rename, "expect", or make optional any required status check
+  (`web`, `e2e`, `rust`, `desktop`);
+- alter `required_status_checks.strict`, `dismiss_stale_reviews`,
+  `require_code_owner_reviews`, `allow_force_pushes`, `allow_deletions`, or
+  `enforce_admins` — and no A3-adopted PR may alter them (B5);
+- alter any §4 protection, or any M-condition other than M6 as restated in
+  §5.10.6;
+- add, remove, or redefine any HR-1…HR-8 trigger; silent redefinition of HR as
+  NR remains forbidden, and the HR label stays on a self-reviewed HR PR;
+- authorize "merge without waiting for requirements to be met", GitHub's
+  emergency "bypass rules", or any equivalent admin escape hatch;
+- authorize a fabricated, synthesized, self-created, or impersonated review, or
+  an `APPROVE` submitted by the author or their agent on their own change;
+- authorize force-push, history rewriting, or deletion of protected branches;
+- create a generic "owner says merge" escape hatch — owner direction satisfies
+  B1 only inside B2–B7, never alone;
+- weaken the designated-review requirement for any change whose independent
+  review **is** obtainable;
+- assert production readiness, close a release gate, or satisfy any
+  precondition in `17_RELEASE_RUNBOOK.md`;
+- change `SPEC_MANIFEST.json` (`file_count: 24` and its 24 entries remain
+  exact), the root mirror (left untouched per `00_README.md`), or the
+  `HISTORICAL/STALE` status of the root pack (O-5).
+
 ## 6. Production and release gates remain separate
 
 This ADR governs **source merges into `main` only**. It does not authorize any
@@ -495,6 +706,17 @@ scope only:
 | `20_ADR_INDEX.md` | ADR-031-A2 recorded as an amendment of ADR-031, index of record. |
 | `13_DEFINITION_OF_DONE_AND_QA.md` | **No change required and none made** — its existing `diff review` clause ("not satisfied by a green check, by a merged PR, or by owner merge authority") is already correct under A2 and is unchanged. |
 | `17_RELEASE_RUNBOOK.md` | **No change required and none made** — its existing separation clause is already correct under A2 and is unchanged. |
+
+**Amended by ADR-031-A3 (T34-AD)** — same canonical documents, substitute-control scope only:
+
+| Document | A3 change |
+|---|---|
+| `14_CI_CD_AND_BRANCHING.md` | New subsection "High-Risk AI Self-Review (ADR-031-A3)": the substitute-control definition, checklist, evidence, and merge-precondition pointer; merge-procedure step 6 extended with the HR self-review path. M1–M5, M7–M8, the non-weakening clause, the HR-1…HR-8 list, and the subordination clause unchanged. |
+| `09_AI_AGENT_INSTRUCTIONS.md` | `Forbidden` gains two items (never submit `APPROVE` on one's own change; never describe self-review as independent review). `Stop conditions`: the designated-review stop gains the §5.10 discharge clause; unreviewed HR with no PASS remains a stop. The merge-authority section states the "High-Risk AI Self-Review: PASS" language and the head-equality rule. No existing item removed or relaxed. |
+| `20_ADR_INDEX.md` | ADR-031-A3 recorded as an amendment of ADR-031, index of record. |
+| `13_DEFINITION_OF_DONE_AND_QA.md` | **No change required and none made** — `diff review` remains the pre-commit own-diff check and is distinct from the §5.10 post-implementation self-review; neither satisfies the other. |
+| `17_RELEASE_RUNBOOK.md` | **No change required and none made** — its existing separation clause already covers A3 (A3 asserts no release claim). |
+| `12_SECURITY_BASELINE.md` | **No change required and none made** — no security requirement weakened; it never contained a merge-authority rule. |
 
 Deliberately **not** changed:
 
