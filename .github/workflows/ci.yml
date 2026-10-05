@@ -98,21 +98,28 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/vulkan-sdk-debs
-          key: vulkan-sdk-1.3.290-noble-ubuntu-24.04-v2-${{ runner.arch }}
+          key: vulkan-sdk-1.3.290-noble-ubuntu-24.04-v3-${{ runner.arch }}
       - name: Prepare Vulkan SDK (Ubuntu 24.04)
         run: |
           set -euo pipefail
+          # Trust anchor on the cold AND warm paths alike: the GPG-signed
+          # Lunarg apt repository. Cached .debs are NEVER installed via bare
+          # `dpkg -i`; installation always goes through `apt-get install`,
+          # which verifies every package hash against the signed Packages
+          # index (a tampered cache entry fails verification and is
+          # re-fetched from the signed repo). The version-prefix guard below
+          # is defense-in-depth only, never the integrity control.
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-noble.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-noble.list
+          sudo apt update
+          sudo mkdir -p /tmp/vulkan-sdk-debs && sudo chmod 755 /tmp/vulkan-sdk-debs
           if [ "${{ steps.vulkan-sdk-cache.outputs.cache-hit }}" = "true" ]; then
-            echo "Restoring Vulkan SDK from cached packages"
-            sudo dpkg -i /tmp/vulkan-sdk-debs/*.deb || sudo apt-get install -f -y
+            echo "Reusing cached Vulkan SDK packages (apt verifies hashes against the signed index)"
           else
-            wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
-            sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-noble.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-noble.list
-            sudo apt update
-            sudo mkdir -p /tmp/vulkan-sdk-debs && sudo chmod 755 /tmp/vulkan-sdk-debs
-            sudo apt-get install -y -o Dir::Cache::Archives=/tmp/vulkan-sdk-debs vulkan-sdk
-            sudo chmod -R a+rX /tmp/vulkan-sdk-debs
+            echo "Populating Vulkan SDK package cache"
           fi
+          sudo apt-get install -y -o Dir::Cache::Archives=/tmp/vulkan-sdk-debs vulkan-sdk
+          sudo chmod -R a+rX /tmp/vulkan-sdk-debs
           sudo apt-get install -y mesa-vulkan-drivers
           # Version guard: the restored/installed SDK must be the pinned one.
           VULKAN_SDK_VERSION=$(dpkg-query -W -f='${Version}' vulkan-sdk)
