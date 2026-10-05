@@ -11851,3 +11851,106 @@ functional desktop/product gaps, which requires the owner-gated R2 (licensing)
 and asset answers before the dictation chain can be exercised at all.
 
 Suggested task id: **T34-Z**.
+
+---
+
+## T34-Z — MERGE PR #68 (ROADMAP RECONCILIATION) (2026-10-05)
+
+**TASK ID:** T34-Z
+**Objective:** safely merge PR #68 (T34-Y roadmap-reconciliation documentation) into `main`.
+**Branch:** `t34-z` (from `origin/main`)
+**Start SHA:** `3467706d` (`origin/main` before merge)
+**End SHA:** `3c8e6386` (merge commit of PR #68 on `main`)
+
+### Skill selection (performed, and used)
+
+- `github` — used for every `gh pr view` / `gh pr checks` / `gh run view` / `gh api` query below.
+- `gh-cli` — used to enforce authenticated `gh` workflows; no curl/WebFetch against GitHub content.
+
+### Fresh state audit (live, not from prior reports)
+
+- Worktree branch at task start: `t34-ci-cache`, up to date with `origin/t34-ci-cache`; untracked report files present, not touched.
+- `origin/main` = `3467706d70e269b0cb28ff6bfdefe272a4209fee`.
+- PR #68: OPEN, not draft, base `main`, head `6330a3ef71cfa59fafad2c9531ab35cef8ad01cf` (task target head `6330a3ef` confirmed exact). `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`. `reviewDecision` empty (no approvals — required count is 0).
+- PR #68 baseRefOid = `3467706d...` = `origin/main` at audit time: **no base drift**.
+- Reviews: none posted; branch protection requires `required_approving_review_count: 0`, `dismiss_stale_reviews: true`, `require_code_owner_reviews: false`, `enforce_admins.enabled: false`.
+
+### Checks by exact head SHA
+
+`gh run view 37237334935`: `headSha=6330a3ef71cfa59fafad2c9531ab35cef8ad01cf`, `event=pull_request`, `status=completed`, `conclusion=success`.
+`gh pr checks 68` — all 7 jobs green on that head:
+- desktop: pass (15m40s)
+- desktop build (Windows, x86_64-pc-windows-msvc): pass (23m2s)
+- desktop build (macOS, aarch64-apple-darwin): pass (12m21s)
+- desktop build (macOS, x86_64-apple-darwin): pass (12m8s)
+- e2e: pass (1m19s)
+- rust: pass (14m21s)
+- web: pass (56s)
+
+Branch protection required contexts `[web, e2e, rust, desktop]` are a subset and are green and head-bound.
+
+### Risk classification — re-derived from the actual current diff (ADR-031 §5.5)
+
+Diff: 5 files, +611/-0, zero deletions, Markdown-only:
+`PROGRESS.md`, `docs/Soravo_Engineering_Docs_v6/07_IMPLEMENTATION_PLAN.md`, `08_TASK_BREAKDOWN.md`, `13_DEFINITION_OF_DONE_AND_QA.md`, `17_RELEASE_RUNBOOK.md`.
+- HR-1 (security boundary impl): No. Zero changes under `apps/`, `crates/`, `services/`, `packages/`, `supabase/`.
+- HR-2 (CI/release/deployment): No. Zero changes under `.github/**`.
+- HR-3 (repo-protection mutation): No. Protection endpoint read via GET only.
+- HR-4 (dependency admission): No. No lockfile/manifest/registry change.
+- HR-5 (Handy-derived core): No. No Handy source or preserved upstream test in diff.
+- HR-6 (secrets/env/signing): No. `15_ENVIRONMENT_AND_SECRETS.md` untouched; no `.env*` changes.
+- HR-7 (removal/relaxation of a control): No. +611/-0; every hunk additive.
+- HR-8 (owner designation): No. `requires-independent-review` label absent.
+Ambiguity clause not engaged. Classification: **normal-risk**. Owner's recorded §5.5 classification on the PR (comment dated 2026-10-04T21:45:38Z, re-tested against head `6330a3ef`) agrees.
+
+### Merge
+
+Command: `gh pr merge 68 --merge --subject "Merge pull request #68 from eySRbS4zgHuW3gMFZB2/t34-y-remaining-roadmap-reconciliation"`
+Result: merged. New `origin/main` = `3c8e63867a055370ac63c815c78465d49643c102`, parents `[3467706d, 6330a3ef]` — a true merge commit preserving PR head `6330a3ef`.
+No `--admin`, no force-push, no rebase/amend, no direct `main` edit, no branch-protection bypass.
+
+### Post-merge verification on `main` @ `3c8e6386`
+
+- Run `37243432498` (event=push, headSha=3c8e6386): `success`.
+- Run `37243432511` (event=push, headSha=3c8e6386): all 7 jobs executed and `success` — web, e2e, rust, desktop, desktop build (Windows / macOS aarch64 / macOS x86_64).
+- No release/publish/deployment job is triggered by this docs-only push; the CI runs above are the governing verification.
+
+### PROGRESS.md discipline
+
+This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` via its own PR (normal feature-branch → PR path). `main` was not edited directly. Root mirror not edited. No unrelated dirty/untracked work touched. No `git add -A` used.
+
+### Status by category
+
+- implemented: T34-Z merge/verification of PR #68
+- verified: PR #68 head `6330a3ef`, mergeability CLEAN, required checks green and head-bound, post-merge `main` CI 7/7 green on `3c8e6386`
+- blocked: none new; the standing single-collaborator HR-review limitation is unchanged and does not affect this normal-risk merge
+- not-executed: R1–R10 (not this task), no release/publish/deployment
+- deferred: all carried items from T34-Y unchanged
+
+### Files changed (this task)
+
+- `PROGRESS.md` (appended T34-Z section)
+
+### Commands/actions performed
+
+- `git fetch origin main`; `git log origin/main`
+- `gh pr view 68 --json ...`; `gh pr checks 68`
+- `gh run view 37237334935 --json ...`; `gh api .../branches/main/protection`
+- `gh pr merge 68 --merge ...`
+- `git log origin/main`; `gh api .../commits/3c8e6386`
+- `gh run list --branch main`; `gh run view 37243432511`
+- `git checkout -b t34-z origin/main`; commit; push; PR; merge
+
+### Exact test/CI results
+
+- PR #68 pre-merge CI (`37237334935`, head `6330a3ef`): 7/7 success.
+- Post-merge CI on `3c8e6386`: runs `37243432498` and `37243432511`, both success (7 jobs).
+- No local test/lint/build run (workstation toolchain not certified; all evidence is live CI).
+
+### Blockers
+
+- Standing (unchanged, owner-gated): second-person read access for HR-classified changes; ADR-027/028 remain PROPOSED; `SPEC_MANIFEST.json` extras; pre-existing `cargo deny`/`cargo audit` notices; ADR-019 obligations; O-5 spec-v3 authority refs.
+
+### Next exact task
+
+**R1** — closing the remaining functional desktop/product gaps, only after the owner-gated prerequisites (R2 licensing/provenance answers, Silero VAD asset, licence-verified catalogue, downloaded model) are supplied. No R1 work was started in T34-Z.
