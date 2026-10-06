@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { hotkeyConfig, hotkeyRecording, hotkeyStart, hotkeyStop, hotkeyToggle } from "../ipc";
+import {
+  applySessionSnapshot,
+  applySessionTransition,
+  applyTranscriptUpdate,
+  createSessionFeed,
+  phaseToPillState,
+  subscribePillFeed,
+} from "../session-feed";
+import { hotkeyConfig, hotkeyStart, hotkeyStop, hotkeyToggle, sessionSnapshot } from "../ipc";
 
 /** Pill recording states. */
 export type PillState =
@@ -12,42 +20,74 @@ export type PillState =
 
 /**
  * Floating pill indicator for dictation state.
- * 
+ *
  * - PILL-001: State machine UI
  * - PILL-002: Animations (via CSS)
  * - PILL-003: Error state
+ *
+ * R1-GAP-012: state and transcript content come ONLY from the canonical typed
+ * buses (`session://changed` + `transcript://update`, folded in
+ * `session-feed.ts`). The previous 100 ms `hotkeyRecording()` poll is gone:
+ * those commands are not registered backend-side, so the poll could never
+ * observe a session — the bus is the single state source (no parallel state
+ * system, no polling). Button interaction (hold/toggle) is unchanged; on
+ * success the pill waits for the canonical bus event instead of optimistically
+ * rewriting state locally.
  */
 export function Pill({
   className,
 }: {
   className?: string;
 }) {
-  const [state, setState] = useState<PillState>("idle");
+  const [feed, setFeed] = useState(createSessionFeed);
   const [mode, setMode] = useState<"hold_to_talk" | "toggle_to_talk">("hold_to_talk");
   const [error, setError] = useState<string | null>(null);
 
+  const state = phaseToPillState(feed.phase);
+
   useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | undefined;
+
     // Load initial hotkey config
     hotkeyConfig()
       .then((config) => {
+        if (disposed) return;
         setMode(config.mode);
       })
       .catch(() => {
         // Runtime not connected - fine for web preview
       });
 
-    // Poll recording state for toggle mode
-    const interval = setInterval(() => {
-      hotkeyRecording()
-        .then((recording) => {
-          setState(recording ? "listening" : "idle");
-        })
-        .catch(() => {
-          // Ignore connection errors
-        });
-    }, 100);
+    // Hydrate from the canonical snapshot, then follow the live buses.
+    // A slow snapshot resolving after live events arrived must not rewind
+    // the feed (enforced in applySessionSnapshot via sequence guards).
+    sessionSnapshot()
+      .then((snapshot) => {
+        if (disposed) return;
+        setFeed((prev) => applySessionSnapshot(prev, snapshot));
+      })
+      .catch(() => {
+        // Runtime not connected - fine for web preview
+      });
 
-    return () => clearInterval(interval);
+    subscribePillFeed({
+      onSession: (transition) => {
+        if (disposed) return;
+        setFeed((prev) => applySessionTransition(prev, transition));
+      },
+      onTranscript: (update) => {
+        if (disposed) return;
+        setFeed((prev) => applyTranscriptUpdate(prev, update));
+      },
+    }).then((unsub) => {
+      unsubscribe = unsub;
+    });
+
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const handleActivate = async () => {
@@ -55,16 +95,12 @@ export function Pill({
     try {
       if (mode === "hold_to_talk") {
         const result = await hotkeyStart();
-        if (result.status === "success") {
-          setState("listening");
-        } else {
+        if (result.status !== "success") {
           setError(result.message);
         }
       } else {
         const result = await hotkeyToggle();
-        if (result.status === "success") {
-          setState((prev) => (prev === "listening" ? "idle" : "listening"));
-        } else {
+        if (result.status !== "success") {
           setError(result.message);
         }
       }
@@ -78,9 +114,7 @@ export function Pill({
     try {
       if (mode === "hold_to_talk") {
         const result = await hotkeyStop();
-        if (result.status === "success") {
-          setState("idle");
-        } else {
+        if (result.status !== "success") {
           setError(result.message);
         }
       }
@@ -106,6 +140,12 @@ export function Pill({
     <div className={`pill ${pulseClass} ${errorClass} ${className || ""}`}>
       <div className="pill-indicator" style={{ backgroundColor: statusColor }} />
       <span className="pill-label">{stateLabel[state]}</span>
+      {feed.committedText && (
+        <span className="pill-transcript">{feed.committedText}</span>
+      )}
+      {!feed.committedText && feed.tentativeText && (
+        <span className="pill-transcript">{feed.tentativeText}…</span>
+      )}
       {error && <span className="pill-error">{error}</span>}
       {state === "idle" && mode === "hold_to_talk" && (
         <button className="pill-activate" onMouseDown={handleActivate} onMouseUp={handleDeactivate} onMouseLeave={handleDeactivate}
