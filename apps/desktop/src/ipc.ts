@@ -305,6 +305,205 @@ export function updateModelSettings(settings: ModelSettings): Promise<SettingsRe
   return invoke<SettingsResponse>("update_model_settings", { settings });
 }
 
+// Model catalog / management types and commands.
+//
+// R1-GAP-017 — the settings model selector previously used hardcoded engine /
+// model lists and a UI-local store only. The mirrors below bind it to the
+// real Handy-derived backend contract (`commands/models.rs` + `ModelManager`):
+// catalog entries come from `get_available_models`, selection goes through
+// `set_active_model` (canonical `AppSettings.selected_model` persistence +
+// load), downloads go through `download_model`, and progress/status arrive on
+// the existing Tauri event bus. Serde shapes are mirrored verbatim
+// (snake_case wire keys; externally-tagged `ModelSource` / `EngineType`
+// variant names), so no translation layer is introduced.
+
+/** Mirrors `crate::managers::model::ModelSource` (externally tagged). */
+export type ModelSource =
+  | { Url: { url: string; sha256: string | null } }
+  | { HuggingFace: { repo_id: string; revision: string } }
+  | "Local";
+
+/** Mirrors `crate::managers::model::EngineType` (unit variants, verbatim). */
+export type EngineType =
+  | "TranscribeCpp"
+  | "Parakeet"
+  | "Moonshine"
+  | "MoonshineStreaming"
+  | "SenseVoice"
+  | "GigaAM"
+  | "Canary"
+  | "Cohere";
+
+/** Mirrors `crate::managers::model::ModelInfo` (snake_case wire keys). */
+export type ModelInfo = {
+  id: string;
+  name: string;
+  description: string;
+  filename: string;
+  source: ModelSource;
+  size_mb: number;
+  is_downloaded: boolean;
+  is_downloading: boolean;
+  partial_size: number;
+  is_directory: boolean;
+  engine_type: EngineType;
+  accuracy_score: number;
+  speed_score: number;
+  supports_translation: boolean;
+  is_recommended: boolean;
+  supported_languages: string[];
+  supports_language_selection: boolean;
+  is_custom: boolean;
+  supports_streaming: boolean;
+  supports_language_detection: boolean;
+};
+
+/** Mirrors `crate::managers::model::DownloadProgress` (snake_case wire keys). */
+export type DownloadProgress = {
+  model_id: string;
+  downloaded: number;
+  total: number;
+  percentage: number;
+};
+
+/** Mirrors `crate::managers::transcription::ModelStateEvent`. */
+export type ModelStateEvent = {
+  event_type: string;
+  model_id: string | null;
+  model_name: string | null;
+  error: string | null;
+};
+
+/** Mirrors the `model-download-failed` payload (`{model_id, error}`). */
+export type ModelDownloadFailed = {
+  model_id: string;
+  error: string;
+};
+
+export const MODEL_DOWNLOAD_PROGRESS_EVENT = "model-download-progress";
+export const MODEL_VERIFICATION_STARTED_EVENT = "model-verification-started";
+export const MODEL_VERIFICATION_COMPLETED_EVENT = "model-verification-completed";
+export const MODEL_DOWNLOAD_COMPLETE_EVENT = "model-download-complete";
+export const MODEL_DOWNLOAD_FAILED_EVENT = "model-download-failed";
+export const MODEL_DOWNLOAD_CANCELLED_EVENT = "model-download-cancelled";
+export const MODEL_STATE_CHANGED_EVENT = "model-state-changed";
+export const MODELS_UPDATED_EVENT = "models-updated";
+export const MODEL_DELETED_EVENT = "model-deleted";
+
+export function getAvailableModels(): Promise<ModelInfo[]> {
+  return invoke<ModelInfo[]>("get_available_models");
+}
+
+export function getModelInfo(modelId: string): Promise<ModelInfo | null> {
+  return invoke<ModelInfo | null>("get_model_info", { modelId });
+}
+
+export function rescanLocalModels(): Promise<void> {
+  return invoke<void>("rescan_local_models");
+}
+
+/**
+ * Start (or resume) downloading a catalog model.
+ * Progress arrives on `model-download-progress`; completion, failure, and
+ * cancellation arrive on their respective events — the returned promise
+ * resolving does NOT by itself mean the file is installed (only the
+ * completion event plus a refreshed `is_downloaded` flag prove that).
+ */
+export function downloadModel(modelId: string): Promise<void> {
+  return invoke<void>("download_model", { modelId });
+}
+
+export function cancelDownload(modelId: string): Promise<void> {
+  return invoke<void>("cancel_download", { modelId });
+}
+
+/**
+ * Switch the active model through the canonical contract: validates the
+ * model is downloaded, persists `AppSettings.selected_model`, and loads it
+ * (unless unload is set to Immediately). Rejects for unknown or
+ * not-downloaded models without changing persisted state.
+ */
+export function setActiveModel(modelId: string): Promise<void> {
+  return invoke<void>("set_active_model", { modelId });
+}
+
+/** The persisted canonical selection (`AppSettings.selected_model`). */
+export function getCurrentModel(): Promise<string> {
+  return invoke<string>("get_current_model");
+}
+
+export function getTranscriptionModelStatus(): Promise<string | null> {
+  return invoke<string | null>("get_transcription_model_status");
+}
+
+export function onModelDownloadProgress(
+  handler: (progress: DownloadProgress) => void
+): Promise<UnlistenFn> {
+  return listen<DownloadProgress>(MODEL_DOWNLOAD_PROGRESS_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+export function onModelVerificationStarted(
+  handler: (modelId: string) => void
+): Promise<UnlistenFn> {
+  return listen<string>(MODEL_VERIFICATION_STARTED_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+export function onModelVerificationCompleted(
+  handler: (modelId: string) => void
+): Promise<UnlistenFn> {
+  return listen<string>(MODEL_VERIFICATION_COMPLETED_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+export function onModelDownloadComplete(
+  handler: (modelId: string) => void
+): Promise<UnlistenFn> {
+  return listen<string>(MODEL_DOWNLOAD_COMPLETE_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+export function onModelDownloadFailed(
+  handler: (failure: ModelDownloadFailed) => void
+): Promise<UnlistenFn> {
+  return listen<ModelDownloadFailed>(MODEL_DOWNLOAD_FAILED_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+export function onModelDownloadCancelled(
+  handler: (modelId: string) => void
+): Promise<UnlistenFn> {
+  return listen<string>(MODEL_DOWNLOAD_CANCELLED_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+export function onModelStateChanged(
+  handler: (event: ModelStateEvent) => void
+): Promise<UnlistenFn> {
+  return listen<ModelStateEvent>(MODEL_STATE_CHANGED_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+export function onModelsUpdated(handler: () => void): Promise<UnlistenFn> {
+  return listen<null>(MODELS_UPDATED_EVENT, () => handler());
+}
+
+export function onModelDeleted(
+  handler: (modelId: string) => void
+): Promise<UnlistenFn> {
+  return listen<string>(MODEL_DELETED_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
 // Account types and commands
 
 export type AccountState = "SignedOut" | "SignedIn" | "NeedsRefresh" | "Unavailable";
