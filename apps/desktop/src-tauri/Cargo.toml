@@ -45,6 +45,9 @@ sha2 = "0.10"
 soravo-audio = { path = "../../../crates/audio" }
 soravo-config = { path = "../../../crates/config" }
 soravo-hotkeys = { path = "../../../crates/hotkeys" }
+# R1-GAP-005/006: session↔recording coupling reuses the canonical transcript
+# contracts (workspace-internal; no supply-chain change).
+soravo-transcript = { path = "../../../crates/transcript" }
 soravo-typing = { path = "../../../crates/typing" }
 specta = { version = "2.0.0-rc", features = ["derive"] }
 strsim = "0.11.0"
@@ -142,6 +145,13 @@ transcribe-cpp = { version = "0.2.4", default-features = false, features = ["met
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
+
+# R1-GAP-005/006: test-only seam proving the coupling through the existing
+# STT abstraction. The mock engine/audio live in `soravo-stt::mock` (no
+# hardware, model, or network); this dev-dependency never ships in the
+# production binary and adds no external supply-chain surface (workspace path).
+[dev-dependencies]
+soravo-stt = { path = "../../../crates/stt" }
 
 # T33-P-FOLLOWUP-2B / ADR-021: crate-scoped unsafe exception for the
 # Handy-derived Win32 FFI (Windows builds only). The workspace

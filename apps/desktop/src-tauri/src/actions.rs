@@ -7,6 +7,8 @@ use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
+use crate::session::SessionPhase;
+use crate::session_pipeline::production as session_lifecycle;
 use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
 use crate::shortcut;
 use crate::tray::{set_tray_state, TrayIconState};
@@ -577,10 +579,16 @@ impl ShortcutAction for TranscribeAction {
         );
         debug!("Microphone mode - always_on: {}", is_always_on);
 
+        // R1-GAP-005/006: the canonical session owns the recording lifecycle.
+        // STARTING allocates the session id before capture begins; LISTENING
+        // follows only once recording actually started. A failed start travels
+        // the ERROR path below so the session can never wedge.
+        session_lifecycle::announce_transition(app, SessionPhase::Starting);
         let mut recording_error: Option<String> = None;
         let recording_start_time = Instant::now();
         match rm.try_start_recording(&binding_id, vad_policy) {
             Ok(readiness) => {
+                session_lifecycle::announce_transition(app, SessionPhase::Listening);
                 debug!(
                     "Recording request accepted in {:?}; waiting for first microphone samples",
                     recording_start_time.elapsed()
@@ -641,6 +649,7 @@ impl ShortcutAction for TranscribeAction {
         } else {
             // Starting failed (for example due to blocked microphone permissions).
             // Revert UI state so we don't stay stuck in the recording overlay.
+            session_lifecycle::fail_active_session(app);
             tm.cancel_stream();
             utils::hide_recording_overlay(app);
             set_tray_state(app, TrayIconState::Idle);
@@ -699,6 +708,8 @@ impl ShortcutAction for TranscribeAction {
         } else {
             show_transcribing_overlay(app);
         }
+        // R1-GAP-005/006: recording stopped → transcription owns the session.
+        session_lifecycle::announce_transition(app, SessionPhase::Transcribing);
 
         // Unmute before playing audio feedback so the stop sound is audible
         rm.remove_mute();
@@ -727,6 +738,7 @@ impl ShortcutAction for TranscribeAction {
 
                 if rm.was_cancelled_since(cancel_generation) {
                     debug!("Transcription operation cancelled after recording stop");
+                    session_lifecycle::reset_session(&ah);
                     tm.cancel_stream();
                     utils::hide_recording_overlay(&ah);
                     set_tray_state(&ah, TrayIconState::Idle);
@@ -737,6 +749,7 @@ impl ShortcutAction for TranscribeAction {
                     debug!("Recording produced no audio samples; skipping persistence");
                     // Tear down any streaming worker so its channel doesn't leak
                     // and block the next start_stream.
+                    session_lifecycle::reset_session(&ah);
                     tm.cancel_stream();
                     utils::hide_recording_overlay(&ah);
                     set_tray_state(&ah, TrayIconState::Idle);
@@ -793,6 +806,7 @@ impl ShortcutAction for TranscribeAction {
 
                     if rm.was_cancelled_since(cancel_generation) {
                         debug!("Transcription operation cancelled before output handling");
+                        session_lifecycle::reset_session(&ah);
                         utils::hide_recording_overlay(&ah);
                         set_tray_state(&ah, TrayIconState::Idle);
                         return;
@@ -804,6 +818,13 @@ impl ShortcutAction for TranscribeAction {
                                 "Transcription completed in {:?}: '{}'",
                                 transcription_time.elapsed(),
                                 utils::redact_text(&transcription)
+                            );
+                            // R1-GAP-005/006: pending work finalized through the
+                            // canonical contract — FINALIZING + one Final
+                            // transcript event on the bus the pill consumes.
+                            session_lifecycle::announce_transcription_finalized(
+                                &ah,
+                                &transcription,
                             );
 
                             if post_process {
@@ -820,6 +841,7 @@ impl ShortcutAction for TranscribeAction {
                             .await
                             else {
                                 debug!("Transcription operation cancelled during output handling");
+                                session_lifecycle::reset_session(&ah);
                                 utils::hide_recording_overlay(&ah);
                                 set_tray_state(&ah, TrayIconState::Idle);
                                 return;
@@ -827,6 +849,7 @@ impl ShortcutAction for TranscribeAction {
 
                             if rm.was_cancelled_since(cancel_generation) {
                                 debug!("Transcription operation cancelled before paste");
+                                session_lifecycle::reset_session(&ah);
                                 utils::hide_recording_overlay(&ah);
                                 set_tray_state(&ah, TrayIconState::Idle);
                                 return;
@@ -880,17 +903,24 @@ impl ShortcutAction for TranscribeAction {
                                     set_tray_state(&ah, TrayIconState::Idle);
                                 });
                             }
+                            // R1-GAP-005/006: session completes exactly once —
+                            // DONE→IDLE after required finalization.
+                            session_lifecycle::announce_completion(&ah);
                         }
                         Err(err) => {
                             if rm.was_cancelled_since(cancel_generation) {
                                 debug!(
                                     "Transcription operation cancelled after transcription error"
                                 );
+                                session_lifecycle::reset_session(&ah);
                                 utils::hide_recording_overlay(&ah);
                                 set_tray_state(&ah, TrayIconState::Idle);
                                 return;
                             }
 
+                            // R1-GAP-005/006: transcription failure travels the
+                            // canonical ERROR path with resources cleaned up.
+                            session_lifecycle::fail_active_session(&ah);
                             error!("Transcription failed: {}", err);
                             // Surface the failure to the UI (toast). The full
                             // message is also in handy.log via the line above.
