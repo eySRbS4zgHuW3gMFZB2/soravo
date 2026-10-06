@@ -54,11 +54,11 @@ describe("pill-view active phases afford stop", () => {
   it("listening and transcribing pulse, finalizing does not", () => {
     let feed = createSessionFeed();
     feed = drive(feed, 7, 1, "STARTING");
-    let listening = drive(feed, 7, 2, "LISTENING");
+    const listening = drive(feed, 7, 2, "LISTENING");
     expect(describePillView(listening, "hold_to_talk", null).pulse).toBe(true);
-    let transcribing = drive(listening, 7, 3, "TRANSCRIBING");
+    const transcribing = drive(listening, 7, 3, "TRANSCRIBING");
     expect(describePillView(transcribing, "hold_to_talk", null).pulse).toBe(true);
-    let finalizing = drive(transcribing, 7, 4, "FINALIZING");
+    const finalizing = drive(transcribing, 7, 4, "FINALIZING");
     expect(describePillView(finalizing, "hold_to_talk", null).pulse).toBe(false);
   });
 });
