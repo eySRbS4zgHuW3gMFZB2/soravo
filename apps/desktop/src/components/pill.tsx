@@ -4,9 +4,9 @@ import {
   applySessionTransition,
   applyTranscriptUpdate,
   createSessionFeed,
-  phaseToPillState,
   subscribePillFeed,
 } from "../session-feed";
+import { describePillView } from "../pill-view";
 import { hotkeyConfig, hotkeyStart, hotkeyStop, hotkeyToggle, sessionSnapshot } from "../ipc";
 
 /** Pill recording states. */
@@ -43,7 +43,9 @@ export function Pill({
   const [mode, setMode] = useState<"hold_to_talk" | "toggle_to_talk">("hold_to_talk");
   const [error, setError] = useState<string | null>(null);
 
-  const state = phaseToPillState(feed.phase);
+  // R1-GAP-016-balance: view model over the canonical feed (session-feed.ts).
+  const view = describePillView(feed, mode, error);
+  const state = view.state;
 
   useEffect(() => {
     let disposed = false;
@@ -123,45 +125,35 @@ export function Pill({
     }
   };
 
-  const stateLabel: Record<PillState, string> = {
-    idle: "Ready",
-    listening: "Listening...",
-    transcribing: "Transcribing...",
-    finalizing: "Finalizing...",
-    done: "Done",
-    error: "Error",
-  };
-
-  const pulseClass = state === "listening" ? "pulse" : "";
+  const pulseClass = view.pulse ? "pulse" : "";
   const errorClass = state === "error" ? "error" : "";
-  const statusColor = state === "listening" ? "#10b981" : state === "error" ? "#ef4444" : "#6b7280";
 
   return (
     <div className={`pill ${pulseClass} ${errorClass} ${className || ""}`}>
-      <div className="pill-indicator" style={{ backgroundColor: statusColor }} />
-      <span className="pill-label">{stateLabel[state]}</span>
-      {feed.committedText && (
-        <span className="pill-transcript">{feed.committedText}</span>
+      <div className="pill-indicator" style={{ backgroundColor: view.color }} />
+      <span className="pill-label" role="status" aria-live="polite">{view.label}</span>
+      {view.display.kind === "committed" && (
+        <span className="pill-transcript">{view.display.text}</span>
       )}
-      {!feed.committedText && feed.tentativeText && (
-        <span className="pill-transcript">{feed.tentativeText}…</span>
+      {view.display.kind === "tentative" && (
+        <span className="pill-transcript">{view.display.text}…</span>
       )}
-      {error && <span className="pill-error">{error}</span>}
-      {state === "idle" && mode === "hold_to_talk" && (
+      {view.errorText && <span className="pill-error">{view.errorText}</span>}
+      {view.showStart && mode === "hold_to_talk" && (
         <button className="pill-activate" onMouseDown={handleActivate} onMouseUp={handleDeactivate} onMouseLeave={handleDeactivate}
           onTouchStart={handleActivate} onTouchEnd={handleDeactivate}
         >
           Hold to talk
         </button>
       )}
-      {state === "idle" && mode === "toggle_to_talk" && (
+      {view.showStart && mode === "toggle_to_talk" && (
         <button className="pill-activate" onClick={handleActivate}>
           Tap to talk
         </button>
       )}
-      {state === "listening" && mode === "toggle_to_talk" && (
+      {view.showStop && (
         <button className="pill-deactivate" onClick={handleDeactivate}>
-          Tap to stop
+          {mode === "toggle_to_talk" ? "Tap to stop" : "Stop"}
         </button>
       )}
     </div>
