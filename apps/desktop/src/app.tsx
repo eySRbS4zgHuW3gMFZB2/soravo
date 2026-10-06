@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getRuntimeStatus,
   onPing,
@@ -10,6 +10,12 @@ import {
   type SessionPhase,
   type SessionTransition,
 } from "./ipc";
+import {
+  applyInjectionSnapshot,
+  createInjectionController,
+  subscribeInjectionFeed,
+  type InjectionController,
+} from "./injection-feed";
 import { AccountPanel } from "./components/account-panel";
 import { Pill } from "./components/pill";
 import { SettingsLayout } from "./components/settings/settings-layout";
@@ -33,11 +39,19 @@ export function App() {
   const [pingReply, setPingReply] = useState<PingReply | null>(null);
   const [connected, setConnected] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  // R1-GAP-015: injection controller survives rerenders so exactly-once
+  // identity memory (`session_id:sequence` keys) is never lost to a render.
+  const injectionRef = useRef<InjectionController | null>(null);
+  if (injectionRef.current === null) {
+    injectionRef.current = createInjectionController();
+  }
 
   useEffect(() => {
     let unsubSession: (() => void) | undefined;
     let unsubPing: (() => void) | undefined;
+    let unsubInjection: (() => void) | undefined;
     let disposed = false;
+    const injection = injectionRef.current as InjectionController;
 
     getRuntimeStatus()
       .then((next) => {
@@ -47,6 +61,14 @@ export function App() {
         setSessionId(next.sessionId);
         setMessage("Runtime ready");
         setConnected(next.ready);
+        // Hydrate the injection fold from already-fetched status (no extra
+        // IPC): a mount mid-session must still associate that session's
+        // finals correctly. Older-than-live snapshots cannot rewind the fold.
+        applyInjectionSnapshot(injection, {
+          sessionId: next.sessionId,
+          phase: next.phase,
+          sequence: next.sequence,
+        });
       })
       .catch(() => {
         if (disposed) return;
@@ -70,10 +92,27 @@ export function App() {
       unsubPing = unlisten;
     });
 
+    // R1-GAP-015: inject accepted committed/final transcript text through the
+    // existing `inject_text` contract. Failures preserve session state (no
+    // state change here) and are recorded on the controller; no new
+    // notification surface is invented.
+    subscribeInjectionFeed(injection, {
+      onInjectionError: () => {
+        // Session state intentionally preserved; see `injection-feed.ts`.
+      },
+    }).then((unsubscribe) => {
+      if (disposed) {
+        unsubscribe();
+        return;
+      }
+      unsubInjection = unsubscribe;
+    });
+
     return () => {
       disposed = true;
       unsubSession?.();
       unsubPing?.();
+      unsubInjection?.();
     };
   }, []);
 
