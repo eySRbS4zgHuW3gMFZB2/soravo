@@ -1,5 +1,6 @@
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::transcription::TranscriptionManager;
+use crate::session_pipeline::production as session_lifecycle;
 use crate::shortcut;
 use crate::TranscriptionCoordinator;
 use log::info;
@@ -97,6 +98,9 @@ pub fn cancel_current_operation(app: &AppHandle) {
     // Abandon any live streaming transcription
     let tm = app.state::<Arc<TranscriptionManager>>();
     tm.cancel_stream();
+
+    // R1-GAP-005/006: explicit cancel returns to IDLE with no stale session.
+    session_lifecycle::reset_session(app);
 
     // Update tray icon and hide overlay
     set_tray_state(app, crate::tray::TrayIconState::Idle);

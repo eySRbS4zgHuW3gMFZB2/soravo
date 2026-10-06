@@ -6,6 +6,7 @@
 
 pub mod events;
 pub mod session;
+pub mod session_pipeline;
 pub mod transcription_coordinator;
 
 // Handy integration modules

@@ -6,6 +6,7 @@
 
 pub mod benchmark;
 pub mod engines;
+pub mod mock;
 pub mod stream_events;
 pub mod stream_router;
 pub mod stream_worker;
