@@ -55,6 +55,32 @@ export type PingPayload = {
   timestampMs: number;
 };
 
+/**
+ * Mirrors `soravo-transcript::TranscriptKind` (unit variants, verbatim names).
+ * `Tentative` text is a volatile preview and must never be treated as
+ * committed/final output; only `Committed`/`Final` text is stable.
+ */
+export type TranscriptKind = "Tentative" | "Committed" | "Final";
+
+/**
+ * Mirrors `soravo-transcript::TranscriptUpdate`.
+ *
+ * NOTE on casing: unlike the `session.rs`/`events.rs` shapes (which use
+ * `#[serde(rename_all = "camelCase")]`), `TranscriptUpdate` carries NO
+ * `rename_all`, so the wire keys stay `snake_case`. This mirror preserves the
+ * wire shape verbatim (`session_id`, not `sessionId`) so a future Rust
+ * producer emitting this exact struct deserializes without translation.
+ * `session_id` is the `soravo-transcript::SessionId` newtype (`u64` → number)
+ * and, together with `sequence`, is the stale/duplicate rejection key
+ * (`TranscriptOrder::accept` / `SessionMachine::is_current` semantics).
+ */
+export type TranscriptUpdate = {
+  session_id: number;
+  sequence: number;
+  kind: TranscriptKind;
+  text: string;
+};
+
 /** Hotkey types mirroring Rust hotkeys crate. */
 export type Modifiers = {
   ctrl: boolean;
@@ -105,6 +131,13 @@ export type TypingResult = {
 export const SESSION_CHANGED_EVENT = "session://changed";
 export const PING_EVENT = "runtime://ping";
 export const TYPING_RESULT_EVENT = "typing://result";
+/**
+ * Typed transcript-update channel on the existing Tauri event bus.
+ * URI-scheme follows the existing `session://changed` / `runtime://ping` /
+ * `typing://result` convention. Payload is the verbatim `TranscriptUpdate`
+ * mirror above — no new payload contract is introduced.
+ */
+export const TRANSCRIPT_UPDATE_EVENT = "transcript://update";
 
 export function getRuntimeStatus(): Promise<RuntimeStatus> {
   return invoke<RuntimeStatus>("runtime_status");
@@ -152,6 +185,21 @@ export function onSessionChanged(
 /** Subscribe to runtime ping events. Returns an unsubscribe fn. */
 export function onPing(handler: (payload: PingPayload) => void): Promise<UnlistenFn> {
   return listen<PingPayload>(PING_EVENT, (event) => handler(event.payload));
+}
+
+/**
+ * Subscribe to typed transcript updates on the existing event bus.
+ * The payload contract is the reused `TranscriptUpdate` mirror (session id +
+ * sequence + kind + text); kind/ordering/staleness interpretation lives in the
+ * subscriber (see `session-feed.ts`), mirroring `soravo-transcript`
+ * (`TranscriptOrder` / `TranscriptState`) semantics. Returns an unsubscribe fn.
+ */
+export function onTranscriptUpdate(
+  handler: (update: TranscriptUpdate) => void
+): Promise<UnlistenFn> {
+  return listen<TranscriptUpdate>(TRANSCRIPT_UPDATE_EVENT, (event) =>
+    handler(event.payload)
+  );
 }
 
 /**
