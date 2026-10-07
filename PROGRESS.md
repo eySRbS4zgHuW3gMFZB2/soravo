@@ -12507,3 +12507,14 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Crate cleanup decision:** `crates/hotkeys` (`soravo-hotkeys`, zero consumers since the stub removal) is **deferred** — orphan workspace-crate removal is a separate supply-chain decision, not part of this task.
 - **Remaining hotkey work:** (a) settings-store unification between `soravo_config::HotkeySettings` (Soravo file store) and Handy `AppSettings` bindings remains tracked under R1-GAP-023; (b) a future scoped feature may wire Handy's real binding recorder (`start_handy_keys_recording`/`handy-keys-event`/`change_binding`) into the settings UI — not invented here; (c) `crates/hotkeys` orphan-crate removal (supply-chain decision).
 - **Next task:** none blocking. Suggested: owner decision on R1-GAP-023 settings-store unification and on the `crates/hotkeys` orphan-crate removal.
+
+## HOTKEY-FRONTEND-RECONCILIATION — docs-record PR CI stall (BLOCKED / INFRASTRUCTURE-STALLED) (2026-10-07)
+
+- **CI run:** `37667683779` on PR #103 (docs entry for HOTKEY-FRONTEND-RECONCILIATION).
+- **SHA:** `a4ba2d552cac576e0a9c8d3e63cc5308690d1fc5`.
+- **Passed jobs:** `web` (53s), `desktop build (Windows)`, `desktop build (macOS, aarch64)`, `desktop build (macOS, x86_64)`.
+- **Stalled jobs:** `desktop` (desktop job), `rust`, `e2e` — each stuck in dependency installation for ~40+ minutes with no progress.
+- **Exact stalled steps:** `desktop` and `rust` at "Install Tauri Linux system dependencies"; `e2e` at "Run pnpm playwright install --with-deps chromium".
+- **Status:** BLOCKED / INFRASTRUCTURE-STALLED. No merge performed on PR #103. No workflow change made, no dependency step weakened, no bypass of branch protection.
+- **Note:** the feature PR #102 merged at `edb3138c` when its required CI was fully green (run `37664133046` success); this stall affects only the docs-record PR #103.
+- **Next action:** rerun/revalidate CI on PR #103 (legitimate CI recovery rerun only; no code or workflow edits), then merge only when required checks reach a real terminal state. Do not treat the stalled run as a test failure.
