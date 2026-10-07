@@ -8,7 +8,7 @@ use tauri::{generate_handler, Manager};
 use soravo_desktop_lib::{
     account::AccountMachine,
     cli::CliArgs,
-    commands::{account::*, initialize_shortcuts, soravo_ipc::*},
+    commands::{account::*, history::*, initialize_shortcuts, soravo_ipc::*},
     managers::{
         audio::AudioRecordingManager,
         history::HistoryManager,
@@ -20,9 +20,9 @@ use soravo_desktop_lib::{
     TranscriptionCoordinator,
 };
 // `#[tauri::command]` macro-exports its per-command wrappers to the crate root.
-// The other 15 commands' wrappers arrive via the `account::*` / `soravo_ipc::*`
-// globs; `initialize_shortcuts` is declared in `commands` itself, so both of its
-// generated wrappers are imported by name here.
+// The other commands' wrappers arrive via the `account::*` / `history::*` /
+// `soravo_ipc::*` globs; `initialize_shortcuts` is declared in `commands`
+// itself, so both of its generated wrappers are imported by name here.
 use soravo_desktop_lib::{__cmd__initialize_shortcuts, __tauri_command_name_initialize_shortcuts};
 
 fn main() {
@@ -130,6 +130,12 @@ fn main() {
             account_sign_in,
             account_sign_out,
             initialize_shortcuts,
+            // R1-GAP-018: expose the existing Handy-derived history contract.
+            // Registration only — no manager/command behavior changed.
+            get_history_entries,
+            toggle_history_entry_saved,
+            delete_history_entry,
+            retry_history_entry_transcription,
         ])
         .run(tauri::generate_context!())
         .expect("error while running soravo desktop");

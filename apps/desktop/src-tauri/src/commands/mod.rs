@@ -17,6 +17,13 @@ use tauri_plugin_opener::OpenerExt;
 // frontend-expected commands without touching Handy architecture.
 // T14: account adapter re-export for the 3 frontend account commands.
 pub use account::{account_sign_in, account_sign_out, get_account_snapshot};
+// R1-GAP-018: re-export the existing Handy-derived history commands so the
+// invoke handler (main.rs) resolves them. Behavior unchanged — registration
+// only; `managers/history.rs` and `commands/history.rs` are untouched.
+pub use history::{
+    delete_history_entry, get_history_entries, retry_history_entry_transcription,
+    toggle_history_entry_saved,
+};
 pub use soravo_ipc::{
     emit_ping, inject_text, load_settings, ping, runtime_status, save_settings, session_reset,
     session_snapshot, session_transition, update_hotkey_settings, update_microphone_settings,

@@ -531,3 +531,89 @@ export function accountSignIn(): Promise<AccountResult> {
 export function accountSignOut(): Promise<AccountResult> {
   return invoke<AccountResult>("account_sign_out");
 }
+
+// History types and commands.
+//
+// R1-GAP-018 — the desktop had a complete Handy-derived history backend
+// (`managers/history.rs` SQLite store + `commands/history.rs`) but zero
+// frontend surface: no wrapper, no component, no event subscription. The
+// mirrors below bind the new history UI to that existing contract without
+// changing it. Serde shapes are mirrored verbatim (snake_case wire keys;
+// the `HistoryUpdatePayload` externally-tagged `action` variants), so no
+// translation layer is introduced.
+//
+// Canonical data rules (from `managers/history.rs`, read-only here):
+// - entries arrive newest-first (`ORDER BY id DESC`);
+// - `get_history_entries` pages by `cursor` (exclusive upper id bound) with
+//   `limit` capped at 100 server-side, reporting `has_more`;
+// - mutations emit `history-update-payload` (`added` / `updated` carry the
+//   full entry; `deleted` / `toggled` carry only the id).
+
+/** Mirrors `crate::managers::history::HistoryEntry` (snake_case wire keys). */
+export type HistoryEntry = {
+  id: number;
+  file_name: string;
+  /** Unix seconds (`Utc::now().timestamp()` at save time). */
+  timestamp: number;
+  saved: boolean;
+  title: string;
+  transcription_text: string;
+  post_processed_text: string | null;
+  post_process_prompt: string | null;
+  post_process_requested: boolean;
+};
+
+/** Mirrors `crate::managers::history::PaginatedHistory`. */
+export type PaginatedHistory = {
+  entries: HistoryEntry[];
+  has_more: boolean;
+};
+
+/**
+ * Mirrors `crate::managers::history::HistoryUpdatePayload`
+ * (`#[serde(tag = "action")]`, verbatim variant names).
+ */
+export type HistoryUpdatePayload =
+  | { action: "added"; entry: HistoryEntry }
+  | { action: "updated"; entry: HistoryEntry }
+  | { action: "deleted"; id: number }
+  | { action: "toggled"; id: number };
+
+export const HISTORY_UPDATE_EVENT = "history-update-payload";
+
+export function getHistoryEntries(
+  cursor?: number,
+  limit?: number
+): Promise<PaginatedHistory> {
+  return invoke<PaginatedHistory>("get_history_entries", {
+    cursor: cursor ?? null,
+    limit: limit ?? null,
+  });
+}
+
+export function toggleHistoryEntrySaved(id: number): Promise<void> {
+  return invoke<void>("toggle_history_entry_saved", { id });
+}
+
+export function deleteHistoryEntry(id: number): Promise<void> {
+  return invoke<void>("delete_history_entry", { id });
+}
+
+export function retryHistoryEntryTranscription(id: number): Promise<void> {
+  return invoke<void>("retry_history_entry_transcription", { id });
+}
+
+/**
+ * Subscribe to history mutations on the existing Tauri event bus.
+ * `added` carries the saved entry, `updated` the re-transcribed entry;
+ * `deleted` / `toggled` carry only the id (the UI owns those optimistic
+ * updates and ignores the echo — Handy `HistorySettings` parity).
+ * Returns an unsubscribe fn.
+ */
+export function onHistoryUpdate(
+  handler: (payload: HistoryUpdatePayload) => void
+): Promise<UnlistenFn> {
+  return listen<HistoryUpdatePayload>(HISTORY_UPDATE_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
