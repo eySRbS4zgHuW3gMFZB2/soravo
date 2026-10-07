@@ -64,6 +64,12 @@ pub mod managers;
 // Shortcut/hotkey integration
 pub mod shortcut;
 
+// R1-GAP-004: macOS permission-declaration posture regression tests.
+// Test-only module; zero production footprint.
+#[cfg(test)]
+#[path = "platform_config_tests.rs"]
+mod platform_config_tests;
+
 // Session state accessors
 pub use session::{SessionMachine, SessionPhase, SessionTransition};
 pub use transcription_coordinator::TranscriptionCoordinator;
