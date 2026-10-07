@@ -566,16 +566,16 @@ fn earshot_path_termination_holds_offline_hangover_then_cuts() {
     );
     // Condition on room tone (see sustained-speech note), establish speech,
     // then cut to silence and watch every trailing frame.
-    for frame in silence_16k(40).chunks_exact(FRAME_SAMPLES) {
+    for frame in silence_16k(40).as_chunks::<FRAME_SAMPLES>().0 {
         let _ = vad.push_frame(frame);
     }
     let tone = tone_16k(12);
-    for frame in tone.chunks_exact(FRAME_SAMPLES) {
+    for frame in tone.as_chunks::<FRAME_SAMPLES>().0 {
         let _ = vad.push_frame(frame);
     }
     let silence = silence_16k(60);
     let mut tail: Vec<bool> = Vec::new();
-    for frame in silence.chunks_exact(FRAME_SAMPLES) {
+    for frame in silence.as_chunks::<FRAME_SAMPLES>().0 {
         tail.push(vad.is_voice(frame).expect("VAD classifies"));
     }
     // Mechanical floor: the first 29 post-tone frames are always speech.
@@ -732,11 +732,11 @@ fn earshot_path_tail_report_accounts_withheld_onset() {
         frames_for_duration_ms(VAD_OFFLINE_HANGOVER_MS, FRAME_SAMPLES),
         frames_for_duration_ms(VAD_ONSET_MS, FRAME_SAMPLES),
     );
-    for frame in silence_16k(30).chunks_exact(FRAME_SAMPLES) {
+    for frame in silence_16k(30).as_chunks::<FRAME_SAMPLES>().0 {
         assert!(!vad.is_voice(frame).expect("VAD classifies"));
     }
     let tone = tone_16k(2);
-    for frame in tone.chunks_exact(FRAME_SAMPLES) {
+    for frame in tone.as_chunks::<FRAME_SAMPLES>().0 {
         assert!(!vad.is_voice(frame).expect("VAD classifies"));
     }
     let report = vad.tail_report().expect("smoothed VAD always reports");
