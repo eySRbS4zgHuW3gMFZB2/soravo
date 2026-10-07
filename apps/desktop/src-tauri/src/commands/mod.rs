@@ -17,6 +17,17 @@ use tauri_plugin_opener::OpenerExt;
 // frontend-expected commands without touching Handy architecture.
 // T14: account adapter re-export for the 3 frontend account commands.
 pub use account::{account_sign_in, account_sign_out, get_account_snapshot};
+// R1-GAP-017 runtime re-verification: re-export the existing Handy-derived
+// model commands so the invoke handler (main.rs) resolves them. The frontend
+// wrappers in `apps/desktop/src/ipc.ts` and the selector/download fold in
+// `model-feed.ts` already invoke these names; without registration every one
+// of those invocations fails at runtime. Behavior unchanged — registration
+// only; `managers/model.rs` and `commands/models.rs` are untouched.
+pub use models::{
+    cancel_download, delete_model, download_model, get_available_models, get_current_model,
+    get_model_info, get_transcription_model_status, is_model_loading, rescan_local_models,
+    set_active_model,
+};
 // R1-GAP-018: re-export the existing Handy-derived history commands so the
 // invoke handler (main.rs) resolves them. Behavior unchanged — registration
 // only; `managers/history.rs` and `commands/history.rs` are untouched.
@@ -188,6 +199,13 @@ pub fn initialize_enigo(app: AppHandle) -> Result<(), String> {
         }
     }
 }
+
+/// R1-GAP-017 runtime re-verification: registration-completeness tests for the
+/// model command family. Pure source analysis — no Tauri runtime, window, model
+/// asset, microphone, or network required.
+#[cfg(test)]
+#[path = "registration_tests.rs"]
+mod registration_tests;
 
 /// Marker state to track if shortcuts have been initialized.
 pub struct ShortcutsInitialized;
