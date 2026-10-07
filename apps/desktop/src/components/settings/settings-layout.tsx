@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { GeneralSettings } from "./general-settings";
+import { HistorySettings } from "./history-settings";
 import { MicrophoneSettings } from "./microphone-settings";
 import { ShortcutSettings } from "./shortcut-settings";
 import { ModelSettings } from "./model-settings";
 
-type SettingsSection = "overview" | "general" | "microphone" | "shortcut" | "models" | "privacy" | "diagnostics";
+type SettingsSection = "overview" | "general" | "microphone" | "shortcut" | "models" | "history" | "privacy" | "diagnostics";
 
 const SECTIONS: { key: SettingsSection; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -12,6 +13,7 @@ const SECTIONS: { key: SettingsSection; label: string }[] = [
   { key: "microphone", label: "Microphone" },
   { key: "shortcut", label: "Shortcut" },
   { key: "models", label: "Models" },
+  { key: "history", label: "History" },
   { key: "privacy", label: "Privacy" },
   { key: "diagnostics", label: "Diagnostics" },
 ];
@@ -36,6 +38,8 @@ export function SettingsLayout() {
         return <ShortcutSettings />;
       case "models":
         return <ModelSettings />;
+      case "history":
+        return <HistorySettings />;
       case "privacy":
         return (
           <div className="settings-section">
