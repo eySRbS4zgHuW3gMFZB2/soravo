@@ -12310,14 +12310,15 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Exact files changed:** `R1-GAP-023-SETTINGS-STORE-PROPOSAL.md` (new, proposal record) + `PROGRESS.md` (this entry). Deliberately unchanged: `settings.rs`, `crates/config`, `commands/soravo_ipc.rs`, all settings UI, `ipc.ts`, workflows, manifests/lockfiles, catalog, ADRs.
 - **Tests added/changed:** none (no behavior changed — per task testing rule, tests cover changed behavior; verification re-ran existing suites instead).
 - **Local test results (actually ran):** `cargo test -p soravo-desktop --lib settings` 26/26 pass; `cargo test -p soravo-config` 3/3 pass; `pnpm vitest run` (apps/desktop) 110/110 across 8 files. `tsc`/`eslint`/`fmt`/`clippy` not re-run (no code touched; last green on main CI below).
-- **CI results:** pre-merge main CI `37593405334` + deploy `37593405380` both `success` (live-read at intake); feature-PR CI recorded below after push.
+- **CI results:** pre-merge CI run `37596348174` (`pull_request`, head `ea49b987`) ALL SUCCESS — web 1m7s, e2e 46s, rust 2m58s, desktop 5m34s, macOS-aarch64 7m4s, macOS-x86_64 5m54s, Windows 9m51s (7/7).
 - **Risk classification:** NORMAL-RISK — HR-1…HR-8 all No (Markdown-only proposal + progress prose; no source/workflow/manifest/lockfile/catalog/protection change; no ambiguity). Recorded on the PR before merge as `risk-classification: normal (ADR-031 §5.5)` + trigger ids tested. No approval fabricated; no self-review needed (NR).
 - **C1–C18 self-review result:** N/A (normal-risk; §5.10 path not triggered).
-- **PR number and final PR SHA:** recorded below after push.
-- **Merge SHA:** recorded below after merge (ordinary merge; no history rewrite).
-- **Final origin/main SHA:** recorded below after post-merge verification.
-- **PROGRESS synchronization result:** this entry on the feature branch, carried to `main` by the feature PR (proposal + record travel together; Markdown-only, no T34-AL split needed).
-- **Deploy result:** recorded below (standard post-merge signal, not a desktop runtime claim).
+- **PR number and final PR SHA:** #90 (`r1-gap-023/settings-store-unification-proposal` → `main`).
+- **Final PR SHA:** `ea49b9872b62550f5f93b69abad8b5fdfcc69a7b` (single commit `docs(r1-gap-023): settings-store unification proposal (F5), verification-only`; parent = `4061cb97`; no force-push; MERGEABLE/CLEAN at merge).
+- **Merge SHA:** `4245ba3438f2e0d9593231c72eaf5e1c04dc4a7d` (ordinary `gh pr merge 90 --merge`; PR head verified ancestor of new main; merged 2026-10-07).
+- **Final origin/main SHA:** `4245ba3438f2e0d9593231c72eaf5e1c04dc4a7d`.
+- **PROGRESS synchronization result:** proposal + this entry traveled together in feature PR #90 (Markdown-only, no T34-AL split needed); merge-evidence lines filled here on `r1-gap-023/record-progress` for record PR #91.
+- **Deploy result:** post-merge Deploy-website run `37597802885` on merge commit `success`; post-merge CI run `37597802962` (push, head `4245ba34`) `completed/success`. Standard post-merge signal, not a desktop runtime claim.
 - **Branch protection status:** re-read live pre-branch — approvals 0, strict true, contexts `[web,e2e,rust,desktop]`, force-push/deletion disabled. Unchanged.
 - **Implemented / verified / blocked / not-executed / deferred:** Implemented: proposal document + verification matrix + CI/merge/record. Verified: both stores work (26+3+110 tests), consumers compatible, Handy provenance. Blocked: none. Not executed: live-mic/model runtime proof (no hardware/models by design — unit/integration boundary is the contract). Deferred: code unification (owner ADR required), R2/R3/UI-redesign/payment/release, 008/011/021 prerequisites.
 - **Remaining executable/blocked/deferred/missing gaps:** executable-now 028/007/009/004; BLOCKED 008 (Silero asset), 011 (downloaded model), 021 (Supabase/PKCE owner decision); DEFERRED 022/027/029/030; MISSING 026/028-E2E. Plus follow-up: model/audio/transcription invoke-handler registration verification (R1-GAP-018 observation, unchanged).
