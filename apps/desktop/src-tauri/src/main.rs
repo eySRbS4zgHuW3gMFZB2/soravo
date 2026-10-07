@@ -8,7 +8,7 @@ use tauri::{generate_handler, Manager};
 use soravo_desktop_lib::{
     account::AccountMachine,
     cli::CliArgs,
-    commands::{account::*, history::*, initialize_shortcuts, soravo_ipc::*},
+    commands::{account::*, history::*, initialize_shortcuts, models::*, soravo_ipc::*},
     managers::{
         audio::AudioRecordingManager,
         history::HistoryManager,
@@ -130,6 +130,24 @@ fn main() {
             account_sign_in,
             account_sign_out,
             initialize_shortcuts,
+            // R1-GAP-017 runtime re-verification: expose the existing
+            // Handy-derived model contract. The R1-GAP-017 frontend wiring
+            // (`ipc.ts` wrappers + `model-feed.ts`) invokes these names, so
+            // without registration the settings model selector and the
+            // download/selection path fail at runtime with an unknown-command
+            // error. Registration only — no manager/command behavior changed,
+            // and every one of these takes already-managed state
+            // (`Arc<ModelManager>` / `Arc<TranscriptionManager>`).
+            get_available_models,
+            get_model_info,
+            rescan_local_models,
+            download_model,
+            cancel_download,
+            delete_model,
+            set_active_model,
+            get_current_model,
+            get_transcription_model_status,
+            is_model_loading,
             // R1-GAP-018: expose the existing Handy-derived history contract.
             // Registration only — no manager/command behavior changed.
             get_history_entries,
