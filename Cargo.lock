@@ -5563,7 +5563,6 @@ dependencies = [
  "signal-hook",
  "soravo-audio",
  "soravo-config",
- "soravo-hotkeys",
  "soravo-stt",
  "soravo-transcript",
  "soravo-typing",
