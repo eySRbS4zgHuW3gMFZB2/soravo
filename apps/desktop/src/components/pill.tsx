@@ -7,7 +7,7 @@ import {
   subscribePillFeed,
 } from "../session-feed";
 import { describePillView } from "../pill-view";
-import { hotkeyConfig, hotkeyStart, hotkeyStop, hotkeyToggle, sessionSnapshot } from "../ipc";
+import { loadSettings, sessionSnapshot } from "../ipc";
 
 /** Pill recording states. */
 export type PillState =
@@ -30,9 +30,13 @@ export type PillState =
  * `session-feed.ts`). The previous 100 ms `hotkeyRecording()` poll is gone:
  * those commands are not registered backend-side, so the poll could never
  * observe a session — the bus is the single state source (no parallel state
- * system, no polling). Button interaction (hold/toggle) is unchanged; on
- * success the pill waits for the canonical bus event instead of optimistically
- * rewriting state locally.
+ * system, no polling).
+ *
+ * Interaction mode comes from the live settings store (`load_settings` →
+ * `Settings.hotkey.mode`). Recording itself is driven by the Handy-derived
+ * global shortcut system (`src-tauri/src/shortcut/`), not by pill buttons:
+ * the retired `hotkey_*` pill handlers were unregistered backend stubs, so
+ * they were removed rather than re-plumbed to a fake state machine.
  */
 export function Pill({
   className,
@@ -41,21 +45,24 @@ export function Pill({
 }) {
   const [feed, setFeed] = useState(createSessionFeed);
   const [mode, setMode] = useState<"hold_to_talk" | "toggle_to_talk">("hold_to_talk");
-  const [error, setError] = useState<string | null>(null);
 
   // R1-GAP-016-balance: view model over the canonical feed (session-feed.ts).
-  const view = describePillView(feed, mode, error);
+  // The canonical backend session state is the only error source — there is
+  // no local hotkey-command error anymore (those commands were retired).
+  const view = describePillView(feed, mode, null);
   const state = view.state;
 
   useEffect(() => {
     let disposed = false;
     let unsubscribe: (() => void) | undefined;
 
-    // Load initial hotkey config
-    hotkeyConfig()
-      .then((config) => {
+    // Load initial interaction mode from the live settings store.
+    loadSettings()
+      .then((res) => {
         if (disposed) return;
-        setMode(config.mode);
+        if (res.success && res.data) {
+          setMode(res.data.hotkey.mode);
+        }
       })
       .catch(() => {
         // Runtime not connected - fine for web preview
@@ -92,39 +99,6 @@ export function Pill({
     };
   }, []);
 
-  const handleActivate = async () => {
-    setError(null);
-    try {
-      if (mode === "hold_to_talk") {
-        const result = await hotkeyStart();
-        if (result.status !== "success") {
-          setError(result.message);
-        }
-      } else {
-        const result = await hotkeyToggle();
-        if (result.status !== "success") {
-          setError(result.message);
-        }
-      }
-    } catch {
-      setError("Failed to activate hotkey");
-    }
-  };
-
-  const handleDeactivate = async () => {
-    setError(null);
-    try {
-      if (mode === "hold_to_talk") {
-        const result = await hotkeyStop();
-        if (result.status !== "success") {
-          setError(result.message);
-        }
-      }
-    } catch {
-      setError("Failed to deactivate");
-    }
-  };
-
   const pulseClass = view.pulse ? "pulse" : "";
   const errorClass = state === "error" ? "error" : "";
 
@@ -139,23 +113,6 @@ export function Pill({
         <span className="pill-transcript">{view.display.text}…</span>
       )}
       {view.errorText && <span className="pill-error">{view.errorText}</span>}
-      {view.showStart && mode === "hold_to_talk" && (
-        <button className="pill-activate" onMouseDown={handleActivate} onMouseUp={handleDeactivate} onMouseLeave={handleDeactivate}
-          onTouchStart={handleActivate} onTouchEnd={handleDeactivate}
-        >
-          Hold to talk
-        </button>
-      )}
-      {view.showStart && mode === "toggle_to_talk" && (
-        <button className="pill-activate" onClick={handleActivate}>
-          Tap to talk
-        </button>
-      )}
-      {view.showStop && (
-        <button className="pill-deactivate" onClick={handleDeactivate}>
-          {mode === "toggle_to_talk" ? "Tap to stop" : "Stop"}
-        </button>
-      )}
     </div>
   );
 }
