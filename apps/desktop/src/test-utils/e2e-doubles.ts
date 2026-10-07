@@ -332,17 +332,6 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
         }
         return null;
       }
-      case "hotkey_config":
-        return { binding: null, mode: "hold_to_talk", enabled: true };
-      case "set_hotkey_config":
-      case "hotkey_start":
-      case "hotkey_stop":
-      case "hotkey_toggle":
-        return { status: "success", message: "ok (e2e double)" };
-      case "hotkey_recording":
-        return false;
-      case "hotkey_check_conflicts":
-        return { status: "success", message: "no conflict (e2e double)" };
       case "load_settings":
         return { success: true, message: "ok (e2e double)", data: structuredClone(settings) };
       case "save_settings":

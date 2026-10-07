@@ -81,42 +81,6 @@ export type TranscriptUpdate = {
   text: string;
 };
 
-/** Hotkey types mirroring Rust hotkeys crate. */
-export type Modifiers = {
-  ctrl: boolean;
-  alt: boolean;
-  shift: boolean;
-  meta: boolean;
-};
-
-export type KeyCode = 
-  | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M"
-  | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
-  | "DIGIT0" | "DIGIT1" | "DIGIT2" | "DIGIT3" | "DIGIT4"
-  | "DIGIT5" | "DIGIT6" | "DIGIT7" | "DIGIT8" | "DIGIT9"
-  | "F1" | "F2" | "F3" | "F4" | "F5" | "F6" | "F7" | "F8" | "F9" | "F10" | "F11" | "F12"
-  | "ESCAPE" | "BACKSPACE" | "DELETE" | "END" | "ENTER" | "HOME" | "INSERT" | "SPACE" | "TAB"
-  | "ARROWDOWN" | "ARROWLEFT" | "ARROWRIGHT" | "ARROWUP"
-  | "VOLUME_DOWN" | "VOLUME_UP" | "MUTE";
-
-export type HotkeyBinding = {
-  modifiers: Modifiers;
-  key: KeyCode;
-};
-
-export type InteractionMode = "hold_to_talk" | "toggle_to_talk";
-
-export type HotkeyConfig = {
-  binding: HotkeyBinding | null;
-  mode: InteractionMode;
-  enabled: boolean;
-};
-
-export type HotkeyResult = 
-  | { status: "success"; message: string }
-  | { status: "invalid"; code: string; message: string }
-  | { status: "conflict"; conflicting_app: string; message: string };
-
 /** Mirrors `soravo_typing::TypingMethod` (unit variants). */
 export type TypingMethod = "Native" | "ClipboardFallback";
 
@@ -213,36 +177,6 @@ export function onTypingResult(
   return listen<TypingResult>(TYPING_RESULT_EVENT, (event) =>
     handler(event.payload)
   );
-}
-
-// Hotkey commands
-
-export function hotkeyConfig(): Promise<HotkeyConfig> {
-  return invoke<HotkeyConfig>("hotkey_config");
-}
-
-export function setHotkeyConfig(config: HotkeyConfig): Promise<HotkeyResult> {
-  return invoke<HotkeyResult>("set_hotkey_config", { config });
-}
-
-export function hotkeyStart(): Promise<HotkeyResult> {
-  return invoke<HotkeyResult>("hotkey_start");
-}
-
-export function hotkeyStop(): Promise<HotkeyResult> {
-  return invoke<HotkeyResult>("hotkey_stop");
-}
-
-export function hotkeyToggle(): Promise<HotkeyResult> {
-  return invoke<HotkeyResult>("hotkey_toggle");
-}
-
-export function hotkeyRecording(): Promise<boolean> {
-  return invoke<boolean>("hotkey_recording");
-}
-
-export function hotkeyCheckConflicts(binding: HotkeyBinding | null): Promise<HotkeyResult> {
-  return invoke<HotkeyResult>("hotkey_check_conflicts", { binding });
 }
 
 // Settings types

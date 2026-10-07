@@ -4,7 +4,6 @@ import { loadSettings, updateHotkeySettings, HotkeySettings } from "../../ipc";
 export function ShortcutSettings() {
   const [settings, setSettings] = useState<HotkeySettings | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [recording, setRecording] = useState(false);
 
   useEffect(() => {
     loadSettings()
@@ -40,14 +39,6 @@ export function ShortcutSettings() {
         setError(res.message);
       }
     });
-  };
-
-  const startRecording = () => {
-    setRecording(true);
-    if (settings) {
-      const updated: HotkeySettings = { ...settings, recordingInProgress: true };
-      updateHotkeySettings(updated).catch(console.error);
-    }
   };
 
   if (error) {
@@ -91,14 +82,6 @@ export function ShortcutSettings() {
           {settings.binding ?? "Not configured"}
         </span>
       </div>
-      <div className="settings-row">
-        <button type="button" onClick={startRecording} disabled={recording}>
-          {recording ? "Recording..." : "Record Shortcut"}
-        </button>
-      </div>
-      <small>
-        Press the key combination you want to use. Hold+Space, Ctrl+Shift+S, etc.
-      </small>
     </div>
   );
 }
