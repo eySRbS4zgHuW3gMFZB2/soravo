@@ -15,4 +15,4 @@ winapi = { version = "0.3", features = ["winuser", "windef", "winnt"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"
 core-foundation = "0.9"
-cocoa = "0.25"
+cocoa = "0.27"
