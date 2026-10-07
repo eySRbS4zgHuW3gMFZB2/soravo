@@ -998,3 +998,11 @@ mod tests {
         assert!(is_no_input_device_error("No input device found"));
     }
 }
+
+// R1-GAP-007/009 Earshot-path recording tests (lifecycle coverage the inline
+// module above never had, plus the production Earshot composition). Sibling
+// file per the `session_pipeline_tests.rs` precedent; `super::` here and
+// there resolve to this same module.
+#[cfg(test)]
+#[path = "recorder_tests.rs"]
+mod recorder_tests;
