@@ -12518,3 +12518,12 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Status:** BLOCKED / INFRASTRUCTURE-STALLED. No merge performed on PR #103. No workflow change made, no dependency step weakened, no bypass of branch protection.
 - **Note:** the feature PR #102 merged at `edb3138c` when its required CI was fully green (run `37664133046` success); this stall affects only the docs-record PR #103.
 - **Next action:** rerun/revalidate CI on PR #103 (legitimate CI recovery rerun only; no code or workflow edits), then merge only when required checks reach a real terminal state. Do not treat the stalled run as a test failure.
+
+## HOTKEY-FRONTEND-RECONCILIATION — PR #103 merge + post-merge record (2026-10-07)
+
+- **PR #103:** `docs/hotkey-frontend-reconciliation-record` → `main`, merge commit `f537c48e70ae57e10e37d60e6d8ddd7faa1affa1`.
+- **Current-SHA CI evidence:** run `37673508871` on `2aded457611b327ba50e9d1bbcc009e321539e04` — `web`/`e2e`/`rust`/`desktop` + all 3 desktop builds **PASS**. The stale, hung run `37667683779` (SHA `a4ba2d55`, stuck in Ubuntu dependency installation) was **not** used as merge evidence; it remains an obsolete infrastructure-stalled run for a superseded SHA.
+- **Mergeability confirmed before merge:** `MERGEABLE`, `mergeStateStatus: CLEAN`, headRefOid `2aded457…`.
+- **Post-merge CI:** run `37675261199` at `f537c48e` — **success** (all jobs green). Post-merge website deploy `37675261185` success.
+- **Process notes:** no CI workflow file modified, no dependency step weakened, no branch-protection bypass, stale run not repaired or awaited.
+- **Remaining hotkey work:** unchanged — (a) R1-GAP-023 settings-store unification between `soravo_config::HotkeySettings` and Handy `AppSettings` bindings (proposal stage); (b) optional future wiring of Handy's real binding recorder (`start_handy_keys_recording`/`handy-keys-event`/`change_binding`) into the settings UI; (c) `crates/hotkeys` orphan workspace-crate removal — separate supply-chain decision, not part of this task.
