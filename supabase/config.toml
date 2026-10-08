@@ -40,3 +40,20 @@ verify_jwt = false
 # to make authenticated requests to the payment endpoint.
 [functions.payment-checkout]
 verify_jwt = true
+
+# R1-GAP-021 — desktop-auth mint endpoint. Same posture as payment-checkout:
+# the platform gate verifies the website user's Auth JWT, and the handler
+# re-confirms it against the Auth API before minting a single-use code.
+[functions.desktop-auth-mint]
+verify_jwt = true
+
+# R1-GAP-021 — desktop-auth exchange endpoint. `verify_jwt = false` is
+# deliberate and declared explicitly: no user JWT exists yet at this point by
+# construction — possession of the single-use code plus the PKCE verifier IS
+# the credential. The handler consumes the code atomically and mints the
+# session server-side via the Admin API. This MUST stay declared here, for
+# the same reason as the razorpay-webhook entry above: without it, a fresh
+# `supabase functions deploy` re-enables the JWT gate and every desktop
+# exchange fails closed with 401.
+[functions.desktop-auth-exchange]
+verify_jwt = false
