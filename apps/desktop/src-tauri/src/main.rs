@@ -7,6 +7,7 @@ use tauri::{generate_handler, Manager};
 
 use soravo_desktop_lib::{
     account::AccountMachine,
+    auth_flow::AuthFlow,
     cli::CliArgs,
     commands::{account::*, history::*, initialize_shortcuts, models::*, soravo_ipc::*},
     managers::{
@@ -24,6 +25,11 @@ use soravo_desktop_lib::{
 // `soravo_ipc::*` globs; `initialize_shortcuts` is declared in `commands`
 // itself, so both of its generated wrappers are imported by name here.
 use soravo_desktop_lib::{__cmd__initialize_shortcuts, __tauri_command_name_initialize_shortcuts};
+
+/// Route one raw deep-link/second-instance URL into the desktop auth flow.
+fn route_auth_callback(app: &tauri::AppHandle, raw_url: &str) {
+    soravo_desktop_lib::commands::account::handle_auth_callback_url(app, raw_url);
+}
 
 fn main() {
     // S0 — detect portable mode before Tauri initializes, so every app_data_dir
@@ -50,6 +56,13 @@ fn main() {
     let session_machine = Mutex::new(SessionMachine::default());
     // T14: local account state (signed-out by default; no identity synthesised).
     let account_machine = Mutex::new(AccountMachine::new());
+    // R1-GAP-021: desktop auth flow (PKCE handshake + keychain session).
+    // Restores any persisted session into the snapshot without network.
+    let auth_flow = AuthFlow::new();
+    if let Ok(machine) = account_machine.lock() {
+        soravo_desktop_lib::commands::account::restore_persisted_session(&auth_flow, &machine);
+    }
+    let auth_flow = Mutex::new(auth_flow);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
@@ -63,11 +76,20 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::AppleScript,
             None,
         ))
-        .plugin(tauri_plugin_single_instance::init(|_, args, _| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
+            // R1-GAP-021: a second launch carrying the auth deep link arrives
+            // here (custom schemes re-activate the single instance). Route
+            // `soravo://` argv entries into the auth flow; ignore the rest.
+            for arg in &args {
+                if arg.starts_with("soravo://") {
+                    route_auth_callback(app, arg);
+                }
+            }
             println!("Launched with args: {args:?}");
         }))
         .manage(session_machine)
         .manage(account_machine)
+        .manage(auth_flow)
         .setup(move |app| {
             // S3 — the model registry. Seeded from the bundled catalog, the
             // legacy model table, on-disk discovery and the HF cache.
@@ -111,6 +133,20 @@ fn main() {
                 log::warn!("initial global shortcut installation reported: {e}");
             }
 
+            // R1-GAP-021 — deep-link listener for `soravo://auth/callback`.
+            // The OS routes the custom scheme here (first instance); a second
+            // instance is folded into the single-instance callback above.
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let callback_handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        route_auth_callback(&callback_handle, url.as_str());
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(generate_handler![
@@ -128,6 +164,8 @@ fn main() {
             update_model_settings,
             get_account_snapshot,
             account_sign_in,
+            account_begin_sign_in,
+            account_refresh_session,
             account_sign_out,
             initialize_shortcuts,
             // R1-GAP-017 runtime re-verification: expose the existing

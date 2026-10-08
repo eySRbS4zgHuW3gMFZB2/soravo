@@ -462,6 +462,29 @@ export function accountSignIn(): Promise<AccountResult> {
   return invoke<AccountResult>("account_sign_in");
 }
 
+/** R1-GAP-021: start the browser PKCE flow. `url` is for display/fallback;
+ * the Rust command already opened it in the system browser. */
+export type BeginSignInResult = {
+  success: boolean;
+  message: string;
+  url: string | null;
+};
+
+export function accountBeginSignIn(): Promise<BeginSignInResult> {
+  return invoke<BeginSignInResult>("account_begin_sign_in");
+}
+
+export function accountRefreshSession(): Promise<AccountResult> {
+  return invoke<AccountResult>("account_refresh_session");
+}
+
+/** Emitted by Rust when the deep-link exchange completes. */
+export const AUTH_CHANGED_EVENT = "auth://changed";
+
+export function onAuthChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen<null>(AUTH_CHANGED_EVENT, () => handler());
+}
+
 export function accountSignOut(): Promise<AccountResult> {
   return invoke<AccountResult>("account_sign_out");
 }
