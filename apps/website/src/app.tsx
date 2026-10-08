@@ -34,6 +34,9 @@ const Refund = lazy(() =>
 const Login = lazy(() =>
   import("./pages/login").then((m) => ({ default: m.Login })),
 );
+const DesktopConnect = lazy(() =>
+  import("./pages/desktop-connect").then((m) => ({ default: m.DesktopConnect })),
+);
 const Account = lazy(() =>
   import("./pages/account").then((m) => ({ default: m.Account })),
 );
@@ -62,6 +65,7 @@ export function AppRoutes({ client }: { client?: AppSupabaseClient | null }) {
           <Route path="terms" element={<Terms />} />
           <Route path="refund" element={<Refund />} />
           <Route path="login" element={<Login />} />
+          <Route path="desktop/connect" element={<DesktopConnect />} />
           <Route path="account" element={<Account />} />
           <Route path="reset-password" element={<ResetPassword />} />
           <Route path="admin" element={<Admin />} />

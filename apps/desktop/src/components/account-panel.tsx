@@ -3,8 +3,10 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
 import {
   getAccountSnapshot,
-  accountSignIn,
+  accountBeginSignIn,
+  accountRefreshSession,
   accountSignOut,
+  onAuthChanged,
   type AccountSnapshot,
 } from "../ipc";
 
@@ -17,6 +19,17 @@ export function AccountPanel() {
 
   useEffect(() => {
     loadAccount();
+    // R1-GAP-021: the browser PKCE flow completes asynchronously via the
+    // `soravo://auth/callback` deep link; reload when Rust emits the change.
+    let unlisten: (() => void) | undefined;
+    onAuthChanged(() => {
+      loadAccount();
+    }).then((stop) => {
+      unlisten = stop;
+    });
+    return () => {
+      unlisten?.();
+    };
   }, []);
 
   async function loadAccount() {
@@ -43,14 +56,26 @@ export function AccountPanel() {
   async function handleSignIn() {
     setMessage(null);
     try {
-      const result = await accountSignIn();
+      // Opens the system browser on the website login; completion arrives
+      // via the deep-link event above.
+      const result = await accountBeginSignIn();
+      setMessage(result.message);
+    } catch {
+      setMessage("Sign in failed");
+    }
+  }
+
+  async function handleRefresh() {
+    setMessage(null);
+    try {
+      const result = await accountRefreshSession();
       if (result.success) {
         await loadAccount();
       } else {
         setMessage(result.message);
       }
     } catch {
-      setMessage("Sign in failed");
+      setMessage("Session refresh failed");
     }
   }
 
@@ -77,6 +102,7 @@ export function AccountPanel() {
         </CardHeader>
         <CardContent>
           <p>Account access enables entitlements and sync across devices.</p>
+          {message && <p className="text-muted-foreground">{message}</p>}
         </CardContent>
         <CardFooter>
           <Button onClick={handleSignIn}>Sign in</Button>
@@ -133,6 +159,7 @@ export function AccountPanel() {
           </div>
         </CardContent>
         <CardFooter>
+          <Button variant="outline" onClick={handleRefresh}>Refresh session</Button>
           <Button variant="outline" onClick={handleSignOut}>Sign out</Button>
         </CardFooter>
       </Card>

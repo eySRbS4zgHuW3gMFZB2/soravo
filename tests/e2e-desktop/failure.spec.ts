@@ -42,15 +42,14 @@ test.describe("desktop failure and recovery", () => {
   test("account sign-in fails closed by design", async ({ page }) => {
     await openDesktop(page, "ready");
 
-    // The harness refuses to mint auth (T14 STOP): the command fires, no
-    // session is created, and the panel stays on the signed-out state.
-    // (Observation, not asserted here: the idle panel does not render the
-    // refusal message — `message` is set but the idle branch shows no
-    // message slot. Left untouched per the no-redesign boundary.)
+    // R1-GAP-021: the panel starts the explicit browser command; the harness
+    // build is unconfigured, so it fails closed (never invents auth), shows
+    // the refusal, and stays on the signed-out state.
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect
-      .poll(async () => (await invokeCommands(page)).filter((c) => c === "account_sign_in").length)
+      .poll(async () => (await invokeCommands(page)).filter((c) => c === "account_begin_sign_in").length)
       .toBe(1);
     await expect(page.getByRole("heading", { name: "Sign in to your account" })).toBeVisible();
+    await expect(page.getByText(/fails closed/i)).toBeVisible();
   });
 });

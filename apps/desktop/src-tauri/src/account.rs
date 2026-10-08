@@ -123,6 +123,37 @@ impl AccountMachine {
         Ok("Signed out successfully".to_string())
     }
 
+    /// Apply a freshly established Supabase session (R1-GAP-021). Tokens stay
+    /// in the OS keychain; only the non-secret identity summary lands here.
+    pub fn apply_signed_in(
+        &self,
+        user_id: String,
+        session_public_id: String,
+        entitlement_active: bool,
+    ) -> Result<(), String> {
+        let mut snapshot = self
+            .snapshot
+            .lock()
+            .map_err(|e| format!("lock poisoned: {e}"))?;
+        snapshot.state = AccountState::SignedIn;
+        snapshot.user_id = Some(user_id);
+        snapshot.session_id = Some(session_public_id);
+        snapshot.entitlement_active = entitlement_active;
+        snapshot.is_offline = false;
+        Ok(())
+    }
+
+    /// Mark the session as needing a refresh (expired access token, refresh
+    /// token still stored). Local dictation remains available.
+    pub fn apply_needs_refresh(&self) -> Result<(), String> {
+        let mut snapshot = self
+            .snapshot
+            .lock()
+            .map_err(|e| format!("lock poisoned: {e}"))?;
+        snapshot.state = AccountState::NeedsRefresh;
+        Ok(())
+    }
+
     pub fn set_offline(&self) {
         let mut snapshot = self.snapshot.lock().unwrap();
         snapshot.is_offline = true;

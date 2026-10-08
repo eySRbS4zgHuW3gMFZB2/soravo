@@ -4,6 +4,7 @@ members = [
   "crates/audio",
   "crates/config",
   "crates/diagnostics",
+  "crates/desktop-auth",
   "crates/history",
   "crates/licensing",
   "crates/models",
