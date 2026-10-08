@@ -5,7 +5,6 @@ members = [
   "crates/config",
   "crates/diagnostics",
   "crates/history",
-  "crates/hotkeys",
   "crates/licensing",
   "crates/models",
   "crates/scheduler",
