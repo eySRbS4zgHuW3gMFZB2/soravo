@@ -443,6 +443,12 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
       case "account_sign_in":
         // Fails closed by design (T14 STOP): the harness never invents auth.
         return { success: false, message: "E2E harness: sign-in disabled (fails closed)" };
+      case "account_begin_sign_in":
+        // R1-GAP-021: same fail-closed contract under the explicit browser
+        // command (unconfigured build in the harness — never invents auth).
+        return { success: false, message: "E2E harness: sign-in disabled (fails closed)", url: null };
+      case "account_refresh_session":
+        return { success: false, message: "E2E harness: session refresh disabled (fails closed)" };
       case "account_sign_out":
         return { success: true, message: "ok (e2e double)" };
       default:
