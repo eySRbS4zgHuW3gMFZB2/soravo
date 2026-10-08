@@ -48,6 +48,7 @@ pub mod portable;
 #[cfg_attr(target_os = "macos", allow(unsafe_code))]
 pub mod secure_input;
 pub mod settings;
+pub mod settings_mirror;
 pub mod tray;
 pub mod tray_i18n;
 #[cfg_attr(target_os = "windows", allow(unsafe_code))]
