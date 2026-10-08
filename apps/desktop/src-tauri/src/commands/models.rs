@@ -78,7 +78,12 @@ pub async fn delete_model(
 
         let mut settings = get_settings(&app_handle);
         settings.selected_model = String::new();
+        // R1-GAP-023 (ADR-032): the active model was cleared — mirror the
+        // settled canonical state (empty projects to None, never "").
+        // Best-effort: a mirror failure never rolls back this canonical write.
+        let cleared = settings.clone();
         write_settings(&app_handle, settings);
+        crate::settings_mirror::mirror_after_canonical_write(&cleared);
     }
 
     model_manager
@@ -123,6 +128,12 @@ pub fn switch_active_model(app: &AppHandle, model_id: &str) -> Result<(), String
     settings.selected_model = model_id.to_string();
     settings.onboarding_completed = true;
 
+    // R1-GAP-023 (ADR-032): snapshot the just-persisted canonical values. The
+    // mirror runs only once this write has settled (ADR-032 §2.1): on the
+    // success paths below from these values, on the revert path from the
+    // reverted values instead. Best-effort throughout — a mirror failure never
+    // rolls back canonical state.
+    let persisted = settings.clone();
     write_settings(app, settings);
 
     // Skip eager loading if unload is set to "Immediately" — the model
@@ -143,6 +154,7 @@ pub fn switch_active_model(app: &AppHandle, model_id: &str) -> Result<(), String
             "Model selection changed to {} (not loading — unload set to Immediately).",
             model_id
         );
+        crate::settings_mirror::mirror_after_canonical_write(&persisted);
         return Ok(());
     }
 
@@ -151,10 +163,15 @@ pub fn switch_active_model(app: &AppHandle, model_id: &str) -> Result<(), String
         let mut settings = get_settings(app);
         settings.selected_model = old_model;
         settings.onboarding_completed = old_onboarding_completed;
+        // Mirror the settled (reverted) canonical state, not the speculative one.
+        let reverted = settings.clone();
         write_settings(app, settings);
+        crate::settings_mirror::mirror_after_canonical_write(&reverted);
         return Err(e.to_string());
     }
 
+    // Load succeeded: the early write stands — mirror it now.
+    crate::settings_mirror::mirror_after_canonical_write(&persisted);
     Ok(())
 }
 

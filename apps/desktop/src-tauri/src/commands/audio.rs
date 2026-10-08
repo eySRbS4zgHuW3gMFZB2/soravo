@@ -221,7 +221,11 @@ pub async fn set_selected_microphone(app: AppHandle, device_name: String) -> Res
     } else {
         Some(device_name)
     };
+    // R1-GAP-023 (ADR-032): canonical write first; mirror the just-persisted
+    // values best-effort. A mirror failure never rolls back canonical state.
+    let persisted = settings.clone();
     write_settings(&app, settings);
+    crate::settings_mirror::mirror_after_canonical_write(&persisted);
 
     // Update the audio manager to use the new device. update_selected_device
     // can restart the cpal stream (blocking CoreAudio) — run it on a blocking
