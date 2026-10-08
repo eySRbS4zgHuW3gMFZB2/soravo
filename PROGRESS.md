@@ -12527,3 +12527,15 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Post-merge CI:** run `37675261199` at `f537c48e` — **success** (all jobs green). Post-merge website deploy `37675261185` success.
 - **Process notes:** no CI workflow file modified, no dependency step weakened, no branch-protection bypass, stale run not repaired or awaited.
 - **Remaining hotkey work:** unchanged — (a) R1-GAP-023 settings-store unification between `soravo_config::HotkeySettings` and Handy `AppSettings` bindings (proposal stage); (b) optional future wiring of Handy's real binding recorder (`start_handy_keys_recording`/`handy-keys-event`/`change_binding`) into the settings UI; (c) `crates/hotkeys` orphan workspace-crate removal — separate supply-chain decision, not part of this task.
+
+## PR #104 merge + post-merge record (2026-10-08)
+
+- **Task ID / date:** PR #104 merge + project-state sync · 2026-10-08.
+- **PR #104:** `docs/hotkey-frontend-reconciliation-merge-record` → `main`, merge commit `185345e4e092e5dbd03982881ae679170e0a2661`, head `25dfe5708f284222356d24ca680042d1e105ddd8`.
+- **Pre-merge verification:** head SHA `25dfe570…` re-verified; CI run `37677924369` COMPLETE/SUCCESS for that exact head — `e2e`, `rust`, `web`, `desktop`, macOS x86_64, macOS aarch64, Windows all PASS; `mergeable: MERGEABLE`.
+- **Post-merge CI:** run `37735650794` (`CI`) at `185345e4` — **success**; run `37735650893` (website deploy) — **success**. `origin/main` = `185345e4`, PR #104 state MERGED.
+- **Files changed:** `PROGRESS.md` only (this record). No implementation code, no workflow edits, no force-push, no branch-protection bypass.
+- **Tests/results:** docs-only change; all 7 PR #104 required jobs passed pre-merge; post-merge main CI green.
+- **Status:** COMPLETE.
+- **Remaining R1 blockers:** unchanged — R1-GAP-008, R1-GAP-011, R1-GAP-021, R1-GAP-023, R1-GAP-026 implementation remains deferred and untouched.
+- **Next task:** none blocking; next scoped task per owner priority.
