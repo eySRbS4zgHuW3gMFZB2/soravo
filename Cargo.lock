@@ -5712,7 +5712,7 @@ dependencies = [
  "rtrb",
  "rubato",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.20",
  "vad-rs",
 ]
 
@@ -5841,7 +5841,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.20",
  "url",
 ]
 
@@ -5851,7 +5851,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "soravo-stt",
- "thiserror 1.0.69",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -5866,7 +5866,7 @@ dependencies = [
  "serde",
  "soravo-audio",
  "soravo-models",
- "thiserror 1.0.69",
+ "thiserror 2.0.20",
  "tokio",
  "transcribe-cpp",
  "transcribe-rs",
