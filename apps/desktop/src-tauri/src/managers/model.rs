@@ -1203,15 +1203,11 @@ impl ModelManager {
     pub fn get_available_models(&self) -> Vec<ModelInfo> {
         let mut list: Vec<ModelInfo> = {
             let models = self.available_models.lock().unwrap();
-            models
-                .values()
-                // T10: final exposure filter — catalog-governed entries without
-                // commercial clearance are never listed, even if present in the
-                // map (e.g. downloaded before the gate or inserted by an older
-                // path). See `is_commercially_exposed`.
-                .filter(|info| Self::is_commercially_exposed(info))
-                .cloned()
-                .collect()
+            // T10: final exposure filter — catalog-governed entries without
+            // commercial clearance are never listed, even if present in the
+            // map (e.g. downloaded before the gate or inserted by an older
+            // path). See `is_commercially_exposed` / `exposed_listing`.
+            Self::exposed_listing(&models)
         };
         // Stable, reasonable order: catalog editorial rank first (lower = higher
         // priority), then any other recommended model, then by accuracy, speed,
@@ -1292,6 +1288,83 @@ impl ModelManager {
         Self::is_commercially_exposed(info)
     }
 
+    /// T10 pure listing filter behind [`Self::get_available_models`]: every
+    /// commercially exposed entry in `models`, cloned. Extracted pure (no lock,
+    /// no `AppHandle`) so the exposure rule is directly unit-testable; the
+    /// instance method only adds the stable sort on top.
+    pub fn exposed_listing(models: &HashMap<String, ModelInfo>) -> Vec<ModelInfo> {
+        models
+            .values()
+            .filter(|info| Self::is_commercially_exposed(info))
+            .cloned()
+            .collect()
+    }
+
+    /// T10 pure selection/lookup filter behind [`Self::get_model_info`]: the
+    /// entry for `model_id` when it is commercially exposed, `None` otherwise
+    /// (missing id or blocked catalog model). Every selection, load, and model
+    /// path resolution funnels through [`Self::get_model_info`], so a blocked
+    /// catalog model is not resolvable for any of them.
+    pub fn lookup_exposed(
+        models: &HashMap<String, ModelInfo>,
+        model_id: &str,
+    ) -> Option<ModelInfo> {
+        models
+            .get(model_id)
+            .filter(|info| Self::is_commercially_exposed(info))
+            .cloned()
+    }
+
+    /// T10 pure download-entry gate behind [`Self::download_model`]: resolve
+    /// `model_id` in `models`, then enforce commercial clearance. A blocked
+    /// catalog model is refused even on direct command invocation, whether it
+    /// is absent from the map (`Model not found`) or was somehow inserted
+    /// (explicit gate refusal). Errors are `String` so the async instance
+    /// method can lift them into `anyhow` unchanged.
+    pub fn download_gate(
+        models: &HashMap<String, ModelInfo>,
+        model_id: &str,
+    ) -> std::result::Result<ModelInfo, String> {
+        let model_info = models
+            .get(model_id)
+            .cloned()
+            .ok_or_else(|| format!("Model not found: {}", model_id))?;
+
+        // T10: the download path cannot bypass the commercial gate. A blocked
+        // catalog model is refused here even if it somehow reached this point.
+        if !Self::commercial_download_allowed(&model_info) {
+            return Err(format!(
+                "Model '{}' is not commercially cleared and cannot be downloaded (T10 commercial gate)",
+                model_id
+            ));
+        }
+
+        Ok(model_info)
+    }
+
+    /// T10 pure rescan-merge rule behind [`Self::rescan_local_models`]: fold
+    /// `snapshot` into `live`, admitting only commercially exposed entries and
+    /// leaving every existing entry untouched (`or_insert` semantics preserved).
+    /// Returns the number of entries added. A blocked catalog model can never
+    /// slip back in through a rescan, including one downloaded before the gate.
+    pub fn merge_rescan_snapshot(
+        live: &mut HashMap<String, ModelInfo>,
+        snapshot: HashMap<String, ModelInfo>,
+    ) -> usize {
+        let mut added = 0usize;
+        for (id, info) in snapshot {
+            if !Self::is_commercially_exposed(&info) {
+                debug!("T10 gate: rescan refuses blocked catalog model '{id}'");
+                continue;
+            }
+            if let std::collections::hash_map::Entry::Vacant(entry) = live.entry(id) {
+                entry.insert(info);
+                added += 1;
+            }
+        }
+        added
+    }
+
     /// Claim the single rescan slot. Returns a guard that releases it on drop,
     /// or `None` if a rescan is already running (callers should just skip).
     fn try_start_rescan(&self) -> Option<RescanGuard> {
@@ -1337,21 +1410,12 @@ impl ModelManager {
         // Merge only the genuinely-new ids back into the live registry. `or_insert`
         // leaves every existing entry exactly as it was. T10: the rescan path
         // re-applies the commercial exposure filter, so a blocked catalog
-        // model can never slip back in through a rescan.
-        let mut added = 0usize;
-        {
+        // model can never slip back in through a rescan (see
+        // `merge_rescan_snapshot`).
+        let added = {
             let mut live = self.available_models.lock().unwrap();
-            for (id, info) in snapshot {
-                if !Self::is_commercially_exposed(&info) {
-                    debug!("T10 gate: rescan refuses blocked catalog model '{id}'");
-                    continue;
-                }
-                if let std::collections::hash_map::Entry::Vacant(entry) = live.entry(id) {
-                    entry.insert(info);
-                    added += 1;
-                }
-            }
-        }
+            Self::merge_rescan_snapshot(&mut live, snapshot)
+        };
 
         self.update_download_status()?;
         self.auto_select_model_if_needed()?;
@@ -1366,11 +1430,9 @@ impl ModelManager {
         let models = self.available_models.lock().unwrap();
         // T10: a blocked catalog model is not resolvable for selection,
         // loading, or path queries — an already-downloaded prohibited model
-        // never silently becomes available as a commercial catalog model.
-        models
-            .get(model_id)
-            .filter(|info| Self::is_commercially_exposed(info))
-            .cloned()
+        // never silently becomes available as a commercial catalog model (see
+        // `lookup_exposed`).
+        Self::lookup_exposed(&models, model_id)
     }
 
     /// Reconcile a model's advertised capabilities with the ground truth from the
@@ -1595,9 +1657,15 @@ impl ModelManager {
     }
 
     fn selected_model_is_available(models: &HashMap<String, ModelInfo>, model_id: &str) -> bool {
+        // T10 (independent review 007): a stale persisted selection naming a
+        // blocked catalog model must not survive auto-selection cleanup. The
+        // registry map is rebuilt from gated producers on every launch, so a
+        // blocked entry can only be present pre-gate — but the availability
+        // check must still enforce exposure, otherwise the blocked selection
+        // would be retained (and re-reported by `get_current_model`).
         models
             .get(model_id)
-            .is_some_and(|model| model.is_downloaded)
+            .is_some_and(|model| model.is_downloaded && Self::is_commercially_exposed(model))
     }
 
     /// Remove a single file from the shared HF cache: the snapshot pointer for
@@ -2343,20 +2411,11 @@ impl ModelManager {
     pub async fn download_model(&self, model_id: &str) -> Result<()> {
         let model_info = {
             let models = self.available_models.lock().unwrap();
-            models.get(model_id).cloned()
+            // T10: the download path cannot bypass the commercial gate — the
+            // lookup and the clearance check (see `download_gate`) refuse a
+            // blocked catalog model even on direct command invocation.
+            Self::download_gate(&models, model_id).map_err(|e| anyhow::anyhow!(e))?
         };
-
-        let model_info =
-            model_info.ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
-
-        // T10: the download path cannot bypass the commercial gate. A blocked
-        // catalog model is refused here even if it somehow reached this point.
-        if !Self::commercial_download_allowed(&model_info) {
-            return Err(anyhow::anyhow!(
-                "Model '{}' is not commercially cleared and cannot be downloaded (T10 commercial gate)",
-                model_id
-            ));
-        }
 
         let (url, expected_sha256) = match &model_info.source {
             ModelSource::Url { url, sha256 } => (url.clone(), sha256.clone()),
@@ -3358,10 +3417,14 @@ mod tests {
 
     #[test]
     fn t10_rescan_merge_refuses_blocked_and_keeps_cleared() {
-        // A pre-gate registry: blocked catalog model downloaded, second
-        // blocked catalog model downloaded, user custom model downloaded.
-        // RECON-005: no catalog model is cleared, so the merge keeps only the
-        // non-catalog (Local) entry — catalog governance never re-admits.
+        // Independent review 007: this test calls the production merge rule
+        // (`merge_rescan_snapshot`, the exact function `rescan_local_models`
+        // uses) — not a reimplementation of it. A pre-gate snapshot holding
+        // downloaded blocked catalog models plus a rediscovered user custom
+        // model: the merge refuses the blocked ids and leaves the live custom
+        // entry untouched; catalog governance never re-admits blocked ids.
+        // RECON-005: no catalog model is cleared, so nothing catalog-governed
+        // merges.
         let blocked =
             t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
                 is_downloaded: true,
@@ -3378,23 +3441,94 @@ mod tests {
         let blocked_id = blocked.id.clone();
         let also_blocked_id = also_blocked.id.clone();
 
-        // The rescan merge rule (mirrors `rescan_local_models`): only
-        // commercially exposed entries merge into the live registry.
-        let snapshot = [
+        let custom_id = "my-offline-model".to_string();
+        let custom = ModelInfo {
+            id: custom_id.clone(),
+            name: "My Offline Model".to_string(),
+            description: "custom".to_string(),
+            filename: "my-offline-model.gguf".to_string(),
+            source: ModelSource::Local,
+            size_mb: 10,
+            is_downloaded: true,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.0,
+            speed_score: 0.0,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: vec![],
+            supports_language_selection: false,
+            is_custom: true,
+            supports_streaming: false,
+            supports_language_detection: false,
+            attribution: None,
+        };
+
+        // Live registry already holds the custom model with runtime-mutated
+        // state; the snapshot rediscovers it plus the two blocked models.
+        let mut live: HashMap<String, ModelInfo> = HashMap::new();
+        let mut existing_custom = custom.clone();
+        existing_custom.supports_streaming = true; // runtime-reconciled value
+        live.insert(custom_id.clone(), existing_custom);
+
+        let snapshot: HashMap<String, ModelInfo> = [
             (blocked_id.clone(), blocked),
             (also_blocked_id.clone(), also_blocked),
-        ];
-        let mut live: HashMap<String, ModelInfo> = HashMap::new();
-        for (id, info) in snapshot {
-            if !ModelManager::is_commercially_exposed(&info) {
-                continue;
-            }
-            live.entry(id).or_insert(info);
-        }
+            (custom_id.clone(), custom),
+        ]
+        .into_iter()
+        .collect();
 
-        assert!(live.is_empty());
+        let added = ModelManager::merge_rescan_snapshot(&mut live, snapshot);
+
+        assert_eq!(added, 0, "no new ids: custom already live, blocked refused");
         assert!(!live.contains_key(&blocked_id));
         assert!(!live.contains_key(&also_blocked_id));
+        // The pre-existing entry is untouched (merge never overwrites).
+        assert_eq!(
+            live.get(&custom_id).map(|m| m.supports_streaming),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn t10_rescan_merge_admits_new_custom_entries() {
+        // Companion to the refusal test: the production merge still admits
+        // genuinely new non-catalog entries (no over-blocking).
+        let custom = ModelInfo {
+            id: "new-drop-in".to_string(),
+            name: "New Drop In".to_string(),
+            description: "custom".to_string(),
+            filename: "new-drop-in.gguf".to_string(),
+            source: ModelSource::Local,
+            size_mb: 10,
+            is_downloaded: true,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.0,
+            speed_score: 0.0,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: vec![],
+            supports_language_selection: false,
+            is_custom: true,
+            supports_streaming: false,
+            supports_language_detection: false,
+            attribution: None,
+        };
+
+        let mut live: HashMap<String, ModelInfo> = HashMap::new();
+        let snapshot: HashMap<String, ModelInfo> =
+            [(custom.id.clone(), custom)].into_iter().collect();
+
+        let added = ModelManager::merge_rescan_snapshot(&mut live, snapshot);
+
+        assert_eq!(added, 1);
+        assert!(live.contains_key("new-drop-in"));
     }
 
     #[test]
@@ -3576,5 +3710,184 @@ mod tests {
         assert!(downloaded.is_downloaded);
         assert!(!ModelManager::is_commercially_exposed(&downloaded));
         assert!(!ModelManager::commercial_download_allowed(&downloaded));
+    }
+
+    /// Non-catalog user custom entry for exposure/listing/merge tests. Custom
+    /// `Local` models are not catalog models (MODEL_LICENSES.md invariant 10)
+    /// and keep existing behavior.
+    fn t10_custom_info(id: &str) -> ModelInfo {
+        ModelInfo {
+            id: id.to_string(),
+            name: "My Offline Model".to_string(),
+            description: "custom".to_string(),
+            filename: format!("{id}.gguf"),
+            source: ModelSource::Local,
+            size_mb: 10,
+            is_downloaded: true,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.0,
+            speed_score: 0.0,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: vec![],
+            supports_language_selection: false,
+            is_custom: true,
+            supports_streaming: false,
+            supports_language_detection: false,
+            attribution: None,
+        }
+    }
+
+    #[test]
+    fn t10_selection_lookup_refuses_blocked() {
+        // Required adversarial case 9: a blocked model passed directly to
+        // selection or model-path APIs. `switch_active_model`,
+        // `TranscriptionManager::load_model`, and `get_model_path` all resolve
+        // through `get_model_info`, whose production filter is `lookup_exposed`
+        // (tested here directly — the instance method needs an `AppHandle`,
+        // which unit tests cannot construct). A blocked entry smuggled into
+        // the map resolves to `None`, exactly like a missing id.
+        let blocked =
+            t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
+                is_downloaded: true,
+                ..Default::default()
+            });
+        let blocked_id = blocked.id.clone();
+        let custom = t10_custom_info("my-offline-model");
+
+        let map: HashMap<String, ModelInfo> = [
+            (blocked_id.clone(), blocked),
+            (custom.id.clone(), custom.clone()),
+        ]
+        .into_iter()
+        .collect();
+
+        assert!(ModelManager::lookup_exposed(&map, &blocked_id).is_none());
+        assert_eq!(
+            ModelManager::lookup_exposed(&map, &custom.id).map(|m| m.id),
+            Some(custom.id.clone())
+        );
+        assert!(ModelManager::lookup_exposed(&map, "no/such-model").is_none());
+    }
+
+    #[test]
+    fn t10_listing_excludes_previously_available_blocked() {
+        // Required adversarial case 12: a model whose status changes to
+        // blocked after it was previously available. The downloaded blocked
+        // entry below simulates pre-gate availability (present in the map with
+        // `is_downloaded`); the production listing filter (`exposed_listing`,
+        // the exact filter `get_available_models` applies before sorting)
+        // excludes it, so it can neither be listed nor auto-selected.
+        let blocked =
+            t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
+                is_downloaded: true,
+                ..Default::default()
+            });
+        let blocked_id = blocked.id.clone();
+        let custom = t10_custom_info("my-offline-model");
+
+        let map: HashMap<String, ModelInfo> = [
+            (blocked_id.clone(), blocked),
+            (custom.id.clone(), custom.clone()),
+        ]
+        .into_iter()
+        .collect();
+
+        let listed = ModelManager::exposed_listing(&map);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, custom.id);
+        assert!(!listed.iter().any(|m| m.id == blocked_id));
+    }
+
+    #[test]
+    fn t10_download_gate_refuses_blocked_direct_invocation() {
+        // Required adversarial case 10: a download attempted by direct command
+        // invocation (`download_model` with an attacker-chosen id) rather than
+        // UI selection. `download_model` delegates lookup + clearance to the
+        // production `download_gate` (tested here directly — the async
+        // instance method needs an `AppHandle`). Error strings are asserted
+        // exactly: callers and toasts match on them.
+        let mut seeded = HashMap::new();
+        ModelManager::seed_catalog_models(&mut seeded);
+
+        // Blocked catalog ids are absent from a gated seed: lookup refusal.
+        for repo in T10_BLOCKED_REPOS {
+            let desc = t10_desc_for_repo(repo);
+            let err = ModelManager::download_gate(&seeded, &desc.id).unwrap_err();
+            assert_eq!(err, format!("Model not found: {}", desc.id));
+        }
+
+        // A blocked entry smuggled into the map is refused by the gate itself.
+        let blocked =
+            t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
+                is_downloaded: false,
+                ..Default::default()
+            });
+        let mut smuggled = seeded.clone();
+        smuggled.insert(blocked.id.clone(), blocked.clone());
+        let err = ModelManager::download_gate(&smuggled, &blocked.id).unwrap_err();
+        assert_eq!(
+            err,
+            format!(
+                "Model '{}' is not commercially cleared and cannot be downloaded (T10 commercial gate)",
+                blocked.id
+            )
+        );
+
+        // Non-catalog customs still resolve (invariant 10).
+        let custom = t10_custom_info("my-offline-model");
+        let mut with_custom = seeded;
+        with_custom.insert(custom.id.clone(), custom.clone());
+        assert_eq!(
+            ModelManager::download_gate(&with_custom, &custom.id)
+                .expect("custom must pass the gate")
+                .id,
+            custom.id
+        );
+    }
+
+    #[test]
+    fn t10_stale_selection_is_cleared() {
+        // Independent-review hardening: `selected_model_is_available` (the
+        // auto-selection cleanup predicate) enforces commercial exposure, so a
+        // stale persisted selection naming a blocked catalog model is cleared
+        // instead of retained.
+        let blocked =
+            t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
+                is_downloaded: true,
+                ..Default::default()
+            });
+        let blocked_id = blocked.id.clone();
+        let custom = t10_custom_info("my-offline-model");
+        let mut not_downloaded_custom = custom.clone();
+        not_downloaded_custom.is_downloaded = false;
+
+        let map: HashMap<String, ModelInfo> = [
+            (blocked_id.clone(), blocked),
+            (custom.id.clone(), custom),
+            ("not-downloaded".to_string(), not_downloaded_custom),
+        ]
+        .into_iter()
+        .collect();
+
+        assert!(
+            !ModelManager::selected_model_is_available(&map, &blocked_id),
+            "stale blocked selection must not count as available"
+        );
+        assert!(ModelManager::selected_model_is_available(
+            &map,
+            "my-offline-model"
+        ));
+        assert!(!ModelManager::selected_model_is_available(
+            &map,
+            "not-downloaded"
+        ));
+        assert!(!ModelManager::selected_model_is_available(
+            &map,
+            "no/such-model"
+        ));
     }
 }
