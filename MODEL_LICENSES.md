@@ -45,16 +45,20 @@ Any other value — including a missing entry, a missing file, unparseable
 JSON, a version mismatch, or an unrecognised classification string — resolves
 to NOT CLEARED (fail closed).
 
-## 3. Current registry counts (2026-10-09, 69 catalog models)
+## 3. Current registry counts (2026-10-09, 69 catalog models — corrected per T10-COMMERCIAL-LICENSE-RECONCILIATION-005)
 
-- `COMMERCIAL-CLEAR`: 46 (25 × `apache-2.0`, 21 × `mit`)
-- `COMMERCIAL-CLEAR-WITH-ATTRIBUTION`: 15 (15 × `cc-by-4.0`)
-- Approved total: 61
+- `COMMERCIAL-CLEAR`: 0
+- `COMMERCIAL-CLEAR-WITH-ATTRIBUTION`: 0
+- Approved total: 0
 - `NON-COMMERCIAL`: 1 (`handy-computer/canary-1b-gguf`, `cc-by-nc-4.0`)
 - `UNKNOWN`: 7 (catalog license `other`: Nemotron 3.5 streaming, Fun-ASR MLT
   Nano, Fun-ASR Nano, MedASR, Nemotron EN streaming, Multitalker Parakeet,
   SenseVoiceSmall)
-- Blocked total: 8
+- `INSUFFICIENT-PROVENANCE`: 61 (every catalog entry whose label is a
+  permissive `apache-2.0`/`mit`/`cc-by-4.0`: weight-level commercial-use,
+  redistribution, and GGUF conversion/quantization authorization all
+  unverified — see the reconciliation report)
+- Blocked total: 69
 
 ## 4. Evidence basis and limits (no legal assumptions)
 
@@ -65,15 +69,22 @@ to NOT CLEARED (fail closed).
 - `base_model`/`upstream_url` are provenance pointers, corrected to the
   catalog evidence during implementation (moss → `OpenMOSS-Team/...`,
   primeline → `primeline/...`).
-- Attribution notices are mechanical renderings of the form
-  `"<model> by <org> is licensed under <license>."` using exact catalog
-  identifiers. No new license terms were invented; no publisher was
-  reinterpreted.
-- **Limit:** these are catalog-declared labels, not an independent legal
-  review. Redistribution/hosting rights for mirror serving
+- Per `T10-COMMERCIAL-LICENSE-RECONCILIATION-005` (2026-10-09, 69-row
+  evidence reconciliation): a catalog-declared label is Handy metadata, not
+  a weight-license grant. No entry is cleared on a label alone — commercial
+  use requires evidenced weight/model terms, redistribution requires
+  evidenced Handy hosting rights (HF `handy-computer/*` + the
+  `blob.handy.computer` mirror), and every GGUF requires evidenced
+  conversion/quantization authorization. All three are unverified for all 69
+  models, so all 61 permissive-label entries are `INSUFFICIENT-PROVENANCE`
+  (blocked). Prior `COMMERCIAL-CLEAR` / `WITH-ATTRIBUTION` notices are
+  retained in git history for audit trail, not as operative permissions.
+- **Limit:** this registry is a technical block-list gate, not an
+  independent legal review. Redistribution/hosting rights for mirror serving
   (`blob.handy.computer`) remain unverified and MUST have legal sign-off
   before commercial release. Blocked entries stay blocked when evidence is
-  missing — an `UNKNOWN` entry is never upgraded on assumption.
+  missing — an `UNKNOWN` or `INSUFFICIENT-PROVENANCE` entry is never
+  upgraded on assumption.
 
 ## 5. Enforcement points (all in `managers/model.rs` via `catalog::commercial`)
 

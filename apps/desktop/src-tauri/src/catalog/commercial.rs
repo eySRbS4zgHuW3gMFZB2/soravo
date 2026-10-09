@@ -244,26 +244,46 @@ mod tests {
 
     #[test]
     fn t10_approved_clear_model_is_exposed() {
-        // apache-2.0 catalog model, COMMERCIAL-CLEAR: exposed, no notice.
+        // RECON-005: no catalog model is cleared on current evidence. The
+        // apache-2.0 catalog model below is INSUFFICIENT-PROVENANCE: blocked,
+        // no notice. The Clear-decision logic itself is covered by synthetic
+        // maps (see t10_synthetic_clear_variants).
         let id = "handy-computer/whisper-small-gguf";
-        assert!(is_commercially_cleared(id));
-        assert_eq!(classification_of(id), Some(CommercialClassification::Clear));
+        assert!(!is_commercially_cleared(id));
+        assert_eq!(
+            classification_of(id),
+            Some(CommercialClassification::InsufficientProvenance)
+        );
         assert_eq!(attribution_for(id), None);
     }
 
     #[test]
+    fn t10_synthetic_clear_variants() {
+        // Decision-logic proof independent of the (currently zero-clearance)
+        // embedded registry: Clear exposes; ClearWithAttribution exposes only
+        // with a non-empty notice.
+        let registry = synthetic(
+            r#"{"id": "org/clear-gguf", "classification": "COMMERCIAL-CLEAR"},
+                {"id": "org/attr-gguf", "classification": "COMMERCIAL-CLEAR-WITH-ATTRIBUTION", "attribution_text": "Credit X."},
+                {"id": "org/nonotice-gguf", "classification": "COMMERCIAL-CLEAR-WITH-ATTRIBUTION", "attribution_text": null}"#,
+        );
+        assert!(is_cleared_in(&registry, "org/clear-gguf"));
+        assert!(is_cleared_in(&registry, "org/attr-gguf"));
+        assert!(!is_cleared_in(&registry, "org/nonotice-gguf"));
+    }
+
+    #[test]
     fn t10_attribution_required_model_is_exposed_with_exact_notice() {
-        // cc-by-4.0 catalog model: exposed AND carries the exact notice.
+        // RECON-005: the cc-by-4.0 catalog model below is
+        // INSUFFICIENT-PROVENANCE (blocked) until weight-level commercial +
+        // redistribution + conversion evidence exists. No operative notice.
         let id = "handy-computer/parakeet-tdt-0.6b-v3-gguf";
-        assert!(is_commercially_cleared(id));
+        assert!(!is_commercially_cleared(id));
         assert_eq!(
             classification_of(id),
-            Some(CommercialClassification::ClearWithAttribution)
+            Some(CommercialClassification::InsufficientProvenance)
         );
-        assert_eq!(
-            attribution_for(id),
-            Some("Parakeet TDT 0.6B v3 by NVIDIA is licensed under CC-BY-4.0.")
-        );
+        assert_eq!(attribution_for(id), None);
     }
 
     #[test]
@@ -359,12 +379,50 @@ mod tests {
 
     #[test]
     fn t10_registry_counts_match_policy() {
-        // 46 CLEAR + 15 WITH-ATTRIBUTION = 61 approved; 1 NON-COMMERCIAL + 7
-        // UNKNOWN = 8 blocked; 69 entries total. Deliberately exact: any
-        // registry edit must consciously update this test.
+        // RECON-005 zero-clearance: 0 approved; 1 NON-COMMERCIAL + 7 UNKNOWN
+        // + 61 INSUFFICIENT-PROVENANCE = 69 blocked; 69 entries total.
+        // Deliberately exact: any registry edit must consciously update this
+        // test, and any future clearance must cite weight-level evidence.
         assert_eq!(registry_entry_count(), 69);
-        assert_eq!(approved_count(), 61);
-        assert_eq!(blocked_count(), 8);
+        assert_eq!(approved_count(), 0);
+        assert_eq!(blocked_count(), 69);
+    }
+
+    #[test]
+    fn t10_recon005_zero_clearance_regression() {
+        // Pins the reconciliation outcome: no embedded entry may carry a
+        // cleared classification until per-model weight/commercial,
+        // redistribution, and conversion evidence is recorded. Every
+        // INSUFFICIENT-PROVENANCE entry is blocked.
+        let raw: serde_json::Value = serde_json::from_str(REGISTRY_JSON).expect("registry parses");
+        let entries = raw
+            .get("entries")
+            .and_then(|v| v.as_array())
+            .expect("entries array");
+        let mut cleared = Vec::new();
+        let mut provenance_blocked = 0usize;
+        for entry in entries {
+            let id = entry.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+            let class = entry
+                .get("classification")
+                .and_then(|v| v.as_str())
+                .unwrap_or("?");
+            match class {
+                "COMMERCIAL-CLEAR" | "COMMERCIAL-CLEAR-WITH-ATTRIBUTION" => {
+                    cleared.push(id.to_string())
+                }
+                "INSUFFICIENT-PROVENANCE" => {
+                    assert!(!is_commercially_cleared(id), "{id} must stay blocked");
+                    provenance_blocked += 1;
+                }
+                _ => {}
+            }
+        }
+        assert!(
+            cleared.is_empty(),
+            "registry must clear zero models on current evidence, found: {cleared:?}"
+        );
+        assert_eq!(provenance_blocked, 61);
     }
 
     /// Every bundled catalog model has a registry entry, so no catalog model

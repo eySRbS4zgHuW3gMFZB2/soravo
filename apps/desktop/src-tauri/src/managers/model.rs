@@ -3147,24 +3147,23 @@ mod tests {
         let seeded = models.len();
         ModelManager::discover_custom_transcribe_models(temp_dir.path(), &mut models).unwrap();
 
-        // The alternate quant surfaces as a catalog-grade HF entry…
+        // RECON-005: no catalog model is commercially cleared, so catalog
+        // quant files on disk surface as NOTHING — no catalog-grade HF entry
+        // for the alternate quant, no filename-stem custom entries either.
+        // Files stay on disk (never silently deleted).
         let ModelSource::HuggingFace { repo_id, .. } = &desc.source else {
             panic!("catalog descriptors are HF-sourced");
         };
         let alt_id = format!("{}/{}", repo_id, alt.filename);
-        let info = models.get(&alt_id).expect("alternate quant discovered");
-        assert_eq!(info.name, format!("{} ({})", desc.name, alt.quant));
-        assert_eq!(info.description, desc.description);
-        assert!(info.is_downloaded);
-        assert!(!info.is_custom);
-        assert!(matches!(info.source, ModelSource::HuggingFace { .. }));
-        assert!(ModelManager::disappears_when_missing(info));
-
-        // …while the default-quant file dedups onto its seeded entry: exactly
-        // one new id, and no filename-stem custom entries for either file.
-        assert_eq!(models.len(), seeded + 1);
+        assert!(
+            !models.contains_key(&alt_id),
+            "blocked catalog alternate quant must not surface"
+        );
+        assert_eq!(models.len(), seeded, "blocked files must add no entries");
         assert!(!models.contains_key(alt.filename.trim_end_matches(".gguf")));
         assert!(!models.contains_key(default_filename.trim_end_matches(".gguf")));
+        assert!(temp_dir.path().join(&alt.filename).exists());
+        assert!(temp_dir.path().join(&default_filename).exists());
     }
 
     fn push_gguf_str(out: &mut Vec<u8>, val: &str) {
@@ -3283,20 +3282,13 @@ mod tests {
         let mut models = HashMap::new();
         ModelManager::seed_catalog_models(&mut models);
 
-        // Exactly the commercially approved catalog models are seeded.
+        // RECON-005 zero-clearance: no catalog model seeds on current
+        // evidence. The count stays dynamic (never hard-coded) so a future
+        // evidenced clearance flows through without a test rewrite.
         assert_eq!(models.len(), crate::catalog::commercial::approved_count());
-        assert_eq!(models.len(), 61);
+        assert_eq!(models.len(), 0);
 
-        for info in models.values() {
-            let repo = t10_repo_of(info).expect("seeded entries are HF-sourced");
-            assert!(
-                crate::catalog::commercial::is_commercially_cleared(&repo),
-                "{repo} was seeded without clearance"
-            );
-            assert!(ModelManager::is_commercially_exposed(info));
-        }
-
-        // Every blocked repo is absent.
+        // Every blocked repo is absent — including the formerly cleared ones.
         for repo in T10_BLOCKED_REPOS {
             assert!(
                 !models
@@ -3305,22 +3297,24 @@ mod tests {
                 "blocked repo {repo} must not be seeded"
             );
         }
+        for repo in [
+            "handy-computer/parakeet-tdt-0.6b-v3-gguf",
+            "handy-computer/whisper-small-gguf",
+        ] {
+            assert!(
+                !models
+                    .values()
+                    .any(|m| t10_repo_of(m).as_deref() == Some(repo)),
+                "insufficient-provenance repo {repo} must not be seeded"
+            );
+            assert!(
+                !crate::catalog::commercial::is_commercially_cleared(repo),
+                "{repo} is not cleared on current evidence"
+            );
+        }
 
-        // Attribution travels with the model: the exact registry notice on the
-        // WITH-ATTRIBUTION entry, none on the plain CLEAR entry.
-        let attributed = models
-            .values()
-            .find(|m| t10_repo_of(m).as_deref() == Some("handy-computer/parakeet-tdt-0.6b-v3-gguf"))
-            .expect("cleared cc-by model is seeded");
-        assert_eq!(
-            attributed.attribution.as_deref(),
-            Some("Parakeet TDT 0.6B v3 by NVIDIA is licensed under CC-BY-4.0.")
-        );
-        let plain = models
-            .values()
-            .find(|m| t10_repo_of(m).as_deref() == Some("handy-computer/whisper-small-gguf"))
-            .expect("cleared apache model is seeded");
-        assert_eq!(plain.attribution, None);
+        // No attribution travels because nothing cleared is seeded.
+        assert!(models.values().all(|m| m.attribution.is_none()));
     }
 
     #[test]
@@ -3364,26 +3358,32 @@ mod tests {
 
     #[test]
     fn t10_rescan_merge_refuses_blocked_and_keeps_cleared() {
-        // A pre-gate registry: blocked model downloaded, cleared model downloaded.
+        // A pre-gate registry: blocked catalog model downloaded, second
+        // blocked catalog model downloaded, user custom model downloaded.
+        // RECON-005: no catalog model is cleared, so the merge keeps only the
+        // non-catalog (Local) entry — catalog governance never re-admits.
         let blocked =
             t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
                 is_downloaded: true,
                 ..Default::default()
             });
-        let cleared =
+        let also_blocked =
             t10_desc_for_repo("handy-computer/whisper-small-gguf").to_model_info(&DiskStatus {
                 is_downloaded: true,
                 ..Default::default()
             });
-        assert!(blocked.is_downloaded && cleared.is_downloaded);
+        assert!(blocked.is_downloaded && also_blocked.is_downloaded);
         assert!(!ModelManager::is_commercially_exposed(&blocked));
-        assert!(ModelManager::is_commercially_exposed(&cleared));
+        assert!(!ModelManager::is_commercially_exposed(&also_blocked));
         let blocked_id = blocked.id.clone();
-        let cleared_id = cleared.id.clone();
+        let also_blocked_id = also_blocked.id.clone();
 
         // The rescan merge rule (mirrors `rescan_local_models`): only
         // commercially exposed entries merge into the live registry.
-        let snapshot = [(blocked_id.clone(), blocked), (cleared_id.clone(), cleared)];
+        let snapshot = [
+            (blocked_id.clone(), blocked),
+            (also_blocked_id.clone(), also_blocked),
+        ];
         let mut live: HashMap<String, ModelInfo> = HashMap::new();
         for (id, info) in snapshot {
             if !ModelManager::is_commercially_exposed(&info) {
@@ -3392,9 +3392,9 @@ mod tests {
             live.entry(id).or_insert(info);
         }
 
-        assert_eq!(live.len(), 1);
+        assert!(live.is_empty());
         assert!(!live.contains_key(&blocked_id));
-        assert!(live.contains_key(&cleared_id));
+        assert!(!live.contains_key(&also_blocked_id));
     }
 
     #[test]
@@ -3405,17 +3405,21 @@ mod tests {
                 .expect("blocked model has files")
                 .filename
                 .clone();
-        let cleared_desc = t10_desc_for_repo("handy-computer/whisper-small-gguf");
-        let cleared_default =
-            default_quant_file(&cleared_desc.files, cleared_desc.default_quant.as_deref())
-                .expect("cleared model has files")
-                .filename
-                .clone();
-        let cleared_alt = cleared_desc
+        // RECON-005: whisper-small is INSUFFICIENT-PROVENANCE (blocked), so
+        // its cache copies must not surface either.
+        let provenance_desc = t10_desc_for_repo("handy-computer/whisper-small-gguf");
+        let provenance_default = default_quant_file(
+            &provenance_desc.files,
+            provenance_desc.default_quant.as_deref(),
+        )
+        .expect("insufficient-provenance model has files")
+        .filename
+        .clone();
+        let provenance_alt = provenance_desc
             .files
             .iter()
-            .find(|f| f.filename != cleared_default)
-            .expect("cleared model has multiple quants")
+            .find(|f| f.filename != provenance_default)
+            .expect("insufficient-provenance model has multiple quants")
             .filename
             .clone();
 
@@ -3442,17 +3446,18 @@ mod tests {
             &["en"],
         );
 
-        // Cleared control: a non-default quant in its own repo cache surfaces
-        // as a catalog entry (proves cleared discovery still works).
-        let cleared_repo = root.join("models--handy-computer--whisper-small-gguf");
-        fs::create_dir_all(cleared_repo.join("snapshots").join("rev3")).unwrap();
-        fs::create_dir_all(cleared_repo.join("refs")).unwrap();
-        fs::write(cleared_repo.join("refs").join("main"), "rev3").unwrap();
+        // Insufficient-provenance control: a non-default quant in its own repo
+        // cache must NOT surface (proves blocking still works when the file
+        // is genuinely present under its own repo id).
+        let provenance_repo = root.join("models--handy-computer--whisper-small-gguf");
+        fs::create_dir_all(provenance_repo.join("snapshots").join("rev3")).unwrap();
+        fs::create_dir_all(provenance_repo.join("refs")).unwrap();
+        fs::write(provenance_repo.join("refs").join("main"), "rev3").unwrap();
         fs::write(
-            cleared_repo
+            provenance_repo
                 .join("snapshots")
                 .join("rev3")
-                .join(&cleared_alt),
+                .join(&provenance_alt),
             b"",
         )
         .unwrap();
@@ -3477,17 +3482,16 @@ mod tests {
             "blocked file under a foreign repo must not surface"
         );
         let ModelSource::HuggingFace {
-            repo_id: cleared_repo_id,
+            repo_id: provenance_repo_id,
             ..
-        } = &cleared_desc.source
+        } = &provenance_desc.source
         else {
             panic!("catalog descriptors are HF-sourced");
         };
-        let alt_info = models
-            .get(&format!("{cleared_repo_id}/{cleared_alt}"))
-            .expect("cleared alternate quant surfaces from cache");
-        assert!(alt_info.is_downloaded);
-        assert!(!alt_info.is_custom);
+        assert!(
+            !models.contains_key(&format!("{provenance_repo_id}/{provenance_alt}")),
+            "insufficient-provenance alternate quant must not surface from cache"
+        );
     }
 
     #[test]
@@ -3496,9 +3500,11 @@ mod tests {
             .to_model_info(&DiskStatus::default());
         assert!(!ModelManager::commercial_download_allowed(&blocked));
 
+        // RECON-005: whisper-small is INSUFFICIENT-PROVENANCE — download
+        // refused on current evidence.
         let cleared = t10_desc_for_repo("handy-computer/whisper-small-gguf")
             .to_model_info(&DiskStatus::default());
-        assert!(ModelManager::commercial_download_allowed(&cleared));
+        assert!(!ModelManager::commercial_download_allowed(&cleared));
 
         // Invariant 10: user custom models and legacy downloads keep existing
         // behavior (they are not catalog models).
