@@ -176,6 +176,8 @@ export function ModelSettings() {
           ? feed.activeModelId
           : "");
   const selectedStatus = selectedId !== "" ? entryStatus(feed, selectedId) : null;
+  const selectedEntry =
+    selectedId !== "" ? (entries.find((entry) => entry.id === selectedId) ?? null) : null;
 
   const renderStatus = () => {
     if (!feed.loaded) {
@@ -270,6 +272,9 @@ export function ModelSettings() {
         <label htmlFor="model-status">Status</label>
         <span>{renderStatus()}</span>
       </div>
+      {selectedEntry?.attribution && (
+        <p className="model-attribution">{selectedEntry.attribution}</p>
+      )}
       {renderDownloadAction()}
     </div>
   );

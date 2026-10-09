@@ -12,6 +12,13 @@
 //! map becomes a [`CapabilityProbe`] with confident `Some(..)` values; the runtime
 //! `GgufHeaderProber` is the same shape with `None` where a header omits a key,
 //! which is why the two are interchangeable (the catalog is a baked probe).
+//!
+//! T10 commercial gate: [`commercial`] is the deterministic clearance decision
+//! over the embedded `MODEL_LICENSES.json` registry. Only commercially
+//! cleared catalog models are seeded or surfaced (see
+//! `managers::model::ModelManager`).
+
+pub mod commercial;
 
 use std::collections::HashMap;
 
@@ -214,6 +221,23 @@ static RANK_BY_ID: Lazy<HashMap<String, u32>> = Lazy::new(|| {
 /// `u32::MAX` for unranked/unknown ids so they sort last in an ascending sort.
 pub fn rank_of(model_id: &str) -> u32 {
     RANK_BY_ID.get(model_id).copied().unwrap_or(u32::MAX)
+}
+
+/// Whether `repo_id` names a repository in the bundled catalog (any quant).
+/// T10: defines the "catalog-governed" set the commercial gate applies to.
+pub fn is_catalog_repo(repo_id: &str) -> bool {
+    CATALOG
+        .iter()
+        .any(|d| matches!(&d.source, ModelSource::HuggingFace { repo_id: r, .. } if r == repo_id))
+}
+
+/// T10 commercial clearance for the catalog model described by `desc`.
+/// Non-HF descriptors are never cleared (catalog descriptors are always HF).
+pub fn is_desc_cleared(desc: &ModelDescriptor) -> bool {
+    match &desc.source {
+        ModelSource::HuggingFace { repo_id, .. } => commercial::is_commercially_cleared(repo_id),
+        _ => false,
+    }
 }
 
 #[cfg(test)]

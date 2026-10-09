@@ -290,6 +290,9 @@ export type ModelInfo = {
   is_custom: boolean;
   supports_streaming: boolean;
   supports_language_detection: boolean;
+  /** T10: exact required attribution notice for
+   *  `COMMERCIAL-CLEAR-WITH-ATTRIBUTION` models; null otherwise. */
+  attribution: string | null;
 };
 
 /** Mirrors `crate::managers::model::DownloadProgress` (snake_case wire keys). */
