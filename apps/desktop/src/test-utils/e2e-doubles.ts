@@ -121,6 +121,7 @@ function readyModel(): ModelInfo {
     is_custom: false,
     supports_streaming: true,
     supports_language_detection: false,
+    attribution: null,
   };
 }
 

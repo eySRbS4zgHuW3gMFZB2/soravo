@@ -80,6 +80,12 @@ pub struct ModelInfo {
     pub is_custom: bool,            // Whether this is a user-provided custom model
     pub supports_streaming: bool, // Whether this model supports live streaming preview (transcribe-cpp)
     pub supports_language_detection: bool, // Whether the model can auto-detect language (gates the "Auto" option)
+    /// T10: exact required attribution/license notice for
+    /// `COMMERCIAL-CLEAR-WITH-ATTRIBUTION` models (verbatim from the license
+    /// registry, rendered in Settings → Models). `None` for cleared models,
+    /// customs, and legacy entries. Old payloads without this key still parse.
+    #[serde(default)]
+    pub attribution: Option<String>,
 }
 
 const CHINESE_LANGUAGE_CODE: &str = "zh";
@@ -232,6 +238,15 @@ impl ModelDescriptor {
         };
         let languages =
             canonicalize_supported_languages(self.caps.languages.clone().unwrap_or_default());
+        // T10: the registry's exact required notice travels with the model.
+        // Blocked descriptors never reach here (seed/discovery filter first),
+        // so a missing notice here only means "no notice required".
+        let attribution = match &self.source {
+            ModelSource::HuggingFace { repo_id, .. } => {
+                crate::catalog::commercial::attribution_for(repo_id).map(str::to_string)
+            }
+            _ => None,
+        };
         ModelInfo {
             id,
             name,
@@ -255,6 +270,7 @@ impl ModelDescriptor {
             is_custom: false,
             supports_streaming: self.caps.supports_streaming.unwrap_or(false),
             supports_language_detection: self.caps.supports_language_detect.unwrap_or(false),
+            attribution,
         }
     }
 }
@@ -592,6 +608,7 @@ impl ModelManager {
                 supported_languages: whisper_languages.clone(),
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -625,6 +642,7 @@ impl ModelManager {
                 supported_languages: whisper_languages.clone(),
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -657,6 +675,7 @@ impl ModelManager {
                 supported_languages: whisper_languages.clone(),
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -689,6 +708,7 @@ impl ModelManager {
                 supported_languages: whisper_languages.clone(),
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -722,6 +742,7 @@ impl ModelManager {
                 supported_languages: whisper_languages,
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -755,6 +776,7 @@ impl ModelManager {
                 supported_languages: vec!["en".to_string()],
                 supports_language_selection: false,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -797,6 +819,7 @@ impl ModelManager {
                 supported_languages: parakeet_v3_languages,
                 supports_language_selection: false,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -829,6 +852,7 @@ impl ModelManager {
                 supported_languages: vec!["en".to_string()],
                 supports_language_selection: false,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -862,6 +886,7 @@ impl ModelManager {
                 supported_languages: vec!["en".to_string()],
                 supports_language_selection: false,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -895,6 +920,7 @@ impl ModelManager {
                 supported_languages: vec!["en".to_string()],
                 supports_language_selection: false,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -928,6 +954,7 @@ impl ModelManager {
                 supported_languages: vec!["en".to_string()],
                 supports_language_selection: false,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -967,6 +994,7 @@ impl ModelManager {
                 supported_languages: sense_voice_languages,
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -1002,6 +1030,7 @@ impl ModelManager {
                 supported_languages: gigaam_languages,
                 supports_language_selection: false,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -1041,6 +1070,7 @@ impl ModelManager {
                 supported_languages: canary_flash_languages,
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 // Canary (NeMo) requires an explicit source language — no auto-detect.
                 supports_language_detection: false,
@@ -1084,6 +1114,7 @@ impl ModelManager {
                 supported_languages: canary_1b_languages,
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 // Canary (NeMo) requires an explicit source language — no auto-detect.
                 supports_language_detection: false,
@@ -1124,6 +1155,7 @@ impl ModelManager {
                 supported_languages: cohere_languages,
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 supports_language_detection: true,
             },
@@ -1171,7 +1203,15 @@ impl ModelManager {
     pub fn get_available_models(&self) -> Vec<ModelInfo> {
         let mut list: Vec<ModelInfo> = {
             let models = self.available_models.lock().unwrap();
-            models.values().cloned().collect()
+            models
+                .values()
+                // T10: final exposure filter — catalog-governed entries without
+                // commercial clearance are never listed, even if present in the
+                // map (e.g. downloaded before the gate or inserted by an older
+                // path). See `is_commercially_exposed`.
+                .filter(|info| Self::is_commercially_exposed(info))
+                .cloned()
+                .collect()
         };
         // Stable, reasonable order: catalog editorial rank first (lower = higher
         // priority), then any other recommended model, then by accuracy, speed,
@@ -1191,6 +1231,10 @@ impl ModelManager {
     /// Seed the bundled catalog ([`crate::catalog::CATALOG`]) into the registry,
     /// inserting each model whose id isn't already present (additive).
     ///
+    /// T10 commercial gate: only commercially cleared catalog models are
+    /// seeded. Blocked models never enter the production registry through this
+    /// path — not hidden, not reordered, simply absent.
+    ///
     /// Catalog (`.gguf`, `HuggingFace`) and legacy (`.bin`/ONNX, `Url`) entries
     /// stay SEPARATE — different files, ids, and runtimes. Nothing is merged or
     /// removed; the UI just hides not-on-disk `Url` entries to deprecate legacy
@@ -1199,13 +1243,53 @@ impl ModelManager {
     fn seed_catalog_models(available_models: &mut HashMap<String, ModelInfo>) {
         use std::collections::hash_map::Entry;
         let mut added = 0usize;
+        let mut blocked = 0usize;
         for desc in crate::catalog::CATALOG.iter() {
+            if !crate::catalog::is_desc_cleared(desc) {
+                debug!(
+                    "T10 gate: catalog model '{}' is not commercially cleared; not seeding",
+                    desc.id
+                );
+                blocked += 1;
+                continue;
+            }
             if let Entry::Vacant(slot) = available_models.entry(desc.id.clone()) {
                 slot.insert(desc.to_model_info(&DiskStatus::default()));
                 added += 1;
             }
         }
-        info!("Seeded {} catalog model(s) into the registry", added);
+        info!(
+            "Seeded {} catalog model(s) into the registry ({} blocked by the T10 commercial gate)",
+            added, blocked
+        );
+    }
+
+    /// T10 commercial gate exposure predicate — the single rule behind the
+    /// listing filter ([`Self::get_available_models`]), the lookup filter
+    /// ([`Self::get_model_info`]), and the download guard
+    /// ([`Self::commercial_download_allowed`]).
+    ///
+    /// Catalog-governed entries (`HuggingFace` source from a catalog repo) are
+    /// exposed only with commercial clearance. Everything else keeps existing
+    /// behavior: user-provided `Local` custom models, the deprecated legacy
+    /// `Url` table, and truly foreign HF-cache finds (see MODEL_LICENSES.md
+    /// §6 for the documented residual scope).
+    pub fn is_commercially_exposed(info: &ModelInfo) -> bool {
+        match &info.source {
+            ModelSource::HuggingFace { repo_id, .. }
+                if crate::catalog::is_catalog_repo(repo_id) =>
+            {
+                crate::catalog::commercial::is_commercially_cleared(repo_id)
+            }
+            _ => true,
+        }
+    }
+
+    /// T10 download-path guard. A blocked catalog model is refused even if it
+    /// somehow reached this point (defense in depth behind the seed, scan, and
+    /// exposure filters).
+    pub fn commercial_download_allowed(info: &ModelInfo) -> bool {
+        Self::is_commercially_exposed(info)
     }
 
     /// Claim the single rescan slot. Returns a guard that releases it on drop,
@@ -1251,11 +1335,17 @@ impl ModelManager {
         Self::discover_hf_cache_models(&mut snapshot);
 
         // Merge only the genuinely-new ids back into the live registry. `or_insert`
-        // leaves every existing entry exactly as it was.
+        // leaves every existing entry exactly as it was. T10: the rescan path
+        // re-applies the commercial exposure filter, so a blocked catalog
+        // model can never slip back in through a rescan.
         let mut added = 0usize;
         {
             let mut live = self.available_models.lock().unwrap();
             for (id, info) in snapshot {
+                if !Self::is_commercially_exposed(&info) {
+                    debug!("T10 gate: rescan refuses blocked catalog model '{id}'");
+                    continue;
+                }
                 if let std::collections::hash_map::Entry::Vacant(entry) = live.entry(id) {
                     entry.insert(info);
                     added += 1;
@@ -1274,7 +1364,13 @@ impl ModelManager {
 
     pub fn get_model_info(&self, model_id: &str) -> Option<ModelInfo> {
         let models = self.available_models.lock().unwrap();
-        models.get(model_id).cloned()
+        // T10: a blocked catalog model is not resolvable for selection,
+        // loading, or path queries — an already-downloaded prohibited model
+        // never silently becomes available as a commercial catalog model.
+        models
+            .get(model_id)
+            .filter(|info| Self::is_commercially_exposed(info))
+            .cloned()
     }
 
     /// Reconcile a model's advertised capabilities with the ground truth from the
@@ -1650,7 +1746,17 @@ impl ModelManager {
             // model — full name/description/scores, quant-suffixed name for
             // non-defaults — instead of as an anonymous custom entry. (Default
             // quants never reach here: they're in `predefined_filenames`.)
+            // T10: files matching a commercially BLOCKED catalog model never
+            // surface at all — neither as a catalog entry nor as a custom
+            // model. The file itself is left untouched on disk.
             if let Some((desc, quant_file)) = crate::catalog::file_in_catalog(&filename, None) {
+                if !crate::catalog::is_desc_cleared(desc) {
+                    warn!(
+                        "T10 gate: '{}' matches blocked catalog model '{}'; not surfacing",
+                        filename, desc.id
+                    );
+                    continue;
+                }
                 let info = desc.to_model_info_for_file(
                     quant_file,
                     &DiskStatus {
@@ -1736,6 +1842,8 @@ impl ModelManager {
                     is_custom: true,
                     supports_streaming: caps.supports_streaming,
                     supports_language_detection: caps.supports_language_detection,
+                    // T10: user-provided local customs carry no registry notice.
+                    attribution: None,
                 },
             );
         }
@@ -1820,9 +1928,18 @@ impl ModelManager {
                 // metadata — quant-suffixed name for non-defaults — and skip
                 // the header probe (the catalog is authoritative for its own
                 // models). Everything else keeps the generic probed path.
+                // T10: quants of a commercially BLOCKED catalog model never
+                // surface from the cache.
                 if let Some((desc, quant_file)) =
                     crate::catalog::file_in_catalog(&fname, Some(&repo_id))
                 {
+                    if !crate::catalog::is_desc_cleared(desc) {
+                        warn!(
+                            "T10 gate: HF cache file '{fname}' matches blocked catalog model '{}'; not surfacing",
+                            desc.id
+                        );
+                        continue;
+                    }
                     let info = desc.to_model_info_for_file(
                         quant_file,
                         &DiskStatus {
@@ -1836,6 +1953,20 @@ impl ModelManager {
                     );
                     available_models.insert(info.id.clone(), info);
                     continue;
+                }
+
+                // T10 (rename bypass): a file whose name matches ANY catalog
+                // quant of a commercially blocked model never surfaces, even
+                // when found under a foreign repo id. Cleared or unknown names
+                // fall through to the probe path below.
+                if let Some((blocked_desc, _)) = crate::catalog::file_in_catalog(&fname, None) {
+                    if !crate::catalog::is_desc_cleared(blocked_desc) {
+                        warn!(
+                            "T10 gate: HF cache file '{fname}' under foreign repo '{repo_id}' matches blocked catalog model '{}'; not surfacing",
+                            blocked_desc.id
+                        );
+                        continue;
+                    }
                 }
 
                 let path = snapshot.join(&fname);
@@ -1880,6 +2011,8 @@ impl ModelManager {
                         is_custom: false,
                         supports_streaming: caps.supports_streaming,
                         supports_language_detection: caps.supports_language_detection,
+                        // T10: foreign cache finds carry no registry notice.
+                        attribution: None,
                     },
                 );
             }
@@ -2215,6 +2348,15 @@ impl ModelManager {
 
         let model_info =
             model_info.ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
+
+        // T10: the download path cannot bypass the commercial gate. A blocked
+        // catalog model is refused here even if it somehow reached this point.
+        if !Self::commercial_download_allowed(&model_info) {
+            return Err(anyhow::anyhow!(
+                "Model '{}' is not commercially cleared and cannot be downloaded (T10 commercial gate)",
+                model_id
+            ));
+        }
 
         let (url, expected_sha256) = match &model_info.source {
             ModelSource::Url { url, sha256 } => (url.clone(), sha256.clone()),
@@ -2832,6 +2974,7 @@ mod tests {
                 supported_languages: vec!["en".to_string()],
                 supports_language_selection: true,
                 is_custom: false,
+                attribution: None,
                 supports_streaming: false,
                 // Legacy entry: preserve the historical "Auto offered" behavior.
                 // (Catalog GGUFs and on-disk probes derive this from metadata.)
@@ -3098,5 +3241,334 @@ mod tests {
             !models.contains_key("someone/llama-7b/llama-q8.gguf"),
             "non-ASR gguf must be ignored"
         );
+    }
+
+    // --- T10 commercial gate tests ---
+    //
+    // Proving, in dependency order: approved models stay exposed (with the
+    // exact notice when required), every blocked class stays blocked, and no
+    // catalog/rescan/HF-cache/download path bypasses the gate.
+
+    /// The eight catalog repos the registry blocks (1 NON-COMMERCIAL + 7 UNKNOWN).
+    const T10_BLOCKED_REPOS: [&str; 8] = [
+        "handy-computer/canary-1b-gguf",
+        "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf",
+        "handy-computer/Fun-ASR-MLT-Nano-2512-gguf",
+        "handy-computer/Fun-ASR-Nano-2512-gguf",
+        "handy-computer/medasr-gguf",
+        "handy-computer/nemotron-speech-streaming-en-0.6b-gguf",
+        "handy-computer/multitalker-parakeet-streaming-0.6b-v1-gguf",
+        "handy-computer/SenseVoiceSmall-gguf",
+    ];
+
+    fn t10_desc_for_repo(repo_id: &str) -> ModelDescriptor {
+        crate::catalog::CATALOG
+            .iter()
+            .find(
+                |d| matches!(&d.source, ModelSource::HuggingFace { repo_id: r, .. } if r == repo_id),
+            )
+            .unwrap_or_else(|| panic!("bundled catalog has repo {repo_id}"))
+            .clone()
+    }
+
+    fn t10_repo_of(info: &ModelInfo) -> Option<String> {
+        match &info.source {
+            ModelSource::HuggingFace { repo_id, .. } => Some(repo_id.clone()),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn t10_seed_only_exposes_commercially_cleared_models() {
+        let mut models = HashMap::new();
+        ModelManager::seed_catalog_models(&mut models);
+
+        // Exactly the commercially approved catalog models are seeded.
+        assert_eq!(models.len(), crate::catalog::commercial::approved_count());
+        assert_eq!(models.len(), 61);
+
+        for info in models.values() {
+            let repo = t10_repo_of(info).expect("seeded entries are HF-sourced");
+            assert!(
+                crate::catalog::commercial::is_commercially_cleared(&repo),
+                "{repo} was seeded without clearance"
+            );
+            assert!(ModelManager::is_commercially_exposed(info));
+        }
+
+        // Every blocked repo is absent.
+        for repo in T10_BLOCKED_REPOS {
+            assert!(
+                !models
+                    .values()
+                    .any(|m| t10_repo_of(m).as_deref() == Some(repo)),
+                "blocked repo {repo} must not be seeded"
+            );
+        }
+
+        // Attribution travels with the model: the exact registry notice on the
+        // WITH-ATTRIBUTION entry, none on the plain CLEAR entry.
+        let attributed = models
+            .values()
+            .find(|m| t10_repo_of(m).as_deref() == Some("handy-computer/parakeet-tdt-0.6b-v3-gguf"))
+            .expect("cleared cc-by model is seeded");
+        assert_eq!(
+            attributed.attribution.as_deref(),
+            Some("Parakeet TDT 0.6B v3 by NVIDIA is licensed under CC-BY-4.0.")
+        );
+        let plain = models
+            .values()
+            .find(|m| t10_repo_of(m).as_deref() == Some("handy-computer/whisper-small-gguf"))
+            .expect("cleared apache model is seeded");
+        assert_eq!(plain.attribution, None);
+    }
+
+    #[test]
+    fn t10_filesystem_discovery_cannot_bypass_gate() {
+        // Files of a blocked catalog model on disk must surface as NOTHING:
+        // no catalog entry and no fallback custom entry. Files stay on disk.
+        let desc = t10_desc_for_repo("handy-computer/canary-1b-gguf");
+        let default_filename = default_quant_file(&desc.files, desc.default_quant.as_deref())
+            .expect("blocked model has files")
+            .filename
+            .clone();
+        let alt = desc
+            .files
+            .iter()
+            .find(|f| f.filename != default_filename)
+            .expect("blocked model has multiple quants")
+            .filename
+            .clone();
+
+        let temp_dir = TempDir::new().unwrap();
+        fs::write(temp_dir.path().join(&default_filename), b"").unwrap();
+        fs::write(temp_dir.path().join(&alt), b"").unwrap();
+
+        let mut models = HashMap::new();
+        ModelManager::seed_catalog_models(&mut models);
+        let seeded = models.len();
+        ModelManager::discover_custom_transcribe_models(temp_dir.path(), &mut models).unwrap();
+
+        assert_eq!(models.len(), seeded, "blocked files must add no entries");
+        let ModelSource::HuggingFace { repo_id, .. } = &desc.source else {
+            panic!("catalog descriptors are HF-sourced");
+        };
+        assert!(!models.contains_key(&format!("{repo_id}/{default_filename}")));
+        assert!(!models.contains_key(&format!("{repo_id}/{alt}")));
+        assert!(!models.contains_key(default_filename.trim_end_matches(".gguf")));
+        assert!(!models.contains_key(alt.trim_end_matches(".gguf")));
+        // The files themselves are untouched (never silently deleted).
+        assert!(temp_dir.path().join(&default_filename).exists());
+        assert!(temp_dir.path().join(&alt).exists());
+    }
+
+    #[test]
+    fn t10_rescan_merge_refuses_blocked_and_keeps_cleared() {
+        // A pre-gate registry: blocked model downloaded, cleared model downloaded.
+        let blocked =
+            t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
+                is_downloaded: true,
+                ..Default::default()
+            });
+        let cleared =
+            t10_desc_for_repo("handy-computer/whisper-small-gguf").to_model_info(&DiskStatus {
+                is_downloaded: true,
+                ..Default::default()
+            });
+        assert!(blocked.is_downloaded && cleared.is_downloaded);
+        assert!(!ModelManager::is_commercially_exposed(&blocked));
+        assert!(ModelManager::is_commercially_exposed(&cleared));
+        let blocked_id = blocked.id.clone();
+        let cleared_id = cleared.id.clone();
+
+        // The rescan merge rule (mirrors `rescan_local_models`): only
+        // commercially exposed entries merge into the live registry.
+        let snapshot = [(blocked_id.clone(), blocked), (cleared_id.clone(), cleared)];
+        let mut live: HashMap<String, ModelInfo> = HashMap::new();
+        for (id, info) in snapshot {
+            if !ModelManager::is_commercially_exposed(&info) {
+                continue;
+            }
+            live.entry(id).or_insert(info);
+        }
+
+        assert_eq!(live.len(), 1);
+        assert!(!live.contains_key(&blocked_id));
+        assert!(live.contains_key(&cleared_id));
+    }
+
+    #[test]
+    fn t10_hf_cache_discovery_cannot_bypass_gate() {
+        let blocked_desc = t10_desc_for_repo("handy-computer/canary-1b-gguf");
+        let blocked_file =
+            default_quant_file(&blocked_desc.files, blocked_desc.default_quant.as_deref())
+                .expect("blocked model has files")
+                .filename
+                .clone();
+        let cleared_desc = t10_desc_for_repo("handy-computer/whisper-small-gguf");
+        let cleared_default =
+            default_quant_file(&cleared_desc.files, cleared_desc.default_quant.as_deref())
+                .expect("cleared model has files")
+                .filename
+                .clone();
+        let cleared_alt = cleared_desc
+            .files
+            .iter()
+            .find(|f| f.filename != cleared_default)
+            .expect("cleared model has multiple quants")
+            .filename
+            .clone();
+
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+
+        // Same-repo cache copy of the blocked file (content is never probed
+        // for catalog matches, so an empty file is faithful).
+        let repo = root.join("models--handy-computer--canary-1b-gguf");
+        fs::create_dir_all(repo.join("snapshots").join("rev1")).unwrap();
+        fs::create_dir_all(repo.join("refs")).unwrap();
+        fs::write(repo.join("refs").join("main"), "rev1").unwrap();
+        fs::write(repo.join("snapshots").join("rev1").join(&blocked_file), b"").unwrap();
+
+        // Rename bypass: the SAME blocked filename under a foreign repo id,
+        // with a fully compatible GGUF body so that only the gate suppresses it.
+        let foreign = root.join("models--someone--else");
+        fs::create_dir_all(foreign.join("snapshots").join("rev2")).unwrap();
+        fs::create_dir_all(foreign.join("refs")).unwrap();
+        fs::write(foreign.join("refs").join("main"), "rev2").unwrap();
+        write_synthetic_gguf(
+            &foreign.join("snapshots").join("rev2").join(&blocked_file),
+            "whisper",
+            &["en"],
+        );
+
+        // Cleared control: a non-default quant in its own repo cache surfaces
+        // as a catalog entry (proves cleared discovery still works).
+        let cleared_repo = root.join("models--handy-computer--whisper-small-gguf");
+        fs::create_dir_all(cleared_repo.join("snapshots").join("rev3")).unwrap();
+        fs::create_dir_all(cleared_repo.join("refs")).unwrap();
+        fs::write(cleared_repo.join("refs").join("main"), "rev3").unwrap();
+        fs::write(
+            cleared_repo
+                .join("snapshots")
+                .join("rev3")
+                .join(&cleared_alt),
+            b"",
+        )
+        .unwrap();
+
+        let mut models = HashMap::new();
+        ModelManager::seed_catalog_models(&mut models);
+        ModelManager::discover_hf_cache_models_in(root, &mut models);
+
+        let ModelSource::HuggingFace {
+            repo_id: blocked_repo,
+            ..
+        } = &blocked_desc.source
+        else {
+            panic!("catalog descriptors are HF-sourced");
+        };
+        assert!(
+            !models.contains_key(&format!("{blocked_repo}/{blocked_file}")),
+            "blocked same-repo cache copy must not surface"
+        );
+        assert!(
+            !models.contains_key(&format!("someone/else/{blocked_file}")),
+            "blocked file under a foreign repo must not surface"
+        );
+        let ModelSource::HuggingFace {
+            repo_id: cleared_repo_id,
+            ..
+        } = &cleared_desc.source
+        else {
+            panic!("catalog descriptors are HF-sourced");
+        };
+        let alt_info = models
+            .get(&format!("{cleared_repo_id}/{cleared_alt}"))
+            .expect("cleared alternate quant surfaces from cache");
+        assert!(alt_info.is_downloaded);
+        assert!(!alt_info.is_custom);
+    }
+
+    #[test]
+    fn t10_download_path_cannot_bypass_gate() {
+        let blocked = t10_desc_for_repo("handy-computer/canary-1b-gguf")
+            .to_model_info(&DiskStatus::default());
+        assert!(!ModelManager::commercial_download_allowed(&blocked));
+
+        let cleared = t10_desc_for_repo("handy-computer/whisper-small-gguf")
+            .to_model_info(&DiskStatus::default());
+        assert!(ModelManager::commercial_download_allowed(&cleared));
+
+        // Invariant 10: user custom models and legacy downloads keep existing
+        // behavior (they are not catalog models).
+        let custom = ModelInfo {
+            id: "my-offline-model".to_string(),
+            name: "My Offline Model".to_string(),
+            description: "custom".to_string(),
+            filename: "my-offline-model.gguf".to_string(),
+            source: ModelSource::Local,
+            size_mb: 10,
+            is_downloaded: true,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.0,
+            speed_score: 0.0,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: vec![],
+            supports_language_selection: false,
+            is_custom: true,
+            supports_streaming: false,
+            supports_language_detection: false,
+            attribution: None,
+        };
+        assert!(ModelManager::commercial_download_allowed(&custom));
+        assert!(ModelManager::is_commercially_exposed(&custom));
+
+        let legacy = ModelInfo {
+            id: "small".to_string(),
+            name: "Whisper Small".to_string(),
+            description: "legacy".to_string(),
+            filename: "ggml-small.bin".to_string(),
+            source: ModelSource::Url {
+                url: "https://example.com/ggml-small.bin".to_string(),
+                sha256: None,
+            },
+            size_mb: 100,
+            is_downloaded: true,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.5,
+            speed_score: 0.5,
+            supports_translation: true,
+            is_recommended: false,
+            supported_languages: vec!["en".to_string()],
+            supports_language_selection: true,
+            is_custom: false,
+            supports_streaming: false,
+            supports_language_detection: true,
+            attribution: None,
+        };
+        assert!(ModelManager::commercial_download_allowed(&legacy));
+        assert!(ModelManager::is_commercially_exposed(&legacy));
+    }
+
+    #[test]
+    fn t10_already_downloaded_blocked_is_not_exposed() {
+        // Invariant 9: download state never re-admits a blocked catalog model
+        // as an available commercial catalog model.
+        let downloaded =
+            t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
+                is_downloaded: true,
+                ..Default::default()
+            });
+        assert!(downloaded.is_downloaded);
+        assert!(!ModelManager::is_commercially_exposed(&downloaded));
+        assert!(!ModelManager::commercial_download_allowed(&downloaded));
     }
 }
