@@ -39,7 +39,7 @@ discovery, never listed, never downloaded, never selected):
 | `NON-COMMERCIAL` | License explicitly forbids commercial use (e.g. `cc-by-nc-4.0`). Kept blocked; never reinterpreted. |
 | `PROHIBITED` | Audit-identified prohibition. Kept blocked; never reinterpreted. (No catalog model currently carries this value; the gate logic handles it.) |
 | `UNKNOWN` | License is `other`/unverifiable in the catalog. Blocked until verified. |
-| `INSUFFICIENT-PROVENANCE` | Artifact provenance cannot be traced. Blocked until traced. (Handled by the gate; currently unused in the registry.) |
+| `INSUFFICIENT-PROVENANCE` | Artifact provenance cannot be traced. Blocked until traced. (Handled by the gate; 61 entries since T10-COMMERCIAL-LICENSE-RECONCILIATION-005, all blocked.) |
 
 Any other value — including a missing entry, a missing file, unparseable
 JSON, a version mismatch, or an unrecognised classification string — resolves
