@@ -9,7 +9,10 @@ use soravo_desktop_lib::{
     account::AccountMachine,
     auth_flow::AuthFlow,
     cli::CliArgs,
-    commands::{account::*, history::*, initialize_shortcuts, models::*, soravo_ipc::*},
+    commands::{
+        account::*, change_binding, history::*, initialize_shortcuts, models::*, reset_binding,
+        resume_all_bindings, soravo_ipc::*, suspend_all_bindings,
+    },
     managers::{
         audio::AudioRecordingManager,
         history::HistoryManager,
@@ -25,6 +28,14 @@ use soravo_desktop_lib::{
 // `soravo_ipc::*` globs; `initialize_shortcuts` is declared in `commands`
 // itself, so both of its generated wrappers are imported by name here.
 use soravo_desktop_lib::{__cmd__initialize_shortcuts, __tauri_command_name_initialize_shortcuts};
+// G2 hotkey-rebind exposure: the rebind commands are imported by name (not
+// via a glob), so their generated wrappers need the same by-name import.
+use soravo_desktop_lib::shortcut::{
+    __cmd__change_binding, __cmd__reset_binding, __cmd__resume_all_bindings,
+    __cmd__suspend_all_bindings, __tauri_command_name_change_binding,
+    __tauri_command_name_reset_binding, __tauri_command_name_resume_all_bindings,
+    __tauri_command_name_suspend_all_bindings,
+};
 
 /// Route one raw deep-link/second-instance URL into the desktop auth flow.
 fn route_auth_callback(app: &tauri::AppHandle, raw_url: &str) {
@@ -213,6 +224,16 @@ fn main() {
             toggle_history_entry_saved,
             delete_history_entry,
             retry_history_entry_transcription,
+            // G2 hotkey-rebind exposure: expose the existing Handy-derived
+            // rebind contract. The settings rebind flow (`ipc.ts` wrappers +
+            // `ShortcutSettings`) invokes these names, so without registration
+            // every rebind fails at runtime with an unknown-command error.
+            // Registration only — no shortcut/command behavior changed, and
+            // every one of these takes `AppHandle` only (no managed state).
+            change_binding,
+            reset_binding,
+            suspend_all_bindings,
+            resume_all_bindings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running soravo desktop");
