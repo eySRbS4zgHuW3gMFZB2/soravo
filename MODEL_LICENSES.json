@@ -8,12 +8,12 @@
       "model_name": "Parakeet Unified EN 0.6B",
       "base_model": "nvidia/parakeet-unified-en-0.6b",
       "license": "cc-by-4.0",
-      "classification": "INSUFFICIENT-PROVENANCE",
-      "commercial_use": false,
-      "attribution_required": false,
-      "attribution_text": null,
+      "classification": "COMMERCIAL-CLEAR-WITH-ATTRIBUTION",
+      "commercial_use": true,
+      "attribution_required": true,
+      "attribution_text": "Parakeet Unified EN 0.6B by NVIDIA Corporation, licensed under CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/). Source weights: https://huggingface.co/nvidia/parakeet-unified-en-0.6b. GGUF artifact: handy-computer/parakeet-unified-en-0.6b-gguf.",
       "upstream_url": "https://huggingface.co/nvidia/parakeet-unified-en-0.6b",
-      "notes": "BLOCKED per T10-COMMERCIAL-LICENSE-RECONCILIATION-005: the catalog license label is Handy metadata, not an evidenced weight license; commercial-use permission, redistribution authorization (handy-computer HF org + blob.handy.computer mirror), and GGUF conversion/quantization authorization are all unverified. See T10-COMMERCIAL-LICENSE-RECONCILIATION-005-REPORT.md."
+      "notes": "OWNER-APPROVED EXCEPTION 2026-10-09 (single-artifact, this id only): the owner personally reviewed and approved use of Parakeet Unified EN 0.6B Q8_0. Artifact pin: catalog revision 7e948f21b7bdbac698d3318db9d350f1096f3b6c, Q8_0 file parakeet-unified-en-0.6b-Q8_0.gguf (731357568 bytes, sha256 4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795) verified against the local artifact. CC-BY-4.0 permits commercial use conditioned on attribution; the exact notice in attribution_text MUST be surfaced with the model (Settings -> Models). Website NVIDIA credit is deferred to the website redesign and is not a precondition of this exception. Scope is strictly this exact repo id (display-name/slug matches do not clear); all other models keep their existing classifications. Residual risk: Handy redistribution/hosting authorization (handy-computer HF org + blob.handy.computer mirror) and GGUF conversion-record linkage remain unverified at the evidence level and MUST have legal sign-off before commercial release."
     },
     {
       "id": "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf",

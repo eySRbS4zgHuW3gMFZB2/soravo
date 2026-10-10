@@ -3181,11 +3181,14 @@ mod tests {
 
     #[test]
     fn test_discover_catalog_alternate_quant_in_models_dir() {
-        // A real catalog model with more than one quant.
+        // A BLOCKED catalog model with more than one quant (first
+        // commercially-blocked multi-quant entry — never the owner-approved
+        // parakeet-unified exception, whose cleared alt-quants legitimately
+        // surface as catalog entries).
         let desc = crate::catalog::CATALOG
             .iter()
-            .find(|d| d.files.len() > 1)
-            .expect("catalog has multi-quant models");
+            .find(|d| d.files.len() > 1 && !crate::catalog::is_desc_cleared(d))
+            .expect("catalog has blocked multi-quant models");
         let default_filename = default_quant_file(&desc.files, desc.default_quant.as_deref())
             .unwrap()
             .filename
@@ -3206,10 +3209,10 @@ mod tests {
         let seeded = models.len();
         ModelManager::discover_custom_transcribe_models(temp_dir.path(), &mut models).unwrap();
 
-        // RECON-005: no catalog model is commercially cleared, so catalog
-        // quant files on disk surface as NOTHING — no catalog-grade HF entry
-        // for the alternate quant, no filename-stem custom entries either.
-        // Files stay on disk (never silently deleted).
+        // The (blocked) model's catalog quant files on disk surface as
+        // NOTHING — no catalog-grade HF entry for the alternate quant, no
+        // filename-stem custom entries either. Files stay on disk (never
+        // silently deleted).
         let ModelSource::HuggingFace { repo_id, .. } = &desc.source else {
             panic!("catalog descriptors are HF-sourced");
         };
@@ -3341,11 +3344,14 @@ mod tests {
         let mut models = HashMap::new();
         ModelManager::seed_catalog_models(&mut models);
 
-        // RECON-005 zero-clearance: no catalog model seeds on current
-        // evidence. The count stays dynamic (never hard-coded) so a future
-        // evidenced clearance flows through without a test rewrite.
+        // RECON-005 blocked everything; the 2026-10-09 owner-approved
+        // single-artifact exception clears exactly one catalog model
+        // (parakeet-unified). The count stays dynamic (never hard-coded
+        // beyond the one exception) so a future evidenced clearance or
+        // owner approval flows through, while any unexpected exposure
+        // fails below.
         assert_eq!(models.len(), crate::catalog::commercial::approved_count());
-        assert_eq!(models.len(), 0);
+        assert_eq!(models.len(), 1);
 
         // Every blocked repo is absent — including the formerly cleared ones.
         for repo in T10_BLOCKED_REPOS {
@@ -3372,8 +3378,24 @@ mod tests {
             );
         }
 
-        // No attribution travels because nothing cleared is seeded.
-        assert!(models.values().all(|m| m.attribution.is_none()));
+        // Exactly the owner-approved artifact seeds — with its exact
+        // registry notice travelling on the entry (Settings → Models
+        // renders it verbatim). Nothing else seeds.
+        let cleared_id =
+            "handy-computer/parakeet-unified-en-0.6b-gguf/parakeet-unified-en-0.6b-Q8_0.gguf";
+        let cleared = models
+            .get(cleared_id)
+            .expect("owner-approved artifact seeds");
+        assert_eq!(
+            cleared.attribution.as_deref(),
+            crate::catalog::commercial::attribution_for(
+                "handy-computer/parakeet-unified-en-0.6b-gguf"
+            )
+        );
+        assert!(cleared
+            .attribution
+            .as_deref()
+            .is_some_and(|n| n.contains("NVIDIA Corporation")));
     }
 
     #[test]
@@ -3423,8 +3445,9 @@ mod tests {
         // downloaded blocked catalog models plus a rediscovered user custom
         // model: the merge refuses the blocked ids and leaves the live custom
         // entry untouched; catalog governance never re-admits blocked ids.
-        // RECON-005: no catalog model is cleared, so nothing catalog-governed
-        // merges.
+        // This snapshot holds no cleared catalog ids, so nothing
+        // catalog-governed merges here (the cleared artifact's admission is
+        // covered by the seed test).
         let blocked =
             t10_desc_for_repo("handy-computer/canary-1b-gguf").to_model_info(&DiskStatus {
                 is_downloaded: true,
@@ -3634,11 +3657,12 @@ mod tests {
             .to_model_info(&DiskStatus::default());
         assert!(!ModelManager::commercial_download_allowed(&blocked));
 
-        // RECON-005: whisper-small is INSUFFICIENT-PROVENANCE — download
-        // refused on current evidence.
-        let cleared = t10_desc_for_repo("handy-computer/whisper-small-gguf")
+        // whisper-small stays INSUFFICIENT-PROVENANCE — download refused.
+        let provenance_blocked = t10_desc_for_repo("handy-computer/whisper-small-gguf")
             .to_model_info(&DiskStatus::default());
-        assert!(!ModelManager::commercial_download_allowed(&cleared));
+        assert!(!ModelManager::commercial_download_allowed(
+            &provenance_blocked
+        ));
 
         // Invariant 10: user custom models and legacy downloads keep existing
         // behavior (they are not catalog models).
@@ -3819,6 +3843,18 @@ mod tests {
             let err = ModelManager::download_gate(&seeded, &desc.id).unwrap_err();
             assert_eq!(err, format!("Model not found: {}", desc.id));
         }
+
+        // The single owner-approved artifact resolves through the same gate
+        // (exact repo-id keying — display names and slugs do not resolve).
+        let approved_desc = t10_desc_for_repo("handy-computer/parakeet-unified-en-0.6b-gguf");
+        assert_eq!(
+            ModelManager::download_gate(&seeded, &approved_desc.id)
+                .expect("owner-approved artifact must pass the gate")
+                .id,
+            approved_desc.id
+        );
+        assert!(ModelManager::download_gate(&seeded, "Parakeet Unified EN 0.6B").is_err());
+        assert!(ModelManager::download_gate(&seeded, "parakeet-unified-en-0.6b").is_err());
 
         // A blocked entry smuggled into the map is refused by the gate itself.
         let blocked =

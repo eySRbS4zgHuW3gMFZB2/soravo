@@ -244,10 +244,12 @@ mod tests {
 
     #[test]
     fn t10_approved_clear_model_is_exposed() {
-        // RECON-005: no catalog model is cleared on current evidence. The
-        // apache-2.0 catalog model below is INSUFFICIENT-PROVENANCE: blocked,
-        // no notice. The Clear-decision logic itself is covered by synthetic
-        // maps (see t10_synthetic_clear_variants).
+        // RECON-005 blocked every catalog model on current evidence; the
+        // 2026-10-09 owner-approved single-artifact exception clears exactly
+        // one of them (see t10_owner_approved_parakeet_unified_exception).
+        // The apache-2.0 catalog model below remains INSUFFICIENT-PROVENANCE:
+        // blocked, no notice. The Clear-decision logic itself is covered by
+        // synthetic maps (see t10_synthetic_clear_variants).
         let id = "handy-computer/whisper-small-gguf";
         assert!(!is_commercially_cleared(id));
         assert_eq!(
@@ -259,9 +261,9 @@ mod tests {
 
     #[test]
     fn t10_synthetic_clear_variants() {
-        // Decision-logic proof independent of the (currently zero-clearance)
-        // embedded registry: Clear exposes; ClearWithAttribution exposes only
-        // with a non-empty notice.
+        // Decision-logic proof independent of the embedded registry (which
+        // now carries exactly one owner-approved clearance): Clear exposes;
+        // ClearWithAttribution exposes only with a non-empty notice.
         let registry = synthetic(
             r#"{"id": "org/clear-gguf", "classification": "COMMERCIAL-CLEAR"},
                 {"id": "org/attr-gguf", "classification": "COMMERCIAL-CLEAR-WITH-ATTRIBUTION", "attribution_text": "Credit X."},
@@ -379,21 +381,56 @@ mod tests {
 
     #[test]
     fn t10_registry_counts_match_policy() {
-        // RECON-005 zero-clearance: 0 approved; 1 NON-COMMERCIAL + 7 UNKNOWN
-        // + 61 INSUFFICIENT-PROVENANCE = 69 blocked; 69 entries total.
-        // Deliberately exact: any registry edit must consciously update this
-        // test, and any future clearance must cite weight-level evidence.
+        // 69 entries: 1 owner-approved (parakeet-unified, WITH-ATTRIBUTION) +
+        // 1 NON-COMMERCIAL + 7 UNKNOWN + 60 INSUFFICIENT-PROVENANCE = 68
+        // blocked. Deliberately exact: any registry edit must consciously
+        // update this test, and any future clearance must cite weight-level
+        // evidence or a new owner approval.
         assert_eq!(registry_entry_count(), 69);
-        assert_eq!(approved_count(), 0);
-        assert_eq!(blocked_count(), 69);
+        assert_eq!(approved_count(), 1);
+        assert_eq!(blocked_count(), 68);
     }
 
     #[test]
-    fn t10_recon005_zero_clearance_regression() {
-        // Pins the reconciliation outcome: no embedded entry may carry a
-        // cleared classification until per-model weight/commercial,
-        // redistribution, and conversion evidence is recorded. Every
-        // INSUFFICIENT-PROVENANCE entry is blocked.
+    fn t10_owner_approved_parakeet_unified_exception() {
+        // 2026-10-09 owner-approved single-artifact exception: exactly this
+        // stable repo id is cleared (WITH-ATTRIBUTION, exact notice); the
+        // gate keys on the id, never on a display name or slug.
+        let id = "handy-computer/parakeet-unified-en-0.6b-gguf";
+        assert!(is_commercially_cleared(id));
+        assert_eq!(
+            classification_of(id),
+            Some(CommercialClassification::ClearWithAttribution)
+        );
+        let notice = attribution_for(id).expect("exception must carry an exact notice");
+        assert!(notice.contains("NVIDIA Corporation"));
+        assert!(notice.contains("CC-BY-4.0"));
+        assert!(notice.contains("https://huggingface.co/nvidia/parakeet-unified-en-0.6b"));
+        assert!(notice.contains(id));
+        // Loose identity matches must NOT clear: display name, bare slug, and
+        // neighbouring parakeet variants stay blocked.
+        for impostor in [
+            "Parakeet Unified EN 0.6B",
+            "parakeet-unified-en-0.6b",
+            "parakeet-unified-en-0.6b-gguf",
+            "handy-computer/parakeet-unified-en-0.6b-gguf ",
+            "handy-computer/parakeet-tdt-0.6b-v3-gguf",
+            "handy-computer/parakeet-tdt-0.6b-v2-gguf",
+            "handy-computer/parakeet-ctc-0.6b-gguf",
+        ] {
+            assert!(
+                !is_commercially_cleared(impostor),
+                "{impostor} must stay blocked"
+            );
+        }
+    }
+
+    #[test]
+    fn t10_recon005_single_exception_regression() {
+        // Pins the reconciliation outcome plus the one owner-approved
+        // exception: exactly one embedded entry may carry a cleared
+        // classification (parakeet-unified, WITH-ATTRIBUTION with a
+        // non-empty notice). Every INSUFFICIENT-PROVENANCE entry is blocked.
         let raw: serde_json::Value = serde_json::from_str(REGISTRY_JSON).expect("registry parses");
         let entries = raw
             .get("entries")
@@ -418,11 +455,12 @@ mod tests {
                 _ => {}
             }
         }
-        assert!(
-            cleared.is_empty(),
-            "registry must clear zero models on current evidence, found: {cleared:?}"
+        assert_eq!(
+            cleared,
+            vec!["handy-computer/parakeet-unified-en-0.6b-gguf".to_string()],
+            "exactly the owner-approved artifact may be cleared"
         );
-        assert_eq!(provenance_blocked, 61);
+        assert_eq!(provenance_blocked, 60);
     }
 
     /// Every bundled catalog model has a registry entry, so no catalog model

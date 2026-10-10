@@ -163,6 +163,26 @@ impl CapabilityProber for GgufHeaderProber {
     }
 }
 
+/// Locate the owner-approved Parakeet Unified EN 0.6B Q8_0 artifact for
+/// real-model tests: explicit env override first, then the repo-root
+/// drop-in. `None` means the artifact is absent (CI) — callers SKIP loudly
+/// rather than failing. Test-only: compiled out of production builds.
+#[cfg(test)]
+pub(crate) fn parakeet_unified_artifact_path() -> Option<std::path::PathBuf> {
+    if let Ok(p) = std::env::var("SORAVO_PARAKEET_UNIFIED_GGUF") {
+        let p = std::path::PathBuf::from(p);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    let candidate = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../parakeet-unified-en-0.6b-Q8_0.gguf");
+    if candidate.is_file() {
+        return Some(candidate);
+    }
+    None
+}
+
 /// Read just enough of `path` to parse its GGUF metadata header, without ever
 /// loading the (potentially multi-GB) tensor data. Grows the prefix
 /// geometrically if a header is unusually large.
@@ -266,5 +286,36 @@ mod tests {
             CapabilityProbe::from_metadata(&meta).verdict,
             Compatibility::MaybeIncompatible
         );
+    }
+
+    #[test]
+    fn realmodel_parakeet_unified_header_probe() {
+        let Some(path) = super::parakeet_unified_artifact_path() else {
+            eprintln!("SKIP realmodel_parakeet_unified_header_probe: artifact absent (set SORAVO_PARAKEET_UNIFIED_GGUF)");
+            return;
+        };
+        let probe = GgufHeaderProber.probe_file(&path);
+        assert_eq!(probe.verdict, Compatibility::Compatible);
+        assert_eq!(probe.architecture.as_deref(), Some("parakeet"));
+        assert_eq!(
+            probe.display_name.as_deref(),
+            Some("Parakeet Unified EN 0.6B")
+        );
+        assert_eq!(probe.languages, Some(vec!["en".to_string()]));
+    }
+
+    #[test]
+    fn probe_rejects_missing_and_garbage_files() {
+        let probe = GgufHeaderProber.probe_file(std::path::Path::new(
+            "/nonexistent/parakeet-unified-en-0.6b-Q8_0.gguf",
+        ));
+        assert_eq!(probe.verdict, Compatibility::Unsupported);
+        let dir = std::env::temp_dir().join("soravo-probe-garbage");
+        std::fs::create_dir_all(&dir).unwrap();
+        let garbage = dir.join("not-a-model.gguf");
+        std::fs::write(&garbage, b"this is not a gguf file at all").unwrap();
+        let probe = GgufHeaderProber.probe_file(&garbage);
+        assert_eq!(probe.verdict, Compatibility::Unsupported);
+        let _ = std::fs::remove_file(&garbage);
     }
 }

@@ -2528,4 +2528,296 @@ mod tests {
         assert_eq!(plan.language.as_deref(), Some("es"));
         assert_eq!(plan.target_language, None);
     }
+
+    #[test]
+    fn transcribe_cpp_run_plan_matches_parakeet_unified_profile() {
+        // Parakeet Unified EN 0.6B: English-only, no translation support.
+        // A translate request must degrade to plain transcription (never an
+        // error), and an unsupported language hint must fall back to auto.
+        let plan = transcribe_cpp_run_plan(true, "en", &languages(&["en"]), false);
+        assert!(matches!(plan.task, Task::Transcribe));
+        assert_eq!(plan.language.as_deref(), Some("en"));
+        assert_eq!(plan.target_language, None);
+
+        let plan = transcribe_cpp_run_plan(false, "de", &languages(&["en"]), false);
+        assert!(matches!(plan.task, Task::Transcribe));
+        assert_eq!(plan.language, None);
+    }
+
+    #[test]
+    fn transcribe_cpp_load_rejects_missing_model_file() {
+        // Missing-file load failure must be a clean Err (loading_failed path),
+        // never a panic or hang.
+        let missing = std::path::PathBuf::from("/nonexistent/parakeet-unified-en-0.6b-Q8_0.gguf");
+        let options = ModelOptions {
+            backend: Backend::Cpu,
+            device: None,
+        };
+        assert!(Model::load_with(&missing, &options).is_err());
+    }
+
+    /// Real-model smoke test: load the exact owner-approved Q8_0 artifact
+    /// through the production transcribe-cpp path and run inference twice
+    /// (repeated use without reload). `#[ignore]` — needs the 700 MB
+    /// artifact + minutes of CPU; run explicitly with the artifact present.
+    /// Set `SORAVO_PARAKEET_UNIFIED_GGUF` to the artifact path.
+    #[test]
+    #[ignore]
+    fn realmodel_parakeet_unified_load_and_transcribe() {
+        use sha2::{Digest, Sha256};
+        use std::io::Read;
+
+        let Some(path) = crate::managers::model_capabilities::parakeet_unified_artifact_path()
+        else {
+            eprintln!("SKIP realmodel_parakeet_unified_load_and_transcribe: artifact absent (set SORAVO_PARAKEET_UNIFIED_GGUF)");
+            return;
+        };
+
+        // Artifact identity: exact catalog size + sha256 for the Q8_0 file.
+        let meta = std::fs::metadata(&path).expect("artifact is readable");
+        assert_eq!(meta.len(), 731357568, "Q8_0 size must match catalog.json");
+        let mut hasher = Sha256::new();
+        let mut file = std::fs::File::open(&path).expect("artifact opens");
+        let mut buf = [0u8; 1 << 20];
+        loop {
+            let n = file.read(&mut buf).expect("artifact reads");
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+        }
+        assert_eq!(
+            format!("{:x}", hasher.finalize()),
+            "4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795",
+            "Q8_0 sha256 must match catalog.json"
+        );
+
+        // Load through the production path (transcribe-cpp, CPU backend for
+        // determinism in headless environments). Backend modules must be
+        // initialized first — exactly as production startup does via
+        // `init_transcribe_backend` before any load.
+        init_transcribe_backend();
+        let options = ModelOptions {
+            backend: Backend::Cpu,
+            device: None,
+        };
+        let model = Model::load_with(&path, &options).expect("parakeet Q8_0 loads");
+        assert_eq!(model.arch(), "parakeet");
+        assert!(model.capabilities().languages.contains(&"en".to_string()));
+
+        let mut session = model.session().expect("session creates");
+
+        // 2 s of 440 Hz sine at 16 kHz mono — exercises inference without a
+        // microphone. Content is irrelevant; the assertion is that inference
+        // completes without error or panic, twice on the same session.
+        let audio: Vec<f32> = (0..32_000)
+            .map(|i| (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 16_000.0).sin() * 0.5)
+            .collect();
+        let run_options = RunOptions {
+            task: Task::Transcribe,
+            language: Some("en".to_string()),
+            target_language: None,
+            ..Default::default()
+        };
+        for _ in 0..2 {
+            let out = session.run(&audio, &run_options);
+            assert!(
+                out.is_ok(),
+                "repeated inference must not fail: {:?}",
+                out.err()
+            );
+        }
+
+        // Invalid audio (empty) must be handled, not crash.
+        let empty: Vec<f32> = Vec::new();
+        let _ = session.run(&empty, &run_options);
+    }
+
+    /// Scoring normalization for the dev-clean file test (documented):
+    /// lowercase; keep `a-z 0-9 '`, drop all other punctuation; squeeze
+    /// whitespace. LibriSpeech references are already uppercase without
+    /// punctuation, so this maps both sides into the same space.
+    fn devclean_normalize(text: &str) -> Vec<String> {
+        text.to_lowercase()
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '\'' {
+                    c
+                } else {
+                    ' '
+                }
+            })
+            .collect::<String>()
+            .split_whitespace()
+            .map(str::to_string)
+            .collect()
+    }
+
+    /// Word-level Levenshtein alignment with substitution / deletion /
+    /// insertion backtrace counts. Tie-break order is sub > del > ins.
+    /// Returns `(reference_word_count, substitutions, deletions, insertions)`.
+    fn word_error_counts(reference: &str, hypothesis: &str) -> (usize, usize, usize, usize) {
+        let r = devclean_normalize(reference);
+        let h = devclean_normalize(hypothesis);
+        let (n, m) = (r.len(), h.len());
+        let mut dp = vec![vec![0usize; m + 1]; n + 1];
+        for (i, row) in dp.iter_mut().enumerate().take(n + 1) {
+            row[0] = i;
+        }
+        for (j, cell) in dp[0].iter_mut().enumerate() {
+            *cell = j;
+        }
+        for i in 1..=n {
+            for j in 1..=m {
+                let cost = usize::from(r[i - 1] != h[j - 1]);
+                dp[i][j] = (dp[i - 1][j] + 1)
+                    .min(dp[i][j - 1] + 1)
+                    .min(dp[i - 1][j - 1] + cost);
+            }
+        }
+        let (mut i, mut j) = (n, m);
+        let (mut subs, mut dels, mut inss) = (0usize, 0usize, 0usize);
+        while i > 0 || j > 0 {
+            if i > 0 && j > 0 && r[i - 1] == h[j - 1] {
+                i -= 1;
+                j -= 1;
+            } else if i > 0 && j > 0 && dp[i][j] == dp[i - 1][j - 1] + 1 {
+                subs += 1;
+                i -= 1;
+                j -= 1;
+            } else if i > 0 && dp[i][j] == dp[i - 1][j] + 1 {
+                dels += 1;
+                i -= 1;
+            } else {
+                inss += 1;
+                j -= 1;
+            }
+        }
+        (n, subs, dels, inss)
+    }
+
+    #[test]
+    fn devclean_word_error_counts_known_alignment() {
+        // Sanity for the scorer itself: 1 substitution in 3 reference words.
+        assert_eq!(
+            word_error_counts("ONLY UNFORTUNATELY WORK", "only fortunately work"),
+            (3, 1, 0, 0)
+        );
+        // Empty hypothesis: every reference word is a deletion.
+        assert_eq!(word_error_counts("NO ANSWER", ""), (2, 0, 2, 0));
+        // Punctuation/case differences vanish under normalization.
+        assert_eq!(
+            word_error_counts(
+                "THEN HE RANG THE BELL NO ANSWER",
+                "Then he rang the bell, no answer!"
+            ),
+            (7, 0, 0, 0)
+        );
+    }
+
+    /// Real-speech file test on LibriSpeech dev-clean audio through the
+    /// production transcribe-cpp path (same `Model::load_with` + session +
+    /// `RunOptions` shape as the synthetic-audio test above; only the audio
+    /// source differs: a caller-supplied FLAC decoded with rodio, which is
+    /// already a main dependency). `#[ignore]` — needs the 700 MB artifact
+    /// plus one extracted FLAC. Set `SORAVO_PARAKEET_UNIFIED_GGUF` (model),
+    /// `SORAVO_DEVCLEAN_FLAC` (audio file) and `SORAVO_DEVCLEAN_REF` (exact
+    /// reference transcript). Measurement only: prints the RAW transcript,
+    /// normalization inputs, S/D/I/N/WER and timings. Model identity and
+    /// inference success are asserted; WER is reported, never gated.
+    #[test]
+    #[ignore]
+    fn realmodel_parakeet_devclean_file_transcription() {
+        use rodio::Source;
+        use sha2::{Digest, Sha256};
+        use std::io::Read;
+        use std::time::Instant;
+
+        let Some(audio_path) =
+            std::env::var_os("SORAVO_DEVCLEAN_FLAC").map(std::path::PathBuf::from)
+        else {
+            eprintln!(
+                "SKIP realmodel_parakeet_devclean_file_transcription: audio absent (set SORAVO_DEVCLEAN_FLAC)"
+            );
+            return;
+        };
+        let reference = std::env::var("SORAVO_DEVCLEAN_REF").unwrap_or_default();
+
+        // Artifact identity: exact catalog size + sha256 for the Q8_0 file.
+        let model_path = crate::managers::model_capabilities::parakeet_unified_artifact_path()
+            .expect("model artifact present (set SORAVO_PARAKEET_UNIFIED_GGUF)");
+        let meta = std::fs::metadata(&model_path).expect("artifact is readable");
+        assert_eq!(meta.len(), 731357568, "Q8_0 size must match catalog.json");
+        let mut hasher = Sha256::new();
+        let mut file = std::fs::File::open(&model_path).expect("artifact opens");
+        let mut buf = [0u8; 1 << 20];
+        loop {
+            let n = file.read(&mut buf).expect("artifact reads");
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+        }
+        assert_eq!(
+            format!("{:x}", hasher.finalize()),
+            "4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795",
+            "Q8_0 sha256 must match catalog.json"
+        );
+
+        // Decode the caller-supplied FLAC and pin the pipeline format:
+        // dev-clean is 16 kHz mono; anything else is refused loudly rather
+        // than inferred at the wrong rate.
+        let audio_file = std::fs::File::open(&audio_path).expect("audio file opens");
+        let decoder = rodio::Decoder::new(audio_file).expect("audio file decodes");
+        let (rate, channels) = (decoder.sample_rate(), decoder.channels());
+        eprintln!("DEVCLEAN audio: {rate} Hz, {channels} ch");
+        assert_eq!(rate, 16000, "dev-clean audio must be 16 kHz");
+        assert_eq!(channels, 1, "dev-clean audio must be mono");
+        // rodio's Decoder already yields f32 samples in -1.0..1.0, which
+        // is exactly the pipeline input format (`&[f32]` at 16 kHz mono).
+        let audio: Vec<f32> = decoder.collect();
+        assert!(!audio.is_empty(), "audio must be non-empty");
+        eprintln!(
+            "DEVCLEAN samples: {} ({:.2} s)",
+            audio.len(),
+            audio.len() as f64 / 16000.0
+        );
+
+        // Load through the production path (transcribe-cpp, CPU backend for
+        // determinism in headless environments). Backend modules must be
+        // initialized first — exactly as production startup does via
+        // `init_transcribe_backend` before any load.
+        init_transcribe_backend();
+        let options = ModelOptions {
+            backend: Backend::Cpu,
+            device: None,
+        };
+        let load_start = Instant::now();
+        let model = Model::load_with(&model_path, &options).expect("parakeet Q8_0 loads");
+        let load_ms = load_start.elapsed().as_millis();
+        let mut session = model.session().expect("session creates");
+
+        let run_options = RunOptions {
+            task: Task::Transcribe,
+            language: Some("en".to_string()),
+            target_language: None,
+            ..Default::default()
+        };
+        let run_start = Instant::now();
+        let out = session
+            .run(&audio, &run_options)
+            .expect("file inference succeeds");
+        let infer_ms = run_start.elapsed().as_millis();
+
+        eprintln!("DEVCLEAN RAW >>>{}<<<", out.text);
+        eprintln!("DEVCLEAN REF >>>{reference}<<<");
+        eprintln!("DEVCLEAN load_ms={load_ms} infer_ms={infer_ms}");
+        let (n, subs, dels, inss) = word_error_counts(&reference, &out.text);
+        let wer = if n == 0 {
+            f64::NAN
+        } else {
+            (subs + dels + inss) as f64 / n as f64
+        };
+        eprintln!("DEVCLEAN WER n={n} sub={subs} del={dels} ins={inss} wer={wer:.4}");
+    }
 }

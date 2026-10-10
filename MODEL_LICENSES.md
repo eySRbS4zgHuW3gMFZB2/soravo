@@ -45,20 +45,43 @@ Any other value — including a missing entry, a missing file, unparseable
 JSON, a version mismatch, or an unrecognised classification string — resolves
 to NOT CLEARED (fail closed).
 
-## 3. Current registry counts (2026-10-09, 69 catalog models — corrected per T10-COMMERCIAL-LICENSE-RECONCILIATION-005)
+## 3. Current registry counts (2026-10-09, 69 catalog models — corrected per T10-COMMERCIAL-LICENSE-RECONCILIATION-005, plus one owner-approved exception)
 
 - `COMMERCIAL-CLEAR`: 0
-- `COMMERCIAL-CLEAR-WITH-ATTRIBUTION`: 0
-- Approved total: 0
+- `COMMERCIAL-CLEAR-WITH-ATTRIBUTION`: 1 (`handy-computer/parakeet-unified-en-0.6b-gguf` — owner-approved single-artifact exception, see §4)
+- Approved total: 1
 - `NON-COMMERCIAL`: 1 (`handy-computer/canary-1b-gguf`, `cc-by-nc-4.0`)
 - `UNKNOWN`: 7 (catalog license `other`: Nemotron 3.5 streaming, Fun-ASR MLT
   Nano, Fun-ASR Nano, MedASR, Nemotron EN streaming, Multitalker Parakeet,
   SenseVoiceSmall)
-- `INSUFFICIENT-PROVENANCE`: 61 (every catalog entry whose label is a
+- `INSUFFICIENT-PROVENANCE`: 60 (every remaining catalog entry whose label is a
   permissive `apache-2.0`/`mit`/`cc-by-4.0`: weight-level commercial-use,
   redistribution, and GGUF conversion/quantization authorization all
   unverified — see the reconciliation report)
-- Blocked total: 69
+- Blocked total: 68
+
+## 3a. Owner-approved single-artifact exception (2026-10-09)
+
+Exactly one entry is cleared, by direct owner authorization recorded in the
+implementation task of 2026-10-09 (the owner personally reviewed and approved
+use of **Parakeet Unified EN 0.6B Q8_0**; NVIDIA credit to be added during the
+website redesign):
+
+- `handy-computer/parakeet-unified-en-0.6b-gguf` →
+  `COMMERCIAL-CLEAR-WITH-ATTRIBUTION` with the exact notice in its
+  `attribution_text` (rendered verbatim in Settings → Models).
+- Artifact pin recorded in the entry `notes`: catalog revision
+  `7e948f21b7bdbac698d3318db9d350f1096f3b6c`, Q8_0 file
+  `parakeet-unified-en-0.6b-Q8_0.gguf` (731357568 bytes, sha256
+  `4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795`).
+- Scope is the exact repo id only. Display-name matches (`Parakeet Unified
+  EN 0.6B`), slug matches, and every other model id (including other
+  `parakeet-*` variants) remain blocked under their existing
+  classifications. The gate keys on the stable repo id, never on a display
+  name.
+- This exception does not reopen the owner decision to other variants and
+  does not waive the §4 legal-sign-off requirement for commercial release
+  (Handy redistribution/hosting authorization remains evidence-unverified).
 
 ## 4. Evidence basis and limits (no legal assumptions)
 
@@ -75,9 +98,11 @@ to NOT CLEARED (fail closed).
   use requires evidenced weight/model terms, redistribution requires
   evidenced Handy hosting rights (HF `handy-computer/*` + the
   `blob.handy.computer` mirror), and every GGUF requires evidenced
-  conversion/quantization authorization. All three are unverified for all 69
-  models, so all 61 permissive-label entries are `INSUFFICIENT-PROVENANCE`
-  (blocked). Prior `COMMERCIAL-CLEAR` / `WITH-ATTRIBUTION` notices are
+  conversion/quantization authorization. 60 permissive-label entries remain
+  `INSUFFICIENT-PROVENANCE` (blocked) on this basis; the single cleared
+  entry (`handy-computer/parakeet-unified-en-0.6b-gguf`) rests on the
+  2026-10-09 direct owner approval recorded in §3a, not on its label.
+  Prior `COMMERCIAL-CLEAR` / `WITH-ATTRIBUTION` notices are
   retained in git history for audit trail, not as operative permissions.
 - **Limit:** this registry is a technical block-list gate, not an
   independent legal review. Redistribution/hosting rights for mirror serving
