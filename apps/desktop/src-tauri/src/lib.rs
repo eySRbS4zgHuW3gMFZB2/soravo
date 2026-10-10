@@ -12,6 +12,7 @@ pub mod transcription_coordinator;
 // Handy integration modules
 pub mod account;
 pub mod actions;
+pub mod auth_flow;
 // T33-P-FOLLOWUP-3D / ADR-024: narrowly scoped macOS unsafe exception.
 #[cfg(target_os = "macos")]
 #[cfg_attr(target_os = "macos", allow(unsafe_code))]

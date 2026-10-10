@@ -44,6 +44,10 @@ serde_json = "1"
 sha2 = "0.10"
 soravo-audio = { path = "../../../crates/audio" }
 soravo-config = { path = "../../../crates/config" }
+# R1-GAP-021: desktop auth handshake (PKCE, deep-link callback, session,
+# keychain store, offline policy). Workspace-internal; no supply-chain change
+# beyond the OS keychain + deep-link admissions recorded in the proposal doc.
+soravo-desktop-auth = { path = "../../../crates/desktop-auth" }
 # R1-GAP-005/006: session↔recording coupling reuses the canonical transcript
 # contracts (workspace-internal; no supply-chain change).
 soravo-transcript = { path = "../../../crates/transcript" }
@@ -54,6 +58,7 @@ tar = "0.4"
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-deep-link = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-global-shortcut = "2"
