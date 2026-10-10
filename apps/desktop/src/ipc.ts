@@ -235,6 +235,72 @@ export function updateHotkeySettings(settings: HotkeySettings): Promise<Settings
   return invoke<SettingsResponse>("update_hotkey_settings", { settings });
 }
 
+// G2 hotkey-rebind exposure — thin wrappers over the existing Handy-derived
+// rebind contract (`shortcut/mod.rs`). Registration only on the Rust side;
+// these names must stay in sync with the `generate_handler!` list in
+// `src-tauri/src/main.rs` (locked by `shortcut_rebind_tests.rs`).
+
+/** Mirrors `crate::settings::ShortcutBinding` (snake_case wire keys). */
+export type ShortcutBinding = {
+  id: string;
+  name: string;
+  description: string;
+  default_binding: string;
+  current_binding: string;
+};
+
+/** Mirrors `crate::shortcut::BindingResponse`. */
+export type BindingResponse = {
+  success: boolean;
+  binding: ShortcutBinding | null;
+  error: string | null;
+};
+
+export function changeHotkeyBinding(id: string, binding: string): Promise<BindingResponse> {
+  return invoke<BindingResponse>("change_binding", { id, binding });
+}
+
+export function resetHotkeyBinding(id: string): Promise<BindingResponse> {
+  return invoke<BindingResponse>("reset_binding", { id });
+}
+
+export function suspendHotkeyBindings(): Promise<void> {
+  return invoke<void>("suspend_all_bindings");
+}
+
+export function resumeHotkeyBindings(): Promise<void> {
+  return invoke<void>("resume_all_bindings");
+}
+
+/**
+ * Build a backend-accepted hotkey string (e.g. `"ctrl+space"`) from a DOM
+ * keydown. Returns `null` for modifier-only keydowns (no committable combo
+ * yet). The grammar mirrors `tauri_impl::validate_shortcut`: lowercase
+ * `+`-joined parts with at least one non-modifier key; the backend re-validates
+ * on commit, so this is a convenience, never the authority.
+ */
+export function formatHotkeyFromKeyboardEvent(e: {
+  key: string;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  metaKey: boolean;
+}): string | null {
+  const parts: string[] = [];
+  if (e.ctrlKey) parts.push("ctrl");
+  if (e.shiftKey) parts.push("shift");
+  if (e.altKey) parts.push("alt");
+  if (e.metaKey) parts.push("super");
+
+  const key = e.key.toLowerCase();
+  // Modifier-only keydown: the combo is not complete yet.
+  if (["control", "shift", "alt", "meta", "altgraph", "fn"].includes(key)) {
+    return null;
+  }
+  parts.push(key === " " ? "space" : key);
+  return parts.join("+");
+}
+
 export function updateModelSettings(settings: ModelSettings): Promise<SettingsResponse> {
   return invoke<SettingsResponse>("update_model_settings", { settings });
 }

@@ -35,6 +35,15 @@ pub use history::{
     delete_history_entry, get_history_entries, retry_history_entry_transcription,
     toggle_history_entry_saved,
 };
+// G2 hotkey-rebind exposure: re-export the existing Handy-derived rebind
+// commands so the invoke handler (main.rs) resolves them. The frontend
+// wrappers in `apps/desktop/src/ipc.ts` invoke these names; without
+// registration every rebind invocation fails at runtime with an
+// unknown-command error. Behavior unchanged — registration only;
+// `shortcut/mod.rs` is untouched.
+pub use crate::shortcut::{
+    change_binding, reset_binding, resume_all_bindings, suspend_all_bindings,
+};
 pub use soravo_ipc::{
     emit_ping, inject_text, load_settings, ping, runtime_status, save_settings, session_reset,
     session_snapshot, session_transition, update_hotkey_settings, update_microphone_settings,
@@ -206,6 +215,13 @@ pub fn initialize_enigo(app: AppHandle) -> Result<(), String> {
 #[cfg(test)]
 #[path = "registration_tests.rs"]
 mod registration_tests;
+
+/// G2 hotkey-rebind exposure: registration-completeness tests for the
+/// rebind command family. Pure source analysis — no Tauri runtime, window,
+/// model asset, microphone, or network required.
+#[cfg(test)]
+#[path = "shortcut_rebind_tests.rs"]
+mod shortcut_rebind_tests;
 
 /// Marker state to track if shortcuts have been initialized.
 pub struct ShortcutsInitialized;
