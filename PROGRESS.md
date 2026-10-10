@@ -12721,3 +12721,11 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **DEFERRED / non-goals:** HandyKeys recorder command registration, Linux Escape-cancel enablement, keyboard-implementation switching, conflict UX beyond backend errors, any visual redesign (R6), UI/UX overhaul.
 - **Platform risks:** Linux dynamic re-registration (cancel precedent — change path already restores on failure); OS-level accelerator conflicts surface as commit errors; Secure Input (macOS) affects native recorder only, not the DOM-capture commit path.
 - **Next exact task:** owner review + merge of the G2 PR; then live GUI rebind check + Part B live recording with a human speaker (single session can cover both: rebind → dictate with new combo → confirm).
+
+## LIVE-ACCEPTANCE-SILERO-G2 — Human-supervised live test (2026-10-10)
+
+- **Tested tree:** G2 worktree @ `a3aef2ec` + 2 UNCOMMITTED T22-identical launch lines in `main.rs` (deep-link plugin + specta `mount_events`); committed PR #118 content untouched. Full evidence: `LIVE-ACCEPTANCE-SILERO-G2-2026-10-10-REPORT.md` (this worktree).
+- **Result:** all 10 criteria PASS live — Silero init + 16 real inferences; rebind twice via UI (→ctrl+alt+m, →ctrl+space) effective immediately; conflict rejected with rollback; Escape cancels; Reset restores default; restart persistence verified (store reload + disk); 16/16 pastes; 0 panics in the verified run (20 starts).
+- **Critical merge precondition:** exact PR #118 head cannot launch (deep-link `state() before manage()` panic, exit 101); owner must land the 2 §2 lines (or rebase onto T22-fixed line) before merge. G2 logic unaffected.
+- **New gap G13 (insertion, pre-existing, out of scope):** single backend paste occasionally renders doubled in xed under ibus IM context (`HelloHello` from one `xdotool type`); manual identical invocation renders single. Backend 1:1:1 proven (20 starts/16 completions/16 pastes). Dedicated follow-up task proposed, not performed.
+- **BLOCKED:** PR #118 merge (owner review + §2 lines). **NOT EXECUTED:** Windows/macOS live runs (ADR-019 bound). App left running for operator convenience (see report §6).
