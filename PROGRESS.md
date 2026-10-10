@@ -12729,3 +12729,9 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Critical merge precondition:** exact PR #118 head cannot launch (deep-link `state() before manage()` panic, exit 101); owner must land the 2 §2 lines (or rebase onto T22-fixed line) before merge. G2 logic unaffected.
 - **New gap G13 (insertion, pre-existing, out of scope):** single backend paste occasionally renders doubled in xed under ibus IM context (`HelloHello` from one `xdotool type`); manual identical invocation renders single. Backend 1:1:1 proven (20 starts/16 completions/16 pastes). Dedicated follow-up task proposed, not performed.
 - **BLOCKED:** PR #118 merge (owner review + §2 lines). **NOT EXECUTED:** Windows/macOS live runs (ADR-019 bound). App left running for operator convenience (see report §6).
+## LAUNCH-STABILITY-PREREQ — Deep-link plugin + specta mount (2026-10-10, Option A)
+
+- **Branch:** `fix/launch-stability-deep-link-specta` from `origin/main` @ `82ec2ecc`. Isolated worktree; no Swarm agents. PRs #116/#117/#118 untouched; G13 separate.
+- **Why:** exact PR #118 head cannot launch (deep-link `state() before manage()` panic, exit 101); with only the plugin fix, transcription workers die on `EventRegistry not found` panics. Both defects live on `origin/main`; both fixes T22-proven on the R1 line and ported verbatim. Full analysis: `G2-MERGE-PREREQUISITE-INVESTIGATION-2026-10-10-REPORT.md` (G2 worktree).
+- **Files (2, +~30/-0):** `apps/desktop/src-tauri/src/main.rs` (plugin registration + specta `mount_events` for the 3 typed events); `PROGRESS.md` (this entry). No behavior change beyond crash removal; no G2 content.
+- **Next:** build + launch smoke + one live dictation from this exact state; push; open prerequisite PR; CI watch; no merge (owner). After merge: update the G2 branch via local merge of `origin/main` (no rebase/force-push), drop its redundant local hunks, re-verify.
