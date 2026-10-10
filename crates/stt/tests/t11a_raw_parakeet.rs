@@ -21,8 +21,7 @@ use transcribe_cpp::{init_backends_default, Model, ModelOptions, RunOptions};
 
 #[test]
 fn t11a_raw_parakeet_transcripts() {
-    let model_path =
-        std::env::var("PARAKEET_MODEL_PATH").expect("PARAKEET_MODEL_PATH not set");
+    let model_path = std::env::var("PARAKEET_MODEL_PATH").expect("PARAKEET_MODEL_PATH not set");
     assert!(
         std::path::Path::new(&model_path).exists(),
         "model file missing: {}",
@@ -49,8 +48,7 @@ fn t11a_raw_parakeet_transcripts() {
 
     for file_id in file_ids {
         let audio_path = format!("tests/fixtures/audio/{}.wav", file_id);
-        let mut reader =
-            hound::WavReader::open(&audio_path).expect("open corpus wav");
+        let mut reader = hound::WavReader::open(&audio_path).expect("open corpus wav");
         let spec = reader.spec();
         assert_eq!(spec.sample_rate, 16000, "corpus must be 16 kHz");
         assert_eq!(spec.channels, 1, "corpus must be mono");
@@ -61,7 +59,10 @@ fn t11a_raw_parakeet_transcripts() {
             .expect("read corpus samples");
         assert!(!samples.is_empty(), "empty audio: {}", file_id);
 
-        let reference = harness.get_ground_truth(&file_id).cloned().unwrap_or_default();
+        let reference = harness
+            .get_ground_truth(&file_id)
+            .cloned()
+            .unwrap_or_default();
 
         let mut session = model.session().expect("create session");
         let transcript = session

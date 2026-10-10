@@ -31,13 +31,12 @@
 //!  cargo test -p soravo-stt --test gguf_benchmark -- --ignored --nocapture`
 //! (#[ignore]d so CI without the 731 MB artifact stays green.)
 
-use soravo_stt::benchmark::BenchmarkHarness;
 use sha2::Digest;
+use soravo_stt::benchmark::BenchmarkHarness;
 use transcribe_cpp::{init_backends_default, Model, ModelOptions, RunOptions};
 
 // SHA-256 of the approved artifact (repo-root file; catalog + T11-A record).
-const MODEL_SHA256: &str =
-    "4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795";
+const MODEL_SHA256: &str = "4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795";
 // (file_id, wav SHA-256, reference-txt SHA-256) — T11-A corpus, Phase-1 verified.
 const FIXTURES: &[(&str, &str, &str)] = &[
     (
@@ -60,8 +59,7 @@ const FIXTURES: &[(&str, &str, &str)] = &[
 const REPEATS: usize = 3;
 
 fn sha256_file(path: &str) -> Result<String, String> {
-    let bytes =
-        std::fs::read(path).map_err(|e| format!("read {}: {}", path, e))?;
+    let bytes = std::fs::read(path).map_err(|e| format!("read {}: {}", path, e))?;
     Ok(format!("{:x}", sha2::Sha256::digest(&bytes)))
 }
 
@@ -169,13 +167,17 @@ fn report_json(results: &[ClipResult], model_sha: &str) -> String {
 #[test]
 #[ignore]
 fn gguf_benchmark_fixed_corpus() {
-    let model_path =
-        std::env::var("PARAKEET_MODEL_PATH").expect("PARAKEET_MODEL_PATH not set");
+    let model_path = std::env::var("PARAKEET_MODEL_PATH").expect("PARAKEET_MODEL_PATH not set");
 
     // Fail closed on any substitution.
     verify_pin(&model_path, MODEL_SHA256, "model").expect("model pin");
     for (id, wav_sha, txt_sha) in FIXTURES {
-        verify_pin(&format!("tests/fixtures/audio/{}.wav", id), wav_sha, "fixture").expect("wav pin");
+        verify_pin(
+            &format!("tests/fixtures/audio/{}.wav", id),
+            wav_sha,
+            "fixture",
+        )
+        .expect("wav pin");
         verify_pin(
             &format!("tests/fixtures/ground_truth/{}.txt", id),
             txt_sha,
@@ -215,7 +217,12 @@ fn gguf_benchmark_fixed_corpus() {
         for _ in 0..REPEATS {
             let start = std::time::Instant::now();
             let transcript = session
-                .run(&samples, &RunOptions { ..Default::default() })
+                .run(
+                    &samples,
+                    &RunOptions {
+                        ..Default::default()
+                    },
+                )
                 .expect("inference");
             times.push(start.elapsed().as_secs_f64());
             hypotheses.push(transcript.text);
@@ -233,18 +240,21 @@ fn gguf_benchmark_fixed_corpus() {
         // Live-mirror decoding uses language None (auto); the harness default
         // RunOptions carry Task::Transcribe + default timestamps (verified
         // against transcribe_cpp_run_plan for the en-only model).
-        let ref_tokens: Vec<String> =
-            reference.split_whitespace().map(|s| s.to_string()).collect();
-        let hyp_tokens: Vec<String> =
-            hypothesis.split_whitespace().map(|s| s.to_string()).collect();
+        let ref_tokens: Vec<String> = reference
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let hyp_tokens: Vec<String> = hypothesis
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
         let wer_strict = wer_on(&ref_tokens, &hyp_tokens);
         let wer_lower = wer_on(&lower_tokens(&reference), &lower_tokens(&hypothesis));
         let wer_normalized = BenchmarkHarness::calculate_wer(
             &normalize_full(&reference),
             &normalize_full(&hypothesis),
         );
-        let cer_raw =
-            BenchmarkHarness::calculate_cer(&reference, &hypothesis);
+        let cer_raw = BenchmarkHarness::calculate_cer(&reference, &hypothesis);
 
         results.push(ClipResult {
             file_id,
@@ -264,8 +274,10 @@ fn gguf_benchmark_fixed_corpus() {
 
     println!("BENCH human-readable (MODEL-level, raw output, no pipeline transforms):");
     for r in &results {
-        println!("BENCH clip={} audio={:.2}s infer_median={:.3}s rtf={:.2}x load={:.2}s",
-            r.file_id, r.audio_secs, r.median_infer_secs, r.rtf, r.load_secs);
+        println!(
+            "BENCH clip={} audio={:.2}s infer_median={:.3}s rtf={:.2}x load={:.2}s",
+            r.file_id, r.audio_secs, r.median_infer_secs, r.rtf, r.load_secs
+        );
         println!("BENCH   ref ={:?}", r.reference);
         println!("BENCH   hyp ={:?}", r.hypothesis);
         println!("BENCH   wer_strict={:.4} wer_lower={:.4} wer_normalized={:.4} cer_raw={:.4} identical_repeats={}",
