@@ -5864,6 +5864,7 @@ dependencies = [
  "hound",
  "log",
  "serde",
+ "sha2 0.10.9",
  "soravo-audio",
  "soravo-models",
  "thiserror 1.0.69",
