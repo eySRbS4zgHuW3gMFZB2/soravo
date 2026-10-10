@@ -14,12 +14,16 @@
 //! Run with:
 //! `PARAKEET_MODEL_PATH=/abs/path/parakeet-unified-en-0.6b-Q8_0.gguf \
 //!  LD_LIBRARY_PATH=apps/desktop/src-tauri/transcribe-libs \
-//!  cargo test -p soravo-stt --test t11a_raw_parakeet -- --nocapture`
+//!  cargo test -p soravo-stt --test t11a_raw_parakeet -- --ignored --nocapture`
+//!
+//! #[ignore]d: requires the 731 MB model artifact, absent on CI runners
+//! (same convention as the other model-gated benchmark tests).
 
 use soravo_stt::benchmark::{BenchmarkConfig, BenchmarkHarness};
 use transcribe_cpp::{init_backends_default, Model, ModelOptions, RunOptions};
 
 #[test]
+#[ignore]
 fn t11a_raw_parakeet_transcripts() {
     let model_path = std::env::var("PARAKEET_MODEL_PATH").expect("PARAKEET_MODEL_PATH not set");
     assert!(
