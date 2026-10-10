@@ -65,6 +65,12 @@ fn main() {
     let auth_flow = Mutex::new(auth_flow);
 
     tauri::Builder::default()
+        // Launch-stability prerequisite (G2 merge blocker): register the
+        // deep-link plugin before setup() calls `app.deep_link().on_open_url`
+        // (R1-GAP-021 auth-callback listener). Without this the app panics at
+        // startup with `state() called before manage()` and exits 101.
+        // Proven by T22 live runs on the R1 line; ported here verbatim.
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_os::init())
@@ -91,6 +97,21 @@ fn main() {
         .manage(account_machine)
         .manage(auth_flow)
         .setup(move |app| {
+            // Launch-stability prerequisite (G2 merge blocker): mount the
+            // typed tauri-specta events before anything can emit them.
+            // Without this, every typed `.emit()` (stream text/phase, history
+            // updates) panics with "EventRegistry not found", killing the
+            // streaming worker mid-dictation, dropping the leased engine, and
+            // failing every repeat dictation with "Model is not loaded".
+            // Proven by T22 live runs on the R1 line; ported here verbatim.
+            tauri_specta::Builder::<tauri::Wry>::new()
+                .events(tauri_specta::collect_events![
+                    soravo_desktop_lib::managers::transcription::StreamTextEvent,
+                    soravo_desktop_lib::managers::transcription::StreamPhaseEvent,
+                    soravo_desktop_lib::managers::history::HistoryUpdatePayload,
+                ])
+                .mount_events(app);
+
             // S3 — the model registry. Seeded from the bundled catalog, the
             // legacy model table, on-disk discovery and the HF cache.
             let model_manager = Arc::new(ModelManager::new(app.handle())?);

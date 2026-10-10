@@ -12708,3 +12708,10 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **DEFERRED:** Option B UI migration (separate ADR/task, explicitly NOT performed); remaining canonical writers (`managers/audio.rs`, `managers/model.rs`, onboarding/migrations) each their own HR-5 task; `crates/config` retirement (NOT performed).
 - **Remaining work:** historical PROGRESS.md merge records for R1-GAP-008 and R1-GAP-021 are missing — record as separate docs-only repair, NOT mixed into this merge.
 - **Next exact task:** separate from this merge — owner decision on R1-GAP-023 follow-ups (Option B proposal, remaining writer wiring); R1-GAP-026 remains out of scope/blocked.
+
+## LAUNCH-STABILITY-PREREQ — Deep-link plugin + specta mount (2026-10-10, Option A)
+
+- **Branch:** `fix/launch-stability-deep-link-specta` from `origin/main` @ `82ec2ecc`. Isolated worktree; no Swarm agents. PRs #116/#117/#118 untouched; G13 separate.
+- **Why:** exact PR #118 head cannot launch (deep-link `state() before manage()` panic, exit 101); with only the plugin fix, transcription workers die on `EventRegistry not found` panics. Both defects live on `origin/main`; both fixes T22-proven on the R1 line and ported verbatim. Full analysis: `G2-MERGE-PREREQUISITE-INVESTIGATION-2026-10-10-REPORT.md` (G2 worktree).
+- **Files (2, +~30/-0):** `apps/desktop/src-tauri/src/main.rs` (plugin registration + specta `mount_events` for the 3 typed events); `PROGRESS.md` (this entry). No behavior change beyond crash removal; no G2 content.
+- **Next:** build + launch smoke + one live dictation from this exact state; push; open prerequisite PR; CI watch; no merge (owner). After merge: update the G2 branch via local merge of `origin/main` (no rebase/force-push), drop its redundant local hunks, re-verify.
