@@ -819,13 +819,6 @@ impl ShortcutAction for TranscribeAction {
                                 transcription_time.elapsed(),
                                 utils::redact_text(&transcription)
                             );
-                            // R1-GAP-005/006: pending work finalized through the
-                            // canonical contract — FINALIZING + one Final
-                            // transcript event on the bus the pill consumes.
-                            session_lifecycle::announce_transcription_finalized(
-                                &ah,
-                                &transcription,
-                            );
 
                             if post_process {
                                 if use_streaming_overlay {
@@ -855,6 +848,24 @@ impl ShortcutAction for TranscribeAction {
                                 return;
                             }
 
+                            // Single insertion owner (v6 §05 "never duplicate";
+                            // R1-GAP-005/006 canonical contract — FINALIZING +
+                            // one Final transcript event on the bus the pill
+                            // consumes). The emit carries the PROCESSED final
+                            // text, so post-processing verdicts (including
+                            // empty) govern BOTH layers identically. When it
+                            // fires, the frontend injection feed owns insertion
+                            // and the direct backend paste below is skipped;
+                            // when it does not fire (empty final or no active
+                            // session), the direct paste applies its own
+                            // pre-existing empty check. At most one layer
+                            // inserts per finalized transcription — no timing
+                            // or text-equality suppression involved.
+                            let announced = session_lifecycle::announce_transcription_finalized(
+                                &ah,
+                                &processed.final_text,
+                            );
+
                             // Save to history if WAV was saved
                             if wav_saved {
                                 if let Err(err) = hm.save_entry(
@@ -868,40 +879,52 @@ impl ShortcutAction for TranscribeAction {
                                 }
                             }
 
-                            if processed.final_text.is_empty() {
-                                utils::hide_recording_overlay(&ah);
-                                set_tray_state(&ah, TrayIconState::Idle);
-                            } else {
-                                let ah_clone = ah.clone();
-                                let paste_time = Instant::now();
-                                let final_text = processed.final_text;
-                                let rm_for_paste = Arc::clone(&rm);
-                                ah.run_on_main_thread(move || {
-                                    if rm_for_paste.was_cancelled_since(cancel_generation) {
-                                        debug!("Transcription operation cancelled before paste");
-                                        utils::hide_recording_overlay(&ah_clone);
-                                        set_tray_state(&ah_clone, TrayIconState::Idle);
-                                        return;
-                                    }
-
-                                    match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
-                                        ),
-                                        Err(e) => {
-                                            error!("Failed to paste transcription: {}", e);
-                                            let _ = ah_clone.emit("paste-error", ());
-                                        }
-                                    }
-                                    utils::hide_recording_overlay(&ah_clone);
-                                    set_tray_state(&ah_clone, TrayIconState::Idle);
-                                })
-                                .unwrap_or_else(|e| {
-                                    error!("Failed to run paste on main thread: {:?}", e);
+                            match route_insertion(announced, &processed.final_text) {
+                                InsertionRoute::SkipEmpty => {
                                     utils::hide_recording_overlay(&ah);
                                     set_tray_state(&ah, TrayIconState::Idle);
-                                });
+                                }
+                                InsertionRoute::AnnouncedFeed => {
+                                    debug!(
+                                        "Direct paste skipped: canonical Final already handed to the injection feed"
+                                    );
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                }
+                                InsertionRoute::DirectPaste => {
+                                    let ah_clone = ah.clone();
+                                    let paste_time = Instant::now();
+                                    let final_text = processed.final_text;
+                                    let rm_for_paste = Arc::clone(&rm);
+                                    ah.run_on_main_thread(move || {
+                                        if rm_for_paste.was_cancelled_since(cancel_generation) {
+                                            debug!(
+                                                "Transcription operation cancelled before paste"
+                                            );
+                                            utils::hide_recording_overlay(&ah_clone);
+                                            set_tray_state(&ah_clone, TrayIconState::Idle);
+                                            return;
+                                        }
+
+                                        match utils::paste(final_text, ah_clone.clone()) {
+                                            Ok(()) => debug!(
+                                                "Text pasted successfully in {:?}",
+                                                paste_time.elapsed()
+                                            ),
+                                            Err(e) => {
+                                                error!("Failed to paste transcription: {}", e);
+                                                let _ = ah_clone.emit("paste-error", ());
+                                            }
+                                        }
+                                        utils::hide_recording_overlay(&ah_clone);
+                                        set_tray_state(&ah_clone, TrayIconState::Idle);
+                                    })
+                                    .unwrap_or_else(|e| {
+                                        error!("Failed to run paste on main thread: {:?}", e);
+                                        utils::hide_recording_overlay(&ah);
+                                        set_tray_state(&ah, TrayIconState::Idle);
+                                    });
+                                }
                             }
                             // R1-GAP-005/006: session completes exactly once —
                             // DONE→IDLE after required finalization.
@@ -1018,11 +1041,40 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
     map
 });
 
+/// Single-insertion ownership for one finalized transcription (v6 §05
+/// "never duplicate"). The success arm announces a canonical Final and may
+/// also direct-paste; exactly one of those may insert. The route is decided
+/// by announcement identity (did a Final for this text reach the bus?),
+/// never by timing and never by comparing text — legitimate repeated
+/// phrases ("hello" dictated twice) take separate sessions/sequences and
+/// are unaffected.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum InsertionRoute {
+    /// A canonical Final was announced: the frontend injection feed owns
+    /// insertion; the backend direct paste must not fire.
+    AnnouncedFeed,
+    /// Nothing was announced (no active session) and final text exists:
+    /// the backend direct paste owns insertion.
+    DirectPaste,
+    /// Final text is empty: neither layer inserts.
+    SkipEmpty,
+}
+
+pub(crate) fn route_insertion(announced: bool, final_text: &str) -> InsertionRoute {
+    if announced {
+        InsertionRoute::AnnouncedFeed
+    } else if final_text.trim().is_empty() {
+        InsertionRoute::SkipEmpty
+    } else {
+        InsertionRoute::DirectPaste
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         complete_unless_cancelled, is_blank_transcription, recording_blocked_by_missing_model,
-        should_use_streaming_overlay, strip_think_block,
+        route_insertion, should_use_streaming_overlay, strip_think_block, InsertionRoute,
     };
     use crate::settings::OverlayStyle;
     use std::future;
@@ -1127,5 +1179,52 @@ mod tests {
         // unavailable (none selected, not downloaded, files deleted) →
         // recording must NOT begin (no mic, no tray/overlay change).
         assert!(recording_blocked_by_missing_model(false, false));
+    }
+
+    // Single-insertion ownership (v6 §05 "never duplicate"; `hellohello`
+    // regression scope). One finalized transcription takes exactly one
+    // route — the announced feed and the direct paste are mutually
+    // exclusive by construction, and emptiness suppresses both. The
+    // frontend half of the contract (the announced feed injects an
+    // accepted Final exactly once, redeliveries included) is covered by
+    // `apps/desktop/src/injection-feed.test.ts` suites A–J; these tests
+    // pin the backend half: announced ⟹ never paste.
+    #[test]
+    fn announced_final_never_double_pastes() {
+        // The reported defect shape: a normal completed dictation whose
+        // Final reached the bus must NOT also direct-paste.
+        assert_eq!(
+            route_insertion(true, "hello"),
+            InsertionRoute::AnnouncedFeed
+        );
+        // Holds for any text, including repeats/whitespace-padded input:
+        // ownership is by announcement identity, not text comparison.
+        assert_eq!(
+            route_insertion(true, "hellohello"),
+            InsertionRoute::AnnouncedFeed
+        );
+        assert_eq!(
+            route_insertion(true, "  hello  "),
+            InsertionRoute::AnnouncedFeed
+        );
+    }
+
+    #[test]
+    fn unannounced_text_still_inserts_exactly_once_via_direct_paste() {
+        // No active session (no announcement possible): the backend paste
+        // remains the single owner — insertion is preserved, not dropped.
+        assert_eq!(route_insertion(false, "hello"), InsertionRoute::DirectPaste);
+    }
+
+    #[test]
+    fn empty_final_inserts_nothing_on_either_layer() {
+        // Empty (including whitespace-only) finals suppress both layers,
+        // matching the pre-existing direct-paste empty check.
+        assert_eq!(route_insertion(false, ""), InsertionRoute::SkipEmpty);
+        assert_eq!(route_insertion(false, "   "), InsertionRoute::SkipEmpty);
+        // Announced-but-empty cannot occur (`announce_*` only reports an
+        // emit for non-blank text); if it ever did, the feed still wins
+        // and no second insertion may fire.
+        assert_eq!(route_insertion(true, ""), InsertionRoute::AnnouncedFeed);
     }
 }

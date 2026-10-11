@@ -12759,3 +12759,16 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Merge state:** NOT MERGED (withheld per review; owner decision required after independent review + live visual validation). Mergeable CLEAN at review time.
 - **Evidence labels:** IMPLEMENTED (feature + tests) · VERIFIED (static/automated suites + CI on head) · NOT EXECUTED (supervised live visual) · DEFERRED (Windows/macOS visual) · BLOCKED (merge on the two items above).
 - **Next exact task:** owner independent review of PR #121 → supervised Linux live visual test → Windows/macOS visual validation → merge decision by owner.
+
+---
+
+## R1-DUP-ACCEPT-RETRY — Supervised acceptance VERIFIED RESOLVED (2026-10-11)
+
+- **Task ID / date:** R1-DUP-ACCEPT-RETRY · 2026-10-11 · supervised real-dictation acceptance retry after MIC-RECHECK restored capture (no code/test/config/settings/audio change; no install; no cleanup; no commit/push/merge/deploy).
+- **Preflight/launch (VERIFIED):** fix worktree @ detached `242e166d`, 2 source hashes identical pre/post (untouched); 50G free; no stale processes; :1420 free. Incremental rebuild clean; Vite :1420 HTTP 200; Soravo window renders (screenshot); runtime `target/debug/soravo-desktop` (fix worktree); model loaded; config read-only (Direct, post-process off). Disposable Xed receiver, dual-signal focus verify, empty-start 0 bytes.
+- **Trials (VERIFIED — 5/5 non-empty finals, exactly one insertion each):** log-proven single-owner routing per final (`Direct paste skipped: canonical Final already handed to the injection feed`, 5/5; native `NotImplemented` WARN is the known Linux limitation; empty final correctly skipped): `So Rabbur` / `Prabhu Guan Zibra` / `Sorabo one zebra` (≤3 budget) + `Am I audible` + 40-word real-world message (supplementary). No dual-fire for any final. Visual readback (Xed buffer screenshot): 40-word message present EXACTLY once. Operator: text in Xed receiver, every appearance single, never doubled. Accent-related accuracy limits are model quality, out of scope. Cancellation/stale: DEFERRED (Linux no-op by design).
+- **Labels:** cause VERIFIED (static) / fix IMPLEMENTED + VERIFIED LIVE / user-facing resolution VERIFIED RESOLVED / trials 5/5 single-insertion.
+- **Records:** `R1-DUP-INSERTION-ACCEPTANCE-REPORT.md` rewritten to this outcome in the fix worktree. Teardown: task processes stopped (:1420 freed); operator's Xed (unsaved personal text) left running untouched; /tmp evidence preserved.
+- **Commit/push/PR/merge/deploy:** none.
+
+<!-- LOCAL TEST-MERGE NOTE (R1-G13 task, unpushed, never merged upstream): this worktree merges PR #120 head 1557f127 into PR #121 head d0a97a71 for integration testing only. Both PROGRESS histories preserved above; no upstream branch was modified. -->
