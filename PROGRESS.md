@@ -12750,3 +12750,12 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Risk classification:** HIGH-RISK — HR-1 (Tauri capability touched) + HR-5 (Handy-derived `settings.rs` default changed; ambiguity fails safe). `requires-independent-review` to be labeled on PR. No merge by agent; owner independent review required.
 - **Git/PR/CI:** commit + push + PR pending at entry write; required checks `web/e2e/rust/desktop` to be watched on exact head SHA. No force-push, no rebase.
 - **Next exact task:** open PR, watch CI on head SHA, request independent review; then supervised live visual test (Linux dictation into another app: pill appears/listening → transcribing/finalizing → transcript shown → hide on completion), plus Windows/macOS visual validation.
+
+## R1-FLOATING-PILL — PR, CI, self-review outcome (2026-10-11, same session)
+
+- **PR:** #121 `feat/r1-floating-pill` → `main` (https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/121), head `58658e46fd87bf2757574e896b932e6dbd123271`, single commit, no force-push. Label `requires-independent-review` applied. PR #120 and all other PRs/worktrees untouched.
+- **CI (exact head):** run `38127689945` conclusion `success`, headSha `58658e46…` — jobs `web`, `e2e`, `rust`, `desktop`, Windows + macOS desktop builds all success with real execution timings. pnpm audit --prod (desktop): clean.
+- **Fresh AI self-review (§5.10.1–§5.10.5):** C1–C18 worked from fresh live reads — all pass or N/A (C14/C15); classification re-derived HR-1+HR-5. Verdict recorded as PR comment (`issuecomment-6107598368`): **High-Risk AI Self-Review: BLOCKED** (not PASS) — code review passes, merge withheld: (1) independent non-author review unobtainable in-session, HR label stays; (2) supervised live visual acceptance NOT EXECUTED (no operator/microphone session). No approval fabricated; no bypass used or prepared.
+- **Merge state:** NOT MERGED (withheld per review; owner decision required after independent review + live visual validation). Mergeable CLEAN at review time.
+- **Evidence labels:** IMPLEMENTED (feature + tests) · VERIFIED (static/automated suites + CI on head) · NOT EXECUTED (supervised live visual) · DEFERRED (Windows/macOS visual) · BLOCKED (merge on the two items above).
+- **Next exact task:** owner independent review of PR #121 → supervised Linux live visual test → Windows/macOS visual validation → merge decision by owner.
