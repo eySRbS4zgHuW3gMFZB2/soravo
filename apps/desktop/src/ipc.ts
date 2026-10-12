@@ -179,6 +179,34 @@ export function onTypingResult(
   );
 }
 
+/**
+ * Overlay visibility signals emitted window-scoped by the Handy-derived
+ * native overlay abstraction (`overlay.rs`: `show_overlay_state_on_main`
+ * emits `show-overlay` with the UI state, `hide_recording_overlay` emits
+ * `hide-overlay` before the delayed native hide). The payload selects the
+ * overlay format only — pill content (state label, transcript text) comes
+ * from the canonical session/transcript buses, never from this signal, so
+ * no second state machine is introduced.
+ */
+export type OverlaySignal = "recording" | "streaming" | "transcribing" | "processing";
+
+export const SHOW_OVERLAY_EVENT = "show-overlay";
+export const HIDE_OVERLAY_EVENT = "hide-overlay";
+
+/** Subscribe to overlay show signals on the recording-overlay window. Returns an unsubscribe fn. */
+export function onShowOverlay(
+  handler: (signal: OverlaySignal) => void
+): Promise<UnlistenFn> {
+  return listen<OverlaySignal>(SHOW_OVERLAY_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
+/** Subscribe to overlay hide signals on the recording-overlay window. Returns an unsubscribe fn. */
+export function onHideOverlay(handler: () => void): Promise<UnlistenFn> {
+  return listen(HIDE_OVERLAY_EVENT, () => handler());
+}
+
 // Settings types
 export type SchemaInfo = {
   version: number;

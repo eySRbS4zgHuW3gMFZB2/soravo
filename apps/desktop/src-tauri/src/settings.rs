@@ -564,15 +564,20 @@ fn default_selected_language() -> String {
 
 fn default_overlay_position() -> OverlayPosition {
     // Position only matters when the overlay is shown; whether it shows at all is
-    // `overlay_style` (Linux defaults that to None). So a single default suffices.
+    // `overlay_style`. So a single default suffices.
     OverlayPosition::Bottom
 }
 
 fn default_overlay_style() -> OverlayStyle {
-    // Linux hides the overlay by default; other platforms show the live overlay.
-    // Position is independent and only selects top vs. bottom placement.
+    // R1 requires the floating dictation pill to be visible while dictating
+    // into other applications (owner-directed). Linux defaults to the compact
+    // Minimal pill — the overlay window's resting size — rather than None, so
+    // the required R1 experience is not silently disabled on Linux; other
+    // platforms keep the live overlay. Position is independent and only
+    // selects top vs. bottom placement. Users can still select None
+    // explicitly (`change_overlay_style_setting` keeps that path intact).
     #[cfg(target_os = "linux")]
-    return OverlayStyle::None;
+    return OverlayStyle::Minimal;
     #[cfg(not(target_os = "linux"))]
     return OverlayStyle::Live;
 }
@@ -1526,6 +1531,15 @@ mod tests {
     fn default_overlay_style_is_live_when_overlay_defaults_on() {
         let settings = get_default_settings();
         assert_eq!(settings.overlay_style, OverlayStyle::Live);
+    }
+
+    // R1 floating pill: Linux must default to a visible overlay style so the
+    // required dictation experience is not silently disabled (owner-directed).
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn default_overlay_style_is_minimal_on_linux() {
+        let settings = get_default_settings();
+        assert_eq!(settings.overlay_style, OverlayStyle::Minimal);
     }
 
     #[test]
