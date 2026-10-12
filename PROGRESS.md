@@ -12770,3 +12770,16 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **No-regression evidence:** insertion path untouched (no `inject_text`/paste/bus changes); injection-feed + route suites green; pill overlay files untouched; e2e desktop specs for session/history/models unaffected (overlay spec additive).
 - **Evidence labels:** IMPLEMENTED (prior session) · COMPLETED+VERIFIED here (gaps closed, suites green) · live relaunch NOT EXECUTED (disk-blocked) · merges BLOCKED (independent reviews outstanding for #120/#121; this branch unpushed by task rule).
 - **Next exact action:** free disk → run full `cargo test`/`clippy` once → owner reviews (#120, #121, then this feature as PR stacked on #121) → supervised live pass of the Settings-UI flip itself → merge in dependency order. Do not merge/deploy from this session.
+
+---
+
+## R1-DUP-ACCEPT-RETRY — Supervised acceptance VERIFIED RESOLVED (2026-10-11)
+
+- **Task ID / date:** R1-DUP-ACCEPT-RETRY · 2026-10-11 · supervised real-dictation acceptance retry after MIC-RECHECK restored capture (no code/test/config/settings/audio change; no install; no cleanup; no commit/push/merge/deploy).
+- **Preflight/launch (VERIFIED):** fix worktree @ detached `242e166d`, 2 source hashes identical pre/post (untouched); 50G free; no stale processes; :1420 free. Incremental rebuild clean; Vite :1420 HTTP 200; Soravo window renders (screenshot); runtime `target/debug/soravo-desktop` (fix worktree); model loaded; config read-only (Direct, post-process off). Disposable Xed receiver, dual-signal focus verify, empty-start 0 bytes.
+- **Trials (VERIFIED — 5/5 non-empty finals, exactly one insertion each):** log-proven single-owner routing per final (`Direct paste skipped: canonical Final already handed to the injection feed`, 5/5; native `NotImplemented` WARN is the known Linux limitation; empty final correctly skipped): `So Rabbur` / `Prabhu Guan Zibra` / `Sorabo one zebra` (≤3 budget) + `Am I audible` + 40-word real-world message (supplementary). No dual-fire for any final. Visual readback (Xed buffer screenshot): 40-word message present EXACTLY once. Operator: text in Xed receiver, every appearance single, never doubled. Accent-related accuracy limits are model quality, out of scope. Cancellation/stale: DEFERRED (Linux no-op by design).
+- **Labels:** cause VERIFIED (static) / fix IMPLEMENTED + VERIFIED LIVE / user-facing resolution VERIFIED RESOLVED / trials 5/5 single-insertion.
+- **Records:** `R1-DUP-INSERTION-ACCEPTANCE-REPORT.md` rewritten to this outcome in the fix worktree. Teardown: task processes stopped (:1420 freed); operator's Xed (unsaved personal text) left running untouched; /tmp evidence preserved.
+- **Commit/push/PR/merge/deploy:** none.
+
+<!-- LOCAL TEST-MERGE NOTE (R1-OVERLAY-SETTINGS-RECOVERY task, unpushed, never merged upstream): this disposable worktree merges PR #120 head 1557f127 into the verified settings tree for integrated live acceptance only. Both PROGRESS histories preserved above; no upstream branch was modified. -->
