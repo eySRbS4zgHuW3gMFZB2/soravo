@@ -207,6 +207,29 @@ export function onHideOverlay(handler: () => void): Promise<UnlistenFn> {
   return listen(HIDE_OVERLAY_EVENT, () => handler());
 }
 
+/**
+ * Live streaming-transcript snapshot emitted by the Handy-derived
+ * transcription manager during a streaming run
+ * (`StreamTextEvent`: `committed` is the append-only flicker-free prefix,
+ * `tentative` the volatile suffix). Consumed ONLY by the expanded Live
+ * overlay card for display; it never drives state and never injects.
+ */
+export type StreamText = {
+  committed: string;
+  tentative: string;
+};
+
+export const STREAM_TEXT_EVENT = "stream-text-event";
+
+/** Subscribe to live streaming-transcript snapshots. Returns an unsubscribe fn. */
+export function onStreamText(
+  handler: (text: StreamText) => void
+): Promise<UnlistenFn> {
+  return listen<StreamText>(STREAM_TEXT_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
 // Settings types
 export type SchemaInfo = {
   version: number;

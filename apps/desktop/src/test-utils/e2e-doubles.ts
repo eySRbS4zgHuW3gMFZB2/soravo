@@ -38,6 +38,7 @@ import {
   MODEL_STATE_CHANGED_EVENT,
   MODELS_UPDATED_EVENT,
   SESSION_CHANGED_EVENT,
+  STREAM_TEXT_EVENT,
   TRANSCRIPT_UPDATE_EVENT,
 } from "../ipc";
 
@@ -78,6 +79,8 @@ export type E2EControl = {
     kind: "Tentative" | "Committed" | "Final",
     text: string,
   ) => void;
+  /** Drive one live streaming snapshot onto `stream-text-event`. */
+  emitStreamText: (committed: string, tentative: string) => void;
   /** Finish an in-flight mocked download (marks installed + emits buses). */
   completeDownload: (modelId: string) => void;
   /** Fail an in-flight mocked download (emits the failure bus). */
@@ -499,6 +502,9 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
         kind,
         text,
       });
+    },
+    emitStreamText: (committed, tentative) => {
+      dispatch(STREAM_TEXT_EVENT, { committed, tentative });
     },
     completeDownload: (modelId) => {
       const entry = models.find((m) => m.id === modelId);

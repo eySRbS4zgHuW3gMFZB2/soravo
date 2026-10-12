@@ -1,4 +1,4 @@
-import type { OverlaySignal } from "../ipc";
+import type { OverlaySignal, StreamText } from "../ipc";
 
 /**
  * R1 floating pill — pure overlay visibility fold.
@@ -45,4 +45,31 @@ export function applyOverlayShow(
 export function applyOverlayHide(state: OverlayVisibility): OverlayVisibility {
   void state;
   return { visible: false, format: "compact" };
+}
+
+/**
+ * Which transcript source the overlay card renders.
+ *
+ * The expanded Live card prefers the live streaming snapshot while one is
+ * present; otherwise (and always in the compact pill) the canonical
+ * session/transcript view model renders. Stream content is display-only and
+ * never feeds state or insertion — this function only selects what is
+ * painted.
+ */
+export type OverlayTextSource =
+  | { kind: "stream"; committed: string; tentative: string }
+  | { kind: "canonical" };
+
+export function selectOverlayText(
+  expanded: boolean,
+  stream: StreamText | null
+): OverlayTextSource {
+  if (
+    expanded &&
+    stream !== null &&
+    (stream.committed !== "" || stream.tentative !== "")
+  ) {
+    return { kind: "stream", committed: stream.committed, tentative: stream.tentative };
+  }
+  return { kind: "canonical" };
 }

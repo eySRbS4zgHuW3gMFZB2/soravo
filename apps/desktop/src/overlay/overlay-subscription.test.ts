@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   HIDE_OVERLAY_EVENT,
   SHOW_OVERLAY_EVENT,
+  STREAM_TEXT_EVENT,
   onHideOverlay,
   onShowOverlay,
+  onStreamText,
   type OverlaySignal,
+  type StreamText,
 } from "../ipc";
 import {
   applyOverlayHide,
@@ -55,6 +58,20 @@ describe("overlay subscription wiring (R1 floating pill)", () => {
   it("exposes the stable native overlay event names", () => {
     expect(SHOW_OVERLAY_EVENT).toBe("show-overlay");
     expect(HIDE_OVERLAY_EVENT).toBe("hide-overlay");
+    // tauri-specta kebab-case of the `StreamTextEvent` struct (verified
+    // against the macro in the cargo registry); the streaming manager emits
+    // the struct itself as the payload.
+    expect(STREAM_TEXT_EVENT).toBe("stream-text-event");
+  });
+
+  it("subscribes to live stream text on the specta bus", async () => {
+    const seen: StreamText[] = [];
+    await onStreamText((text) => {
+      seen.push(text);
+    });
+    expect(listen).toHaveBeenCalledWith("stream-text-event", expect.any(Function));
+    emit("stream-text-event", { committed: "hello ", tentative: "wor" });
+    expect(seen).toEqual([{ committed: "hello ", tentative: "wor" }]);
   });
 
   it("subscribes to both native signals and both canonical buses", async () => {

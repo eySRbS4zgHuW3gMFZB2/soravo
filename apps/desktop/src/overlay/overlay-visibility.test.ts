@@ -4,6 +4,7 @@ import {
   applyOverlayShow,
   createOverlayVisibility,
   formatForSignal,
+  selectOverlayText,
 } from "./overlay-visibility";
 
 describe("overlay visibility fold (R1 floating pill)", () => {
@@ -60,5 +61,29 @@ describe("overlay visibility fold (R1 floating pill)", () => {
       visible: true,
       format: "compact",
     });
+  });
+});
+
+describe("overlay text source precedence (Live streaming display)", () => {
+  it("prefers live stream content in the expanded card while present", () => {
+    expect(
+      selectOverlayText(true, { committed: "hello ", tentative: "wor" })
+    ).toEqual({ kind: "stream", committed: "hello ", tentative: "wor" });
+  });
+
+  it("falls back to canonical when the stream snapshot is empty", () => {
+    expect(selectOverlayText(true, { committed: "", tentative: "" })).toEqual({
+      kind: "canonical",
+    });
+  });
+
+  it("falls back to canonical with no stream snapshot", () => {
+    expect(selectOverlayText(true, null)).toEqual({ kind: "canonical" });
+  });
+
+  it("never uses stream content in the compact pill", () => {
+    expect(
+      selectOverlayText(false, { committed: "hello ", tentative: "wor" })
+    ).toEqual({ kind: "canonical" });
   });
 });
