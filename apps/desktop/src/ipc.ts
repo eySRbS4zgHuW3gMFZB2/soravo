@@ -344,6 +344,17 @@ export function changeOverlayStyle(style: OverlayStyleSetting): Promise<void> {
   return invoke<void>("change_overlay_style_setting", { style });
 }
 
+/** Mirrors `crate::settings::OverlayPosition` (lowercase serde wire values). */
+export type OverlayPositionSetting = "top" | "bottom";
+
+export function getOverlayPosition(): Promise<string> {
+  return invoke<string>("get_overlay_position_setting");
+}
+
+export function changeOverlayPosition(position: OverlayPositionSetting): Promise<void> {
+  return invoke<void>("change_overlay_position_setting", { position });
+}
+
 // Model catalog / management types and commands.
 //
 // R1-GAP-017 — the settings model selector previously used hardcoded engine /

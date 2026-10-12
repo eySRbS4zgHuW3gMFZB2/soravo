@@ -41,9 +41,12 @@ pub use history::{
 // registration every rebind invocation fails at runtime with an
 // unknown-command error. Behavior unchanged — registration only;
 // `shortcut/mod.rs` is untouched.
+// R1 overlay selectors: the overlay style + position pairs are re-exported
+// on the same surface (same unknown-command defect class, same fix).
 pub use crate::shortcut::{
-    change_binding, change_overlay_style_setting, get_overlay_style_setting, reset_binding,
-    resume_all_bindings, suspend_all_bindings,
+    change_binding, change_overlay_position_setting, change_overlay_style_setting,
+    get_overlay_position_setting, get_overlay_style_setting, reset_binding, resume_all_bindings,
+    suspend_all_bindings,
 };
 pub use soravo_ipc::{
     emit_ping, inject_text, load_settings, ping, runtime_status, save_settings, session_reset,
