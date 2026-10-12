@@ -727,19 +727,45 @@ pub fn change_overlay_position_setting(app: AppHandle, position: String) -> Resu
     Ok(())
 }
 
+/// Parse a wire-format overlay style into the canonical setting.
+///
+/// Pure (no store, no window): `"none"`/`"minimal"`/`"live"` map verbatim to
+/// the `OverlayStyle` variants of the same name; anything else (including
+/// legacy or empty input) falls back to `Minimal`, matching the long-standing
+/// `change_overlay_style_setting` contract below. Callers that observe the
+/// fallback should log it themselves (this function takes no `AppHandle`).
+pub fn parse_overlay_style(style: &str) -> OverlayStyle {
+    match style {
+        "none" => OverlayStyle::None,
+        "minimal" => OverlayStyle::Minimal,
+        "live" => OverlayStyle::Live,
+        _ => OverlayStyle::Minimal,
+    }
+}
+
+/// Read the currently stored overlay style for the Settings UI.
+///
+/// Returns the canonical wire value (`"none"`/`"minimal"`/`"live"`) so the
+/// selector can display the effective preference — including a pre-existing
+/// stored `None` — instead of assuming the fresh-install default.
+#[tauri::command]
+#[specta::specta]
+pub fn get_overlay_style_setting(app: AppHandle) -> Result<String, String> {
+    Ok(match settings::get_settings(&app).overlay_style {
+        OverlayStyle::None => "none".to_string(),
+        OverlayStyle::Minimal => "minimal".to_string(),
+        OverlayStyle::Live => "live".to_string(),
+    })
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
-    let parsed = match style.as_str() {
-        "none" => OverlayStyle::None,
-        "minimal" => OverlayStyle::Minimal,
-        "live" => OverlayStyle::Live,
-        other => {
-            warn!("Invalid overlay style '{}', defaulting to minimal", other);
-            OverlayStyle::Minimal
-        }
-    };
+    let parsed = parse_overlay_style(style.as_str());
+    if !matches!(style.as_str(), "none" | "minimal" | "live") {
+        warn!("Invalid overlay style '{}', defaulting to minimal", style);
+    }
     settings.overlay_style = parsed;
     settings::write_settings(&app, settings);
 
@@ -1463,8 +1489,31 @@ pub async fn get_available_accelerators() -> crate::managers::transcription::Ava
 
 #[cfg(test)]
 mod tests {
+    use super::parse_overlay_style;
+    use crate::settings::OverlayStyle;
     use handy_keys::Hotkey;
     use tauri_plugin_global_shortcut::Shortcut;
+
+    #[test]
+    fn overlay_style_parser_accepts_the_three_canonical_values() {
+        assert_eq!(parse_overlay_style("none"), OverlayStyle::None);
+        assert_eq!(parse_overlay_style("minimal"), OverlayStyle::Minimal);
+        assert_eq!(parse_overlay_style("live"), OverlayStyle::Live);
+    }
+
+    #[test]
+    fn overlay_style_parser_falls_back_to_minimal_on_invalid_input() {
+        // Empty, legacy (`"bottom"` belongs to position, not style), and
+        // arbitrary input must follow the authoritative contract: Minimal,
+        // never a silent disable (`None`) and never an error.
+        for invalid in ["", "bottom", "off", "NONE", "Minimal "] {
+            assert_eq!(
+                parse_overlay_style(invalid),
+                OverlayStyle::Minimal,
+                "input {invalid:?} must fall back to Minimal"
+            );
+        }
+    }
 
     #[test]
     fn compound_shortcut_keys_parse_on_both_backends() {

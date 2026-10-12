@@ -98,6 +98,26 @@
   background: #a9b9ad;
 }
 
+.settings-group {
+  margin: 1.5rem 0 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.settings-group legend {
+  color: #e9efe9;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.settings-hint {
+  color: #b3c4b6;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0 0;
+}
+
 .settings-row button:disabled {
   opacity: 0.6;
   cursor: not-allowed;

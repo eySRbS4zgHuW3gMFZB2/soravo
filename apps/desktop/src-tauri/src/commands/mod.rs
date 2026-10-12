@@ -41,8 +41,14 @@ pub use history::{
 // registration every rebind invocation fails at runtime with an
 // unknown-command error. Behavior unchanged — registration only;
 // `shortcut/mod.rs` is untouched.
+// R1 overlay-style selector: same re-export for the overlay-style pair
+// (`get_overlay_style_setting`, `change_overlay_style_setting`). Unlike G2,
+// this task adds a pure parser plus the getter in `shortcut/mod.rs` (both
+// covered by unit tests); the pre-existing change command keeps its behavior
+// and now shares the parser.
 pub use crate::shortcut::{
-    change_binding, reset_binding, resume_all_bindings, suspend_all_bindings,
+    change_binding, change_overlay_style_setting, get_overlay_style_setting, reset_binding,
+    resume_all_bindings, suspend_all_bindings,
 };
 pub use soravo_ipc::{
     emit_ping, inject_text, load_settings, ping, runtime_status, save_settings, session_reset,
@@ -222,6 +228,14 @@ mod registration_tests;
 #[cfg(test)]
 #[path = "shortcut_rebind_tests.rs"]
 mod shortcut_rebind_tests;
+
+/// R1 overlay-style selector: registration-completeness tests for the
+/// overlay-style command pair. Same defect class as R1-GAP-017/R1-GAP-018/G2
+/// (defined `#[tauri::command]` absent from `invoke_handler` fails at runtime
+/// with an unknown-command error). Pure source analysis.
+#[cfg(test)]
+#[path = "overlay_settings_tests.rs"]
+mod overlay_settings_tests;
 
 /// Marker state to track if shortcuts have been initialized.
 pub struct ShortcutsInitialized;

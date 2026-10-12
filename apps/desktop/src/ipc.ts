@@ -272,6 +272,25 @@ export function resumeHotkeyBindings(): Promise<void> {
   return invoke<void>("resume_all_bindings");
 }
 
+// Overlay-style contract.
+//
+// R1 overlay-style selector — the General settings overlay selector reads and
+// writes the canonical `AppSettings.overlay_style` through the existing
+// Handy-derived backend (`shortcut/mod.rs`). These names must stay in sync
+// with the `generate_handler!` list in `src-tauri/src/main.rs` (locked by
+// `overlay_settings_tests.rs`).
+
+/** Mirrors `crate::settings::OverlayStyle` (lowercase serde wire values). */
+export type OverlayStyleSetting = "none" | "minimal" | "live";
+
+export function getOverlayStyle(): Promise<string> {
+  return invoke<string>("get_overlay_style_setting");
+}
+
+export function changeOverlayStyle(style: OverlayStyleSetting): Promise<void> {
+  return invoke<void>("change_overlay_style_setting", { style });
+}
+
 /**
  * Build a backend-accepted hotkey string (e.g. `"ctrl+space"`) from a DOM
  * keydown. Returns `null` for modifier-only keydowns (no committable combo
