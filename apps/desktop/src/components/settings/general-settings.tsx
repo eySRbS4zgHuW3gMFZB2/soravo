@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadSettings, Settings } from "../../ipc";
 import { OverlayStyleSetting } from "./overlay-style-setting";
+import { OverlayPositionSetting } from "./overlay-position-setting";
 
 export function GeneralSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -38,6 +39,7 @@ export function GeneralSettings() {
         <span>{settings.schema.lastMigrated ?? "Never"}</span>
       </div>
       <OverlayStyleSetting />
+      <OverlayPositionSetting />
     </div>
   );
 }

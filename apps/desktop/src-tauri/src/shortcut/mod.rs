@@ -753,6 +753,20 @@ pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(),
     Ok(())
 }
 
+/// Current overlay position for the Settings UI selector (narrow read;
+/// mirrors `get_overlay_style_setting`). The legacy `"none"` position can
+/// never be returned: it deserializes to `Bottom` at load.
+#[tauri::command]
+#[specta::specta]
+pub fn get_overlay_position_setting(app: AppHandle) -> Result<String, String> {
+    let settings = settings::get_settings(&app);
+    // Return the lowercase wire value that mirrors OverlayPosition variants.
+    Ok(match settings.overlay_position {
+        OverlayPosition::Top => "top".to_string(),
+        OverlayPosition::Bottom => "bottom".to_string(),
+    })
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn get_overlay_style_setting(app: AppHandle) -> Result<String, String> {

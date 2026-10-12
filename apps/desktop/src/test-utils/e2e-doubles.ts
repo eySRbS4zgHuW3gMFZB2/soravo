@@ -235,6 +235,9 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
   // writes it through the dedicated overlay-style commands, mirroring the
   // backend (`shortcut/mod.rs`), not through `load_settings`.
   let overlayStyle = "minimal";
+  // R1 overlay-position selector double: mirrors the canonical default
+  // (`OverlayPosition::Bottom`) and the dedicated position commands.
+  let overlayPosition = "bottom";
   let history: HistoryEntry[] = historyFixtures();
   let nextSessionId = 7;
   let nextEventId = 1;
@@ -365,6 +368,16 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
           throw new Error("E2E double: unknown overlay style");
         }
         overlayStyle = style;
+        return null;
+      }
+      case "get_overlay_position_setting":
+        return overlayPosition;
+      case "change_overlay_position_setting": {
+        const position = (args as { position?: unknown }).position;
+        if (position !== "top" && position !== "bottom") {
+          throw new Error("E2E double: unknown overlay position");
+        }
+        overlayPosition = position;
         return null;
       }
       case "get_available_models":
@@ -512,6 +525,7 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
       activeModelId = scenario === "no-models" ? "" : "parakeet-ready";
       settings = defaultSettings(scenario);
       overlayStyle = "minimal";
+      overlayPosition = "bottom";
       history = historyFixtures();
     },
   };

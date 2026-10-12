@@ -1,9 +1,9 @@
-//! R1 overlay-style selector: registration-completeness tests for the
-//! overlay-style command pair (`get_overlay_style_setting`,
-//! `change_overlay_style_setting` in `shortcut/mod.rs`).
+//! R1 overlay selectors: registration-completeness tests for the overlay
+//! style + position command pairs (`get/change_overlay_style_setting`,
+//! `get/change_overlay_position_setting` in `shortcut/mod.rs`).
 //!
-//! Background. The Handy-derived overlay-style backend existed with
-//! `#[tauri::command]` but was absent from the Tauri `invoke_handler`, so
+//! Background. The Handy-derived overlay backends existed with
+//! `#[tauri::command]` but were absent from the Tauri `invoke_handler`, so
 //! every Settings-UI overlay invocation would fail at runtime with an
 //! unknown-command error — the same defect class as R1-GAP-017/R1-GAP-018/G2.
 //! These tests lock the exposure shut.
@@ -13,10 +13,6 @@
 //! hand-kept list, so they fail if either side drifts. They are pure source
 //! analysis: no Tauri runtime, no window, no model asset, no microphone, and
 //! no network.
-//!
-//! Scope note. This covers the overlay-style pair ONLY: the two commands the
-//! overlay selector flow invokes. The sibling `change_overlay_position_setting`
-//! stays out of scope (position has no Settings UI surface in this task).
 
 /// The overlay commands the frontend contract (`ipc.ts`) depends on.
 ///
@@ -25,8 +21,12 @@
 /// the `ipc.ts` wrappers. Registration without definition cannot compile;
 /// definition without registration (or without a caller) is precisely the
 /// defect class under test.
-const OVERLAY_SETTINGS_COMMANDS: &[&str] =
-    &["get_overlay_style_setting", "change_overlay_style_setting"];
+const OVERLAY_SETTINGS_COMMANDS: &[&str] = &[
+    "get_overlay_style_setting",
+    "change_overlay_style_setting",
+    "get_overlay_position_setting",
+    "change_overlay_position_setting",
+];
 
 const MAIN_RS: &str = include_str!("../main.rs");
 const IPC_TS: &str = include_str!("../../../src/ipc.ts");
