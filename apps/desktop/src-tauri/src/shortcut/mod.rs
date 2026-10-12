@@ -755,6 +755,18 @@ pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(),
 
 #[tauri::command]
 #[specta::specta]
+pub fn get_overlay_style_setting(app: AppHandle) -> Result<String, String> {
+    let settings = settings::get_settings(&app);
+    // Return the lowercase wire value that mirrors OverlayStyle enum variants.
+    Ok(match settings.overlay_style {
+        settings::OverlayStyle::None => "none".to_string(),
+        settings::OverlayStyle::Minimal => "minimal".to_string(),
+        settings::OverlayStyle::Live => "live".to_string(),
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_debug_mode_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.debug_mode = enabled;

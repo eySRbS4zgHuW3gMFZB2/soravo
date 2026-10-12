@@ -333,6 +333,17 @@ export function updateModelSettings(settings: ModelSettings): Promise<SettingsRe
   return invoke<SettingsResponse>("update_model_settings", { settings });
 }
 
+/** Mirrors `crate::settings::OverlayStyle` (lowercase serde wire values). */
+export type OverlayStyleSetting = "none" | "minimal" | "live";
+
+export function getOverlayStyle(): Promise<string> {
+  return invoke<string>("get_overlay_style_setting");
+}
+
+export function changeOverlayStyle(style: OverlayStyleSetting): Promise<void> {
+  return invoke<void>("change_overlay_style_setting", { style });
+}
+
 // Model catalog / management types and commands.
 //
 // R1-GAP-017 — the settings model selector previously used hardcoded engine /
