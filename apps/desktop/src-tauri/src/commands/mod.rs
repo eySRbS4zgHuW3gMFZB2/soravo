@@ -42,7 +42,8 @@ pub use history::{
 // unknown-command error. Behavior unchanged — registration only;
 // `shortcut/mod.rs` is untouched.
 pub use crate::shortcut::{
-    change_binding, reset_binding, resume_all_bindings, suspend_all_bindings,
+    change_binding, change_overlay_style_setting, get_overlay_style_setting, reset_binding,
+    resume_all_bindings, suspend_all_bindings,
 };
 pub use soravo_ipc::{
     emit_ping, inject_text, load_settings, ping, runtime_status, save_settings, session_reset,
@@ -222,6 +223,13 @@ mod registration_tests;
 #[cfg(test)]
 #[path = "shortcut_rebind_tests.rs"]
 mod shortcut_rebind_tests;
+
+/// R1 overlay-style selector: registration-completeness tests for the
+/// overlay-style command pair. Pure source analysis — no Tauri runtime,
+/// window, model asset, microphone, or network required.
+#[cfg(test)]
+#[path = "overlay_settings_tests.rs"]
+mod overlay_settings_tests;
 
 /// Marker state to track if shortcuts have been initialized.
 pub struct ShortcutsInitialized;

@@ -230,6 +230,11 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
   let models: ModelInfo[] = scenario === "no-models" ? [] : [readyModel(), availableModel()];
   let activeModelId = scenario === "no-models" ? "" : "parakeet-ready";
   let settings = defaultSettings(scenario);
+  // R1 overlay-style selector: canonical overlay preference double. Kept
+  // separate from the compatibility `settings` above because the UI reads and
+  // writes it through the dedicated overlay-style commands, mirroring the
+  // backend (`shortcut/mod.rs`), not through `load_settings`.
+  let overlayStyle = "minimal";
   let history: HistoryEntry[] = historyFixtures();
   let nextSessionId = 7;
   let nextEventId = 1;
@@ -351,6 +356,16 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
           settings = { ...settings, [key]: next };
         }
         return { success: true, message: "ok (e2e double)", data: structuredClone(settings) };
+      }
+      case "get_overlay_style_setting":
+        return overlayStyle;
+      case "change_overlay_style_setting": {
+        const style = (args as { style?: unknown }).style;
+        if (style !== "none" && style !== "minimal" && style !== "live") {
+          throw new Error("E2E double: unknown overlay style");
+        }
+        overlayStyle = style;
+        return null;
       }
       case "get_available_models":
         return structuredClone(models);
@@ -496,6 +511,7 @@ export function installDoubles(scenario: E2EScenario): E2EControl {
       models = scenario === "no-models" ? [] : [readyModel(), availableModel()];
       activeModelId = scenario === "no-models" ? "" : "parakeet-ready";
       settings = defaultSettings(scenario);
+      overlayStyle = "minimal";
       history = historyFixtures();
     },
   };
