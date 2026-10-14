@@ -25,6 +25,9 @@ hound = "3.5"
 
 [dev-dependencies]
 hound = "3.5"
+# T11-A follow-through: SHA-256 pin verification in the GGUF benchmark driver
+# (test-only; already in the lockfile via soravo-desktop — no new package).
+sha2 = "0.10"
 
 # T34-H / ADR-029: Handy per-platform backend features, reused verbatim from
 # cjpais/Handy @ 8605699d (mirrors apps/desktop/src-tauri/Cargo.toml).
