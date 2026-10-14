@@ -159,6 +159,20 @@ fn main() {
             // Must precede the first recording, which resolves this state.
             secure_input::init(app.handle());
 
+            // S9b — create the Handy-derived floating recording overlay window
+            // (hidden) and populate the overlay-enabled cache from initial
+            // settings, mirroring Handy `lib.rs` (`initialize_core_logic` +
+            // setup at the pin of record). Without this the `show_*/hide_*`
+            // calls in `actions.rs` resolve `get_webview_window` to `None`
+            // and no-op, so no floating pill can ever appear during dictation
+            // into other applications. Creation failure only logs inside
+            // `overlay.rs`; the cache keeps the audio path off the store.
+            soravo_desktop_lib::overlay::create_recording_overlay(app.handle());
+            soravo_desktop_lib::overlay::update_overlay_enabled_cache(
+                soravo_desktop_lib::settings::get_settings(app.handle()).overlay_style
+                    != soravo_desktop_lib::settings::OverlayStyle::None,
+            );
+
             // S10 — install the global shortcut. Idempotent, and re-runnable from
             // the `initialize_shortcuts` command after an OS accessibility grant.
             if let Err(e) = initialize_shortcuts(app.handle().clone()) {
