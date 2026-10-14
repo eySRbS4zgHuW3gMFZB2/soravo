@@ -455,13 +455,20 @@ pub mod production {
     /// Transcription output is ready: FINALIZING + one canonical Final emit.
     /// Only committed/final text travels this path (never tentative); empty
     /// output still advances finalization so the session cannot wedge.
-    pub fn announce_transcription_finalized(app: &tauri::AppHandle, text: &str) {
+    /// Returns true when a Final was actually emitted (active session AND
+    /// non-blank text) — the caller uses this as the single-insertion
+    /// ownership signal (v6 §05 "never duplicate"): an emitted Final hands
+    /// insertion to the frontend injection feed, so the backend direct paste
+    /// must not also fire for the same transcription.
+    pub fn announce_transcription_finalized(app: &tauri::AppHandle, text: &str) -> bool {
         announce_transition(app, SessionPhase::Finalizing);
         if let Some(id) = current_session_id(app) {
             if !text.trim().is_empty() {
                 emit_transcript_final(app, id, text);
+                return true;
             }
         }
+        false
     }
 
     /// Successful terminal: DONE exactly once, then IDLE (resources released).

@@ -12735,3 +12735,14 @@ This T34-Z entry is committed on branch `t34-z`, pushed, and merged to `main` vi
 - **Why:** exact PR #118 head cannot launch (deep-link `state() before manage()` panic, exit 101); with only the plugin fix, transcription workers die on `EventRegistry not found` panics. Both defects live on `origin/main`; both fixes T22-proven on the R1 line and ported verbatim. Full analysis: `G2-MERGE-PREREQUISITE-INVESTIGATION-2026-10-10-REPORT.md` (G2 worktree).
 - **Files (2, +~30/-0):** `apps/desktop/src-tauri/src/main.rs` (plugin registration + specta `mount_events` for the 3 typed events); `PROGRESS.md` (this entry). No behavior change beyond crash removal; no G2 content.
 - **Next:** build + launch smoke + one live dictation from this exact state; push; open prerequisite PR; CI watch; no merge (owner). After merge: update the G2 branch via local merge of `origin/main` (no rebase/force-push), drop its redundant local hunks, re-verify.
+
+---
+
+## R1-DUP-ACCEPT-RETRY — Supervised acceptance VERIFIED RESOLVED (2026-10-11)
+
+- **Task ID / date:** R1-DUP-ACCEPT-RETRY · 2026-10-11 · supervised real-dictation acceptance retry after MIC-RECHECK restored capture (no code/test/config/settings/audio change; no install; no cleanup; no commit/push/merge/deploy).
+- **Preflight/launch (VERIFIED):** fix worktree @ detached `242e166d`, 2 source hashes identical pre/post (untouched); 50G free; no stale processes; :1420 free. Incremental rebuild clean; Vite :1420 HTTP 200; Soravo window renders (screenshot); runtime `target/debug/soravo-desktop` (fix worktree); model loaded; config read-only (Direct, post-process off). Disposable Xed receiver, dual-signal focus verify, empty-start 0 bytes.
+- **Trials (VERIFIED — 5/5 non-empty finals, exactly one insertion each):** log-proven single-owner routing per final (`Direct paste skipped: canonical Final already handed to the injection feed`, 5/5; native `NotImplemented` WARN is the known Linux limitation; empty final correctly skipped): `So Rabbur` / `Prabhu Guan Zibra` / `Sorabo one zebra` (≤3 budget) + `Am I audible` + 40-word real-world message (supplementary). No dual-fire for any final. Visual readback (Xed buffer screenshot): 40-word message present EXACTLY once. Operator: text in Xed receiver, every appearance single, never doubled. Accent-related accuracy limits are model quality, out of scope. Cancellation/stale: DEFERRED (Linux no-op by design).
+- **Labels:** cause VERIFIED (static) / fix IMPLEMENTED + VERIFIED LIVE / user-facing resolution VERIFIED RESOLVED / trials 5/5 single-insertion.
+- **Records:** `R1-DUP-INSERTION-ACCEPTANCE-REPORT.md` rewritten to this outcome in the fix worktree. Teardown: task processes stopped (:1420 freed); operator's Xed (unsaved personal text) left running untouched; /tmp evidence preserved.
+- **Commit/push/PR/merge/deploy:** none.
