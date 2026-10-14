@@ -108,6 +108,15 @@ not inferred.
 > added). **Both are correct within their own frame; they are not the same
 > count.** What is frame-independent, and is the load-bearing fact, is the
 > single blob identity above.
+>
+> **Frame staleness note (2026-10-15).** Both counts above predate the T33-J /
+> T33-L restorations: `text.rs` and `lang_id.rs` moved from "never imported" to
+> byte-identical at `12b569fa`, `catalog.json` moved from stub to
+> byte-identical at `c693dea9`, `post_process.rs` was deleted, and
+> `transcription.rs` was adapted (`b3d3ffe7`). Re-deriving exact 61-file counts
+> requires the upstream tree at the pin, which was not reachable in this
+> session; the per-file table below is therefore the current statement of
+> record, and these aggregate counts are **HISTORICAL** until re-derived.
 
 **Re-verification method note.** Blob identity must be resolved with
 `git ls-tree`. `git rev-parse <rev>:<path>` does **not** fail on an
@@ -116,27 +125,43 @@ converts every absent file into an apparent "differing" file. Any provenance
 re-check using `rev-parse` alone will overstate divergence.
 
 **PRESENT AT THE PIN** — every path below was verified to exist upstream at
-`ba10ce19` (API path + byte size, and blob SHA where quoted):
+`ba10ce19` (API path + byte size, and blob SHA where quoted). Statuses are
+re-verified 2026-10-15 against the authoritative base `origin/main`
+(`dfc4d4bd`); pre-restoration states are retained as history, not as current
+state. Live upstream re-fetch was not reachable in this session (`git
+ls-remote` to `https://github.com/cjpais/Handy` returned empty), so pin-blob
+identity below rests on (a) the pin blobs recorded in this file, (b) the
+T33-J/T33-L commit records citing the same blobs, and (c) first-hand
+`git ls-tree origin/main` verification that the current blobs equal them.
 
 | Upstream path at `ba10ce19` | Size | Upstream blob | Status in this repository |
 |---|---|---|---|
-| `src-tauri/src/audio_toolkit/text.rs` | 29,496 B (828 lines) | `82d45b5aced133ae5424365a707017cbf69cff98` | **never imported — 0 of 84 refs** |
-| `src-tauri/src/audio_toolkit/lang_id.rs` | 6,685 B (170 lines) | `82834bdb7eb2196664fa999774c4678cb2c8534b` | **never imported — 0 of 84 refs** |
-| `src-tauri/src/audio_toolkit/utils.rs` | 10 lines | — | never imported |
-| `src-tauri/src/audio_toolkit/constants.rs` | 1 line | — | never imported |
-| `src-tauri/src/catalog/catalog.json` | 127,334 B (2,238 lines) | `64fc3482a8c7ff8b0a053a043e789b22113045ec` | **never imported** — local copy is 3 bytes `{}` |
-| `src-tauri/resources/models/silero_vad_v4.onnx` | 1,807,522 B | — | **asset** — absent locally, and never in any ref |
-| `src-tauri/src/managers/transcription.rs` | 100,389 B | `bed8d92c638d84378ed3c4cd8c1335ce0888fae7` | imported byte-identical at `a156c8c9` |
+| `src-tauri/src/audio_toolkit/text.rs` | 29,496 B (828 lines) | `82d45b5aced133ae5424365a707017cbf69cff98` | **RESTORED byte-identical** at `12b569fa` (T33-J, 2026-09-30); `origin/main` blob equals the pin blob. The "never imported" state below is history. |
+| `src-tauri/src/audio_toolkit/lang_id.rs` | 6,685 B (170 lines) | `82834bdb7eb2196664fa999774c4678cb2c8534b` | **RESTORED byte-identical** at `12b569fa` (T33-J, 2026-09-30); `origin/main` blob equals the pin blob. The "never imported" state below is history. |
+| `src-tauri/src/audio_toolkit/utils.rs` | 10 lines | — | never imported (`UNKNOWN` rationale — manifest field 9) |
+| `src-tauri/src/audio_toolkit/constants.rs` | 1 line | — | never imported (`UNKNOWN` rationale — manifest field 9) |
+| `src-tauri/src/catalog/catalog.json` | 127,334 B (2,238 lines) | `64fc3482a8c7ff8b0a053a043e789b22113045ec` | **RESTORED byte-identical** at `c693dea9` (T33-L, 2026-09-30, owner-authorized O-K1/O-K3); `origin/main` blob equals the pin blob. The 3-byte `{}` stub is history. |
+| `src-tauri/resources/models/silero_vad_v4.onnx` | 1,807,522 B | — | **asset** — absent locally; asset-acquisition gate, not source recovery (see below) |
+| `src-tauri/src/managers/transcription.rs` | 100,389 B | `bed8d92c638d84378ed3c4cd8c1335ce0888fae7` | imported byte-identical at `a156c8c9`; **modified after import** — `origin/main` blob is `49902b4a0cb99ab8277707c2ea9382911d0fb332`. Known modifiers include `fc56c31b` (T22) and `b3d3ffe7` (T34-B, Handy #2160 adaptation); full per-file rationale is `UNKNOWN` (manifest field 8) |
 | `src-tauri/src/paste_tx/{mod,macos,windows}.rs` | 11,071 / 13,036 / 22,234 B | — | restored byte-identically from `5f56260c` |
-| `scripts/gen_catalog.py` | 301 lines | — | never imported |
+| `scripts/gen_catalog.py` | 301 lines | — | never imported (`UNKNOWN` rationale — manifest field 9) |
 
-The `text.rs` / `lang_id.rs` absence is frame-independent: a scan of all **84**
-refs in this repository finds **0** containing either path.
+The pre-T33-J statement that "`text.rs` / `lang_id.rs` absence is
+frame-independent (a scan of all **84** refs finds **0** containing either
+path)" is **HISTORICAL/STALE** and must not be carried forward: both files
+were restored byte-identical at `12b569fa`, which `merge-base --is-ancestor`
+confirms is an ancestor of `origin/main`. The 0-of-84-refs result describes
+the pre-restoration repository only.
 
-**SUBSTITUTED — a Soravo-authored replacement exists with no upstream
-counterpart at any ref:** `apps/desktop/src-tauri/src/audio_toolkit/post_process.rs`
-(280 lines). Sole add commit `fc56c31b` (2026-09-28). Upstream
-`src-tauri/src/audio_toolkit/post_process.rs` returns **404 — it does not exist**.
+**REMOVED — Soravo-authored substitute deleted, not present:** the former
+`apps/desktop/src-tauri/src/audio_toolkit/post_process.rs` (280 lines, added
+in `fc56c31b`, no upstream counterpart at any ref) was **deleted** at
+`12b569fa` (T33-J: "Delete Soravo-authored post_process.rs substitute"). It is
+absent from `origin/main` (`git ls-tree` shows no such path; `git log
+origin/main -- <path>` is empty because the only mainline touch was the
+deletion). The "SUBSTITUTED" state previously recorded here is therefore
+**HISTORICAL/STALE**. This correction adds no post-processing and no
+language-specific special case; transcript semantics are untouched.
 
 **STILL UNKNOWN / NOT ESTABLISHED (must remain `UNKNOWN`, never inferred):**
 
@@ -148,12 +173,20 @@ counterpart at any ref:** `apps/desktop/src-tauri/src/audio_toolkit/post_process
 - all model/weight provenance (field 10 below — see the licensing separation
   rule below).
 
-### Consequences of the omission — recorded, not ratified
+### Consequences of the omission — repaired at T33-J/T33-L, recorded, not ratified
 
-The Soravo integration omitted Handy's text/language support layer
-(`text.rs`, `lang_id.rs`) and introduced the Soravo-authored `post_process.rs`
-substitute; the model catalog was reduced to `{}` (3 bytes) while its
-Handy-authored reader — which asserts the catalog is non-empty — was preserved.
+The Soravo integration had omitted Handy's text/language support layer
+(`text.rs`, `lang_id.rs`), introduced the Soravo-authored `post_process.rs`
+substitute, and reduced the model catalog to `{}` (3 bytes) while its
+Handy-authored reader — which asserts the catalog is non-empty — was
+preserved. That omission state was **repaired**: `text.rs` + `lang_id.rs`
+restored byte-identical and `post_process.rs` deleted at `12b569fa` (T33-J);
+`catalog.json` restored byte-identical at `c693dea9` (T33-L, owner-authorized).
+Both commits are ancestors of `origin/main`, and the current blobs equal the
+pin blobs (verified first-hand 2026-10-15; see the table above). The omission
+description is therefore **HISTORICAL**; it is retained as history, not as
+current state.
+
 The resulting CI failures **MUST NOT** be classified as stale or incorrect
 tests merely because the current Soravo implementation disagrees with them.
 The preserved upstream tests are the integrity witnesses of the original
@@ -182,8 +215,13 @@ containing all fields below:
 A missing field is `UNKNOWN`, not an assumption.
 
 Fields 1 and 2 are now filled (`https://github.com/cjpais/Handy` @
-`ba10ce1943ef34e93c09494027fc0b9ced2e8a44`). Fields 4 through 10 are
-**incomplete** and remain `UNKNOWN` where not evidenced above. An incomplete
+`ba10ce1943ef34e93c09494027fc0b9ced2e8a44`). Fields 5 and 6 are **partially**
+evidenced for the restored files (`12b569fa` for `text.rs`/`lang_id.rs` +
+`post_process.rs` deletion; `c693dea9` for `catalog.json`; `a156c8c9` for the
+original import surface) and field 8 is **partially** evidenced (known
+`transcription.rs` modifiers `fc56c31b`, `b3d3ffe7`; known `mod.rs` re-export
+repoint at T33-J). Fields 4, 7, 9 and 10, and the remainder of 5, 6 and 8,
+are **incomplete** and remain `UNKNOWN` where not evidenced above. An incomplete
 manifest is a real state and must be recorded as one.
 
 ## RECOVERY RULE — RESTORE, DO NOT RE-FORK
@@ -306,17 +344,20 @@ The Handy foundation is chain-of-custody VERIFIED only when:
 | exact upstream identity is recorded | **MET** — `https://github.com/cjpais/Handy` @ `ba10ce1943ef34e93c09494027fc0b9ced2e8a44` as the pin of record, with upstream origin and exact bytes established by blob identity |
 | imported source is reproducible from that identity | **MET for the proven subset** (see *Recovered-source boundary*); the never-imported upstream files are byte-available at the pin but not yet restored |
 | license attribution is preserved | **PARTIAL** — upstream is MIT and a `LICENSE` file exists at the pin; the exact licence text/hash for the imported snapshot is not yet recorded (manifest field 4) |
-| Soravo-specific modifications are enumerated | **PARTIAL** — the omission and the `post_process.rs` substitution are now recorded; per-file post-import modifications are not yet enumerated (manifest fields 8 and 9) |
-| current `main` contains the recorded import/adaptation commit | **MET for `a156c8c9`** (ancestor of `origin/main`) |
-| targeted and broad CI-equivalent validation passes | **NOT MET** — the `rust` CI job is red |
-| V1 behavior preservation requirements are satisfied | **NOT MET** — four explicit v6 §04 Do-Not-Modify behaviours are altered by `post_process.rs` |
+| Soravo-specific modifications are enumerated | **PARTIAL** — the omission, its T33-J/T33-L repair, the `post_process.rs` deletion, and the known `transcription.rs` modifiers (`fc56c31b`, `b3d3ffe7`) are now recorded; full per-file post-import rationale is still `UNKNOWN` (manifest fields 8 and 9) |
+| current `main` contains the recorded import/adaptation commit | **MET for `a156c8c9`, `12b569fa` (T33-J) and `c693dea9` (T33-L)** (all ancestors of `origin/main` via `merge-base --is-ancestor`) |
+| targeted and broad CI-equivalent validation passes | **MET at `origin/main`** — CI run `38541331741` on `dfc4d4bd` completed/success with all jobs green (web, e2e, rust, desktop, macOS aarch64/x86_64). The prior "`rust` red" state is **HISTORICAL** (T33-era). Note: benchmark branch PR #126 shows `rust`-job failure confined to its `cargo audit` step plus Security-Audit `cargo-audit`/`cargo-deny` findings (pre-existing dependency advisories); its `fmt`, `clippy -D warnings` and `cargo test` steps are green. |
+| V1 behavior preservation requirements are satisfied | **UNKNOWN** — the prior NOT-MET reason (four v6 §04 behaviours altered by `post_process.rs`) is **withdrawn**: that file was deleted at `12b569fa` and is absent from `origin/main`. T33-J records V1 transcription-support restoration (`203/7 → 254/2` test transition, zero test files touched) with **no new post-processing and no language special case**. Explicit per-behaviour V1 preservation checks are still required evidence before this row can read MET. |
 
 **Therefore the Handy foundation is NOT chain-of-custody VERIFIED.** The prior
 statement in this file — that upstream identity itself was `UNKNOWN` — is now
 **HISTORICAL/STALE** and must not be carried forward: the identity is resolved.
-Full provenance verification remains `BLOCKED`/`UNKNOWN` on the incomplete
-manifest fields, the outstanding licence/hash evidence, and the failing CI, so
-release readiness still cannot claim full provenance verification.
+The prior "`rust` red" and "`post_process.rs` alters V1 behaviour" statements
+are likewise **HISTORICAL/STALE** as stated above. Full provenance verification
+remains `BLOCKED`/`UNKNOWN` on the incomplete manifest fields (4, 7, 8, 9,
+10), the outstanding licence/hash evidence, and the pending explicit V1
+behaviour-preservation checks, so release readiness still cannot claim full
+provenance verification.
 
 Recording a corrected identity is not a licence to merge, ship, or restore
 anything. Every open owner decision recorded in `PROGRESS.md` remains open.
