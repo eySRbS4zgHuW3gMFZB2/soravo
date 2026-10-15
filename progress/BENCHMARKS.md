@@ -110,3 +110,20 @@ insertion or overlay acceptance — those remain unmeasured.
 - Commercial redistribution clearance: BLOCKED — separate model
   licensing/installer Notice gate (existing licensing PR #115, 0/69 cleared);
   nothing here grants it.
+
+## Note — 2026-10-16 @ `6882d27c` (release-acceptance pass)
+
+No new benchmark was run this session; every number above is retained as
+recorded and none is restated as fresh. The only change is a **re-verification**
+that strengthens existing evidence without adding a performance claim:
+
+- The pinned launch artifact still hashes to the approved SHA-256
+  `4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795` (731357568
+  bytes) — confirmed via `approved_launch_artifact_hash_acceptance` this session
+  (model integrity, not a new inference/latency/WER measurement).
+
+Unmeasured list is unchanged and no production-backend selection or public
+performance claim is made. Whisper-side comparison remains **UNKNOWN/BLOCKED**
+(no owner-approved Whisper artifact+pin); launch model remains **Parakeet Unified
+EN 0.6B Q8_0** (fixed — not changed to Whisper). Application-level latencies,
+partials, and system-wide resource peaks remain **UNKNOWN**.

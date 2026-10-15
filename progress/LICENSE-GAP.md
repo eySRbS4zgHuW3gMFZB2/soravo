@@ -92,3 +92,35 @@ Model↔catalog↔artifact identity for the launch model: evidenced. Every
 commercial-use, redistribution, Notice, and provenance-compliance gate:
 BLOCKED on the enumerated missing evidence. This document grants no
 clearance and changes no gate.
+
+---
+
+## Reaffirmation — 2026-10-16 @ `6882d27c` (`release/v1-release-acceptance-2026-10-16`)
+
+Nothing above is weakened; this adds a fresh, current-head check only.
+
+- Catalog↔artifact identity re-verified at the current head this session: the
+  Q8_0 pin in `apps/desktop/src-tauri/src/catalog/catalog.json` is still
+  `731357568` bytes / SHA-256 `4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795`,
+  byte-identical to the local artifact confirmed by
+  `approved_launch_artifact_hash_acceptance` (see `progress/ACCEPTANCE.md` G3).
+  The catalog still declares `license: cc-by-4.0` (Handy metadata) for the
+  launch model while upstream base weights remain NVIDIA Open Model License —
+  the §2 mismatch is unchanged. Upstream was NOT re-fetched this session; §2/§3
+  upstream facts stand as INHERITED 2026-10-15 evidence.
+- Notice check re-run this session: no `NOTICE*` file is tracked anywhere; the
+  NOML attribution string appears only in progress/docs, never shipped. §3
+  blocker unchanged.
+- PR #115 (69-row commercial registry → 0/69 cleared, fail-closed) is **still
+  open and unmerged** as of this session's `gh pr list`; it is not merged,
+  duplicated, or weakened here. The existing model **artifact hash is integrity
+  evidence, NOT redistribution clearance** — this session grants none.
+- No `MODEL_LICENSES.*`, catalog, or gate file is edited by this branch.
+- Distinction reaffirmed: the bundled **Silero VAD** (`silero_vad_v4.onnx`) is
+  **MIT / redistribution-permitted** with notice shipped (integrity now guarded
+  by `apps/desktop/src-tauri/tests/bundled_models_integrity.rs`); this is a
+  separate artifact from the blocked **Parakeet STT launch model**. VAD MIT
+  clearance does not clear the STT model.
+
+Verdict (2026-10-16): identical to above — launch-model commercial/redistribution/
+Notice gates remain **BLOCKED**; no UNKNOWN→MET promotion; no legal sign-off.
