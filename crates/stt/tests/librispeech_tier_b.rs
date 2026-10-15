@@ -44,7 +44,10 @@
 //!
 //! Resume: `tier_b_clips.jsonl` is the checkpoint. Completed clip IDs found
 //! there are reloaded (metrics reused) and skipped for inference on rerun;
-//! failed clips are retried. No clip is ever silently omitted: acceptance
+//! failed clips are retried. A `tier_b_run.json` header binds the checkpoint
+//! to the exact model SHA-256 + corpus root: a mismatched header, or a
+//! headerless non-empty checkpoint, fails closed (fresh out dir required).
+//! No clip is ever silently omitted: acceptance
 //! requires attempted == completed + failed with every exclusion explained.
 //!
 //! Run with:
@@ -251,6 +254,58 @@ struct ClipMetrics {
     repeats_identical: bool,
 }
 
+/// Resume-gate header file (written beside `tier_b_clips.jsonl`).
+const RUN_HEADER_FILE: &str = "tier_b_run.json";
+
+/// Bind a `tier_b_clips.jsonl` checkpoint to the exact model artifact and
+/// corpus root that produced it, so a resumed run can never count stale
+/// results (a checkpoint from a different model, a different corpus path, or
+/// an unrelated run sharing the out dir) as newly completed work.
+///
+/// Returns `Ok(true)` when an existing header matches this run (resume),
+/// `Ok(false)` when a fresh header was written (the checkpoint must be
+/// absent/empty), and `Err` — fail closed — on any mismatch or on a
+/// headerless non-empty checkpoint of unknown provenance. A changed runner
+/// (code) likewise requires a fresh `LIBRISPEECH_OUT_DIR` by policy; the
+/// header records only the inputs it can verify.
+fn gate_resume(out_dir: &str, model_sha: &str, ref_root: &str) -> Result<bool, String> {
+    let header_path = format!("{}/{}", out_dir, RUN_HEADER_FILE);
+    let want = format!(
+        "{{\"model_sha256\":\"{}\",\"ref_root\":\"{}\"}}",
+        json_escape(model_sha),
+        json_escape(ref_root)
+    );
+    match std::fs::read_to_string(&header_path) {
+        Ok(have) => {
+            if have == want {
+                Ok(true)
+            } else {
+                Err(format!(
+                    "refusing resume: {} does not match this run (model or corpus changed?). \
+                     use a fresh LIBRISPEECH_OUT_DIR",
+                    header_path
+                ))
+            }
+        }
+        Err(_) => {
+            let clips_path = format!("{}/tier_b_clips.jsonl", out_dir);
+            let stale = std::fs::read_to_string(&clips_path)
+                .map(|c| !c.trim().is_empty())
+                .unwrap_or(false);
+            if stale {
+                return Err(format!(
+                    "refusing resume: {} exists without a run header (unknown provenance); \
+                     use a fresh LIBRISPEECH_OUT_DIR",
+                    clips_path
+                ));
+            }
+            std::fs::write(&header_path, &want)
+                .map_err(|e| format!("write {}: {}", header_path, e))?;
+            Ok(false)
+        }
+    }
+}
+
 /// Reload checkpointed clip metrics from `tier_b_clips.jsonl` (resume path).
 /// The file holds one JSON object per line; only well-formed `completed`
 /// lines are reused. Malformed lines are ignored (that clip is re-run).
@@ -376,13 +431,23 @@ fn librispeech_tier_b_full() {
     println!("BENCH Tier-B discovery: {} utterances (sorted)", ids.len());
 
     std::fs::create_dir_all(&out_dir).expect("create out dir");
+    // Resume gate: bind any existing checkpoint to this exact model + corpus.
+    // Fails closed on stale or foreign checkpoints (see gate_resume).
+    let resumed = gate_resume(&out_dir, MODEL_SHA256, &ref_root).expect("resume gate");
     let clips_path = format!("{}/tier_b_clips.jsonl", out_dir);
     let checkpoint = load_checkpoint(&clips_path);
-    if !checkpoint.is_empty() {
+    if resumed && !checkpoint.is_empty() {
         println!(
-            "BENCH resume: {} checkpointed clips reloaded from {}",
+            "BENCH resume: {} checkpointed clips reloaded from {} (header {})",
             checkpoint.len(),
-            clips_path
+            clips_path,
+            RUN_HEADER_FILE
+        );
+    }
+    if !resumed {
+        println!(
+            "BENCH fresh run: header written to {}/{}",
+            out_dir, RUN_HEADER_FILE
         );
     }
     // Append-mode checkpoint writer (resume-safe).
@@ -771,4 +836,50 @@ fn discovery_is_deterministic_and_sorted() {
 fn lower_folds_case_for_scoring() {
     assert_eq!(lower("Hello  WORLD"), "hello world");
     assert_eq!(lower("CAFÉ"), "café");
+}
+
+fn gate_probe_dir(name: &str) -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join(name);
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+#[test]
+fn resume_gate_writes_header_on_fresh_dir() {
+    let dir = gate_probe_dir("tier_b_gate_fresh_probe");
+    let root = dir.to_str().unwrap();
+    assert!(!gate_resume(root, "modelA", "/corpus").unwrap());
+    let header = std::fs::read_to_string(dir.join(RUN_HEADER_FILE)).unwrap();
+    assert!(header.contains("\"model_sha256\":\"modelA\""));
+    assert!(header.contains("\"ref_root\":\"/corpus\""));
+    // Same run resumes.
+    assert!(gate_resume(root, "modelA", "/corpus").unwrap());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn resume_gate_rejects_changed_model_or_corpus() {
+    let dir = gate_probe_dir("tier_b_gate_mismatch_probe");
+    let root = dir.to_str().unwrap();
+    assert!(!gate_resume(root, "modelA", "/corpus").unwrap());
+    assert!(gate_resume(root, "modelB", "/corpus").is_err());
+    assert!(gate_resume(root, "modelA", "/other-corpus").is_err());
+    // Original run still resumes after the rejected attempts.
+    assert!(gate_resume(root, "modelA", "/corpus").unwrap());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn resume_gate_rejects_headerless_checkpoint() {
+    let dir = gate_probe_dir("tier_b_gate_stale_probe");
+    let root = dir.to_str().unwrap();
+    // A checkpoint of unknown provenance with no header fails closed.
+    std::fs::write(
+        dir.join("tier_b_clips.jsonl"),
+        "{\"id\":\"1-2-0000\",\"status\":\"completed\"}\n",
+    )
+    .unwrap();
+    assert!(gate_resume(root, "modelA", "/corpus").is_err());
+    std::fs::remove_dir_all(&dir).unwrap();
 }
