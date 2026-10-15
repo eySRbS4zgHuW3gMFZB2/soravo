@@ -1,5 +1,14 @@
 // Tests for text injection
 // Reuses patterns from Handy's clipboard fallback implementation
+//
+// HEADLESS-ONLY: these tests must run WITHOUT a live display server
+// (`env -u DISPLAY cargo test -p soravo-typing`, as in CI). With a live
+// `$DISPLAY`, the helpers below would touch the real session clipboard and
+// send real paste keystrokes into the focused window — never run them
+// against an operator-owned GUI session. Headless, the external helpers
+// fail fast/fail closed and the fallback contract is exercised
+// deterministically; Linux helper waits are additionally bounded (see
+// `EXTERNAL_COMMAND_TIMEOUT` in `src/lib.rs`).
 
 use soravo_typing::{PasteMethod, TypingConfig, TypingEngine};
 
