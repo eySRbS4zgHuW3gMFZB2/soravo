@@ -5792,7 +5792,7 @@ dependencies = [
  "transcribe-rs",
  "whatlang",
  "windows 0.62.2",
- "winreg 0.10.1",
+ "winreg 0.55.0",
 ]
 
 [[package]]
