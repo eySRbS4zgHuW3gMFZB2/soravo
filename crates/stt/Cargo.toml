@@ -25,6 +25,10 @@ hound = "3.5"
 
 [dev-dependencies]
 hound = "3.5"
+# Tier-A LibriSpeech smoke driver: SHA-256 pin verification of the model
+# artifact before inference (test-only; already in the lockfile via
+# soravo-desktop — no new package admitted).
+sha2 = "0.10"
 
 # T34-H / ADR-029: Handy per-platform backend features, reused verbatim from
 # cjpais/Handy @ 8605699d (mirrors apps/desktop/src-tauri/Cargo.toml).
