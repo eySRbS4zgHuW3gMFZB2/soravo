@@ -207,6 +207,29 @@ export function onHideOverlay(handler: () => void): Promise<UnlistenFn> {
   return listen(HIDE_OVERLAY_EVENT, () => handler());
 }
 
+/**
+ * Live streaming-transcript snapshot emitted by the Handy-derived
+ * transcription manager during a streaming run
+ * (`StreamTextEvent`: `committed` is the append-only flicker-free prefix,
+ * `tentative` the volatile suffix). Consumed ONLY by the expanded Live
+ * overlay card for display; it never drives state and never injects.
+ */
+export type StreamText = {
+  committed: string;
+  tentative: string;
+};
+
+export const STREAM_TEXT_EVENT = "stream-text-event";
+
+/** Subscribe to live streaming-transcript snapshots. Returns an unsubscribe fn. */
+export function onStreamText(
+  handler: (text: StreamText) => void
+): Promise<UnlistenFn> {
+  return listen<StreamText>(STREAM_TEXT_EVENT, (event) =>
+    handler(event.payload)
+  );
+}
+
 // Settings types
 export type SchemaInfo = {
   version: number;
@@ -331,6 +354,28 @@ export function formatHotkeyFromKeyboardEvent(e: {
 
 export function updateModelSettings(settings: ModelSettings): Promise<SettingsResponse> {
   return invoke<SettingsResponse>("update_model_settings", { settings });
+}
+
+/** Mirrors `crate::settings::OverlayStyle` (lowercase serde wire values). */
+export type OverlayStyleSetting = "none" | "minimal" | "live";
+
+export function getOverlayStyle(): Promise<string> {
+  return invoke<string>("get_overlay_style_setting");
+}
+
+export function changeOverlayStyle(style: OverlayStyleSetting): Promise<void> {
+  return invoke<void>("change_overlay_style_setting", { style });
+}
+
+/** Mirrors `crate::settings::OverlayPosition` (lowercase serde wire values). */
+export type OverlayPositionSetting = "top" | "bottom";
+
+export function getOverlayPosition(): Promise<string> {
+  return invoke<string>("get_overlay_position_setting");
+}
+
+export function changeOverlayPosition(position: OverlayPositionSetting): Promise<void> {
+  return invoke<void>("change_overlay_position_setting", { position });
 }
 
 // Model catalog / management types and commands.
