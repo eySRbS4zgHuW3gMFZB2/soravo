@@ -11,12 +11,15 @@ import {
   loadSettings,
   onHideOverlay,
   onShowOverlay,
+  onStreamText,
   sessionSnapshot,
+  type StreamText,
 } from "../ipc";
 import {
   applyOverlayHide,
   applyOverlayShow,
   createOverlayVisibility,
+  selectOverlayText,
 } from "./overlay-visibility";
 
 /**
@@ -44,6 +47,11 @@ export function OverlayPill() {
   const [visibility, setVisibility] = useState(createOverlayVisibility);
   const [feed, setFeed] = useState(createSessionFeed);
   const [mode, setMode] = useState<"hold_to_talk" | "toggle_to_talk">("hold_to_talk");
+  // Live streaming-transcript snapshot for the expanded Live card only.
+  // Display-only: never drives state, never injects. Scoped to the visible
+  // session by the show/hide lifecycle (cleared on both), which always
+  // brackets one backend streaming run on the single session machine.
+  const [streamText, setStreamText] = useState<StreamText | null>(null);
 
   const view = describePillView(feed, mode, null);
 
@@ -99,13 +107,21 @@ export function OverlayPill() {
     track(
       onShowOverlay((signal) => {
         if (disposed) return;
+        setStreamText(null);
         setVisibility((prev) => applyOverlayShow(prev, signal));
       })
     );
     track(onHideOverlay(() => {
       if (disposed) return;
+      setStreamText(null);
       setVisibility((prev) => applyOverlayHide(prev));
     }));
+    track(
+      onStreamText((text) => {
+        if (disposed) return;
+        setStreamText(text);
+      })
+    );
 
     return () => {
       disposed = true;
@@ -116,6 +132,7 @@ export function OverlayPill() {
   if (!visibility.visible) return null;
 
   const expanded = visibility.format === "expanded";
+  const textSource = selectOverlayText(expanded, streamText);
 
   return (
     <div className={`ov-stage${expanded ? " expanded" : ""}`}>
@@ -126,11 +143,22 @@ export function OverlayPill() {
       >
         <div className="ov-indicator" style={{ backgroundColor: view.color }} />
         <span className="ov-label">{view.label}</span>
-        {view.display.kind === "committed" && (
-          <span className="ov-transcript">{view.display.text}</span>
-        )}
-        {view.display.kind === "tentative" && (
-          <span className="ov-transcript">{view.display.text}…</span>
+        {textSource.kind === "stream" ? (
+          <span className="ov-transcript">
+            {textSource.committed}
+            {textSource.tentative !== "" && (
+              <span className="ov-tentative">{textSource.tentative}…</span>
+            )}
+          </span>
+        ) : (
+          <>
+            {view.display.kind === "committed" && (
+              <span className="ov-transcript">{view.display.text}</span>
+            )}
+            {view.display.kind === "tentative" && (
+              <span className="ov-transcript">{view.display.text}…</span>
+            )}
+          </>
         )}
         {view.errorText && <span className="ov-error">{view.errorText}</span>}
       </div>

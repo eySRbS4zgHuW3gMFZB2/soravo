@@ -10,8 +10,9 @@ use soravo_desktop_lib::{
     auth_flow::AuthFlow,
     cli::CliArgs,
     commands::{
-        account::*, change_binding, history::*, initialize_shortcuts, models::*, reset_binding,
-        resume_all_bindings, soravo_ipc::*, suspend_all_bindings,
+        account::*, change_binding, change_overlay_position_setting, change_overlay_style_setting,
+        get_overlay_position_setting, get_overlay_style_setting, history::*, initialize_shortcuts,
+        models::*, reset_binding, resume_all_bindings, soravo_ipc::*, suspend_all_bindings,
     },
     managers::{
         audio::AudioRecordingManager,
@@ -31,10 +32,15 @@ use soravo_desktop_lib::{__cmd__initialize_shortcuts, __tauri_command_name_initi
 // G2 hotkey-rebind exposure: the rebind commands are imported by name (not
 // via a glob), so their generated wrappers need the same by-name import.
 use soravo_desktop_lib::shortcut::{
-    __cmd__change_binding, __cmd__reset_binding, __cmd__resume_all_bindings,
+    __cmd__change_binding, __cmd__change_overlay_position_setting,
+    __cmd__change_overlay_style_setting, __cmd__get_overlay_position_setting,
+    __cmd__get_overlay_style_setting, __cmd__reset_binding, __cmd__resume_all_bindings,
     __cmd__suspend_all_bindings, __tauri_command_name_change_binding,
-    __tauri_command_name_reset_binding, __tauri_command_name_resume_all_bindings,
-    __tauri_command_name_suspend_all_bindings,
+    __tauri_command_name_change_overlay_position_setting,
+    __tauri_command_name_change_overlay_style_setting,
+    __tauri_command_name_get_overlay_position_setting,
+    __tauri_command_name_get_overlay_style_setting, __tauri_command_name_reset_binding,
+    __tauri_command_name_resume_all_bindings, __tauri_command_name_suspend_all_bindings,
 };
 
 /// Route one raw deep-link/second-instance URL into the desktop auth flow.
@@ -248,6 +254,10 @@ fn main() {
             reset_binding,
             suspend_all_bindings,
             resume_all_bindings,
+            get_overlay_style_setting,
+            change_overlay_style_setting,
+            get_overlay_position_setting,
+            change_overlay_position_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running soravo desktop");

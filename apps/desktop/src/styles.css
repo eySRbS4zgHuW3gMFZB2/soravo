@@ -218,3 +218,34 @@
   cursor: not-allowed;
 }
 
+/* Settings group (overlay-style, etc) */
+.settings-group {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #374151;
+  border-radius: 8px;
+}
+
+.settings-group legend {
+  font-weight: 600;
+  color: #e5e7eb;
+  padding: 0 0.5rem;
+}
+
+.settings-hint {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.settings-error {
+  margin-top: 0.5rem;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+.settings-loading {
+  color: #9ca3af;
+  font-style: italic;
+}
+
