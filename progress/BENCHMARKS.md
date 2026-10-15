@@ -72,15 +72,41 @@ insertion or overlay acceptance — those remain unmeasured.
   (model SHA-256 + corpus root; mismatched or headerless checkpoints fail
   closed — review fix `87b878dd`, 16 regression tests green).
 
+## Comparison harness — Parakeet-vs-Whisper, same-audio (2026-10-15)
+
+- Runner `crates/stt/tests/engine_compare.rs` (research-only; launch model
+  unchanged): fixed Parakeet artifact vs a Whisper side over the SAME Tier-A
+  12-clip subset with byte-identical decoded inputs and identical
+  `RunOptions::default()` for both engines. Strict-vs-strict and
+  lower-vs-lower deltas only — cross-metric comparison is impossible by
+  manifest construction.
+- Parakeet baseline MEASURED (12/12, 0 failed, both profiles, live this
+  session): WER strict 0.9970 / lower **0.1015** (identical across profiles),
+  CER 0.8330, load 1.0 s; release RTF **0.189x**, latency min/p50/p90/max
+  0.758/2.173/2.981/3.368 s; peak process RSS ~1,262 MB; 2-repeat identical on
+  first 3 clips. (Debug RTF 0.123x on the same VM — contention variance; every
+  number is profile-labeled.)
+- Whisper side SKIPPED with an explicit reason: no approved/pinned Whisper
+  model artifact exists in the spec or locally, and an unpinned model is never
+  benchmarked (`WHISPER_MODEL_PATH` + `WHISPER_EXPECTED_SHA256` gate;
+  `COMPARE_REQUIRE_WHISPER=1` fails closed). No Whisper metrics exist; none are
+  claimed. Missing prerequisite: an owner-approved Whisper model + SHA-256 pin.
+- Resource profile (model-only, Linux `/proc`): load/infer/RTF/latency
+  distribution/peak-RSS/CPU-ticks per side in `compare_manifest.json`
+  (scratch only, never committed). First-partial, capture-to-insertion, and
+  system-wide peaks remain UNKNOWN — see `progress/ACCEPTANCE.md`.
+
 ## Unmeasured (UNKNOWN or BLOCKED — not claimed as passed)
 
 - Whisper-side comparison and any production-backend selection: UNKNOWN (no
-  Whisper run; `12_BENCHMARK_PROTOCOL.md` gate still open).
+  Whisper run — harness ready, approved model+pin missing;
+  `12_BENCHMARK_PROTOCOL.md` gate still open).
 - Application-level capture latency, first-partial/finalization,
   duplicate/revision rates, overlay/insertion behaviour: UNKNOWN.
 - Punctuation/capitalization/named-entity preservation as acceptance metrics:
   UNKNOWN (punctuation/casing observed informally, not acceptance-measured).
-- Resource profiling beyond RTF/load (peak RAM, CPU%): UNKNOWN.
+- Resource profiling beyond model-only RTF/load/RSS/CPU-ticks (system-wide
+  peak RAM, CPU%, app-level latencies): UNKNOWN.
 - Commercial redistribution clearance: BLOCKED — separate model
-  licensing/installer Notice gate (existing licensing PR); nothing here grants
-  it.
+  licensing/installer Notice gate (existing licensing PR #115, 0/69 cleared);
+  nothing here grants it.
