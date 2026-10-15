@@ -68,7 +68,9 @@ insertion or overlay acceptance — those remain unmeasured.
   librispeech_tier_b_full -- --ignored --nocapture`
   (WAV scratch must first be decoded: `flac -d` each `test-clean` FLAC to
   `<scratch>/wav/<utterance-id>.wav`; resume is checkpoint-safe via
-  `tier_b_clips.jsonl`).
+  `tier_b_clips.jsonl` bound to the run by a `tier_b_run.json` header
+  (model SHA-256 + corpus root; mismatched or headerless checkpoints fail
+  closed — review fix `87b878dd`, 16 regression tests green).
 
 ## Unmeasured (UNKNOWN or BLOCKED — not claimed as passed)
 

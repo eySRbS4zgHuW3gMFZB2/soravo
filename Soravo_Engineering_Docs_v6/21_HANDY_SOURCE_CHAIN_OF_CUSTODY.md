@@ -157,9 +157,11 @@ the pre-restoration repository only.
 `apps/desktop/src-tauri/src/audio_toolkit/post_process.rs` (280 lines, added
 in `fc56c31b`, no upstream counterpart at any ref) was **deleted** at
 `12b569fa` (T33-J: "Delete Soravo-authored post_process.rs substitute"). It is
-absent from `origin/main` (`git ls-tree` shows no such path; `git log
-origin/main -- <path>` is empty because the only mainline touch was the
-deletion). The "SUBSTITUTED" state previously recorded here is therefore
+absent from `origin/main` (verified first-hand 2026-10-15: `git ls-tree
+origin/main` shows no such path; `--full-history` log shows the add at
+`fc56c31b` and the deletion at `12b569fa`, both ancestors of `origin/main` —
+a plain path-limited `git log` hides both behind merge simplification, which
+is a display artifact, not evidence of absence). The "SUBSTITUTED" state previously recorded here is therefore
 **HISTORICAL/STALE**. This correction adds no post-processing and no
 language-specific special case; transcript semantics are untouched.
 
@@ -346,7 +348,7 @@ The Handy foundation is chain-of-custody VERIFIED only when:
 | license attribution is preserved | **PARTIAL** — upstream is MIT and a `LICENSE` file exists at the pin; the exact licence text/hash for the imported snapshot is not yet recorded (manifest field 4) |
 | Soravo-specific modifications are enumerated | **PARTIAL** — the omission, its T33-J/T33-L repair, the `post_process.rs` deletion, and the known `transcription.rs` modifiers (`fc56c31b`, `b3d3ffe7`) are now recorded; full per-file post-import rationale is still `UNKNOWN` (manifest fields 8 and 9) |
 | current `main` contains the recorded import/adaptation commit | **MET for `a156c8c9`, `12b569fa` (T33-J) and `c693dea9` (T33-L)** (all ancestors of `origin/main` via `merge-base --is-ancestor`) |
-| targeted and broad CI-equivalent validation passes | **MET at `origin/main`** — CI run `38541331741` on `dfc4d4bd` completed/success with all jobs green (web, e2e, rust, desktop, macOS aarch64/x86_64). The prior "`rust` red" state is **HISTORICAL** (T33-era). Note: benchmark branch PR #126 shows `rust`-job failure confined to its `cargo audit` step plus Security-Audit `cargo-audit`/`cargo-deny` findings (pre-existing dependency advisories); its `fmt`, `clippy -D warnings` and `cargo test` steps are green. |
+| targeted and broad CI-equivalent validation passes | **MET at `dfc4d4bd`** — CI run `38541331741` completed/success with all jobs green (web, e2e, rust, desktop, macOS aarch64/x86_64). The prior "`rust` red" state is **HISTORICAL** (T33-era). Update 2026-10-15: `origin/main` has since advanced (PR #127 rustls merge `a7af6d60`; PR #126 Tier-A merge `e407aea3`, every required check green on its head `00960344` — the earlier PR #126 `cargo audit` failure was the pre-fix rustls 0.23.45 advisories, resolved by integrating `main`). Post-merge CI on `e407aea3` was still running at time of writing; re-verify this row against a completed run before citing it as current. |
 | V1 behavior preservation requirements are satisfied | **UNKNOWN** — the prior NOT-MET reason (four v6 §04 behaviours altered by `post_process.rs`) is **withdrawn**: that file was deleted at `12b569fa` and is absent from `origin/main`. T33-J records V1 transcription-support restoration (`203/7 → 254/2` test transition, zero test files touched) with **no new post-processing and no language special case**. Explicit per-behaviour V1 preservation checks are still required evidence before this row can read MET. |
 
 **Therefore the Handy foundation is NOT chain-of-custody VERIFIED.** The prior
