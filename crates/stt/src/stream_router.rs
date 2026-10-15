@@ -148,4 +148,77 @@ mod tests {
             _ => panic!("expected Feed command"),
         }
     }
+
+    #[test]
+    fn router_feeds_arrive_before_finalize_fifo() {
+        // The exactly-once foundation: frames and finalize share one FIFO
+        // channel, so every fed frame is processed before finalize runs.
+        let router = StreamRouter::new();
+        let rx = router.open();
+        for i in 0..5 {
+            router.feed(&[i as f32]);
+        }
+        let tx = router.take().expect("sender");
+        let (reply_tx, _reply_rx) =
+            unbounded::<Option<crate::stream_events::FinalizedStreamText>>();
+        tx.send(StreamCmd::Finalize(reply_tx)).unwrap();
+        for i in 0..5 {
+            match rx.recv().expect("frame") {
+                StreamCmd::Feed(samples) => assert_eq!(samples, vec![i as f32]),
+                other => panic!("expected Feed before Finalize, got {:?}", other),
+            }
+        }
+        match rx.recv().expect("finalize") {
+            StreamCmd::Finalize(_) => {}
+            other => panic!("expected Finalize last, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn router_feed_after_take_is_dropped() {
+        let router = StreamRouter::new();
+        let rx = router.open();
+        router.feed(&[1.0]);
+        let _tx = router.take();
+        assert!(!router.is_open());
+        router.feed(&[2.0]); // must not queue: channel is closed to feeds
+        drop(_tx);
+        // Only the pre-take frame is present; the channel then disconnects.
+        match rx.recv().expect("first frame") {
+            StreamCmd::Feed(samples) => assert_eq!(samples, vec![1.0]),
+            other => panic!("expected Feed, got {:?}", other),
+        }
+        assert!(rx.recv().is_err(), "post-take feed must not be queued");
+    }
+
+    #[test]
+    fn router_double_open_routes_to_newest_channel() {
+        // Documented contract: the caller must not double-open, but the actual
+        // behavior is deterministic — feeds go to the newest channel, so a
+        // stale worker can never receive frames meant for the new session.
+        let router = StreamRouter::new();
+        let stale_rx = router.open();
+        let fresh_rx = router.open();
+        router.feed(&[9.0]);
+        assert!(
+            stale_rx.try_recv().is_err(),
+            "stale channel must stay empty"
+        );
+        match fresh_rx.try_recv().expect("fresh channel") {
+            StreamCmd::Feed(samples) => assert_eq!(samples, vec![9.0]),
+            other => panic!("expected Feed, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn router_cancel_is_delivered_without_output() {
+        let router = StreamRouter::new();
+        let rx = router.open();
+        let tx = router.take().expect("sender");
+        tx.send(StreamCmd::Cancel).unwrap();
+        match rx.recv().expect("cancel") {
+            StreamCmd::Cancel => {}
+            other => panic!("expected Cancel, got {:?}", other),
+        }
+    }
 }
