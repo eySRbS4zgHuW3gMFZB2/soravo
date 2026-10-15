@@ -398,7 +398,8 @@ fn aggregate_wer_is_corpus_weighted_not_mean_of_ratios() {
 fn edit_counts_known_examples() {
     assert_eq!(edit_counts("", ""), (0, 0));
     assert_eq!(edit_counts("hello world", "hello world"), (0, 2));
-    // substitution + deletion + insertion = 3 edits over 3 ref words
+    // substitution + deletion = 2 edits over 3 ref words (no insertion here:
+    // "a x" aligns as a=a, b->x substitution, c deleted)
     let (e, w) = edit_counts("a b c", "a x");
     assert_eq!(w, 3);
     assert_eq!(e, 2); // b->x substitution, c deletion
