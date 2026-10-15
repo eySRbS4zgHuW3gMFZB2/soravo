@@ -113,7 +113,7 @@ windows = { version = "0.62.2", features = [
   "Win32_Graphics_Gdi",
   "Win32_UI_WindowsAndMessaging",
 ] }
-winreg = "0.10"
+winreg = "0.55"
 
 # T34-H / ADR-029: Whisper backend per Windows arch, reused verbatim from
 # cjpais/Handy @ 8605699d. x86_64 ships the Vulkan GPU backend and keeps the
