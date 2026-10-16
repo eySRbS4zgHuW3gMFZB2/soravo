@@ -1,0 +1,10 @@
+[package]
+name = "soravo-history"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Soravo local dictation history"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

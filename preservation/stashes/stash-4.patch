@@ -1,0 +1,45 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index dd540668..4b79d58f 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -4128,6 +4128,15 @@ dependencies = [
+  "url",
+ ]
+ 
++[[package]]
++name = "soravo-stt"
++version = "0.1.0"
++dependencies = [
++ "serde",
++ "soravo-models",
++ "thiserror 1.0.69",
++]
++
+ [[package]]
+ name = "soravo-transcript"
+ version = "0.1.0"
+diff --git a/Cargo.toml b/Cargo.toml
+index 698bf3a1..88870f78 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -5,6 +5,7 @@ members = [
+   "crates/config",
+   "crates/hotkeys",
+   "crates/models",
++  "crates/stt",
+   "crates/transcript",
+   "crates/typing"
+ ]
+diff --git a/crates/stt/src/lib.rs b/crates/stt/src/lib.rs
+index 7ed626f0..6d2cc6e0 100644
+--- a/crates/stt/src/lib.rs
++++ b/crates/stt/src/lib.rs
+@@ -4,6 +4,8 @@
+ //! Implements SpeechEngine trait with Parakeet and Whisper adapters.
+ //! Benchmark-driven selection (protocol §12).
+ 
++pub mod benchmark;
++
+ use serde::{Deserialize, Serialize};
+ use thiserror::Error;
+ 

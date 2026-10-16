@@ -1,0 +1,360 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index a773350b..903c76ff 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -494,6 +494,15 @@ dependencies = [
+  "windows-link 0.2.1",
+ ]
+ 
++[[package]]
++name = "clipboard-win"
++version = "5.4.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "bde03770d3df201d4fb868f2c9c59e66a3e4e2bd06692a0fe701e7103c7e84d4"
++dependencies = [
++ "error-code",
++]
++
+ [[package]]
+ name = "cocoa"
+ version = "0.25.0"
+@@ -1042,6 +1051,12 @@ dependencies = [
+  "windows-sys 0.61.2",
+ ]
+ 
++[[package]]
++name = "error-code"
++version = "3.4.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0b5343afd4a8365a643ac588dab4cf234a190c7f6c88c9f6dd6ffe00837661b7"
++
+ [[package]]
+ name = "event-listener"
+ version = "5.4.2"
+@@ -2497,6 +2512,17 @@ dependencies = [
+  "pin-project-lite",
+ ]
+ 
++[[package]]
++name = "osascript"
++version = "0.3.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "38731fa859ef679f1aec66ca9562165926b442f298467f76f5990f431efe87dc"
++dependencies = [
++ "serde",
++ "serde_derive",
++ "serde_json",
++]
++
+ [[package]]
+ name = "pango"
+ version = "0.18.3"
+@@ -3309,6 +3335,7 @@ dependencies = [
+  "serde",
+  "serde_json",
+  "soravo-hotkeys",
++ "soravo-typing",
+  "tauri",
+  "tauri-build",
+  "tauri-plugin-log",
+@@ -3327,6 +3354,14 @@ dependencies = [
+  "winapi",
+ ]
+ 
++[[package]]
++name = "soravo-models"
++version = "0.1.0"
++dependencies = [
++ "serde",
++ "sha2",
++]
++
+ [[package]]
+ name = "soravo-transcript"
+ version = "0.1.0"
+@@ -3334,6 +3369,18 @@ dependencies = [
+  "serde",
+ ]
+ 
++[[package]]
++name = "soravo-typing"
++version = "0.1.0"
++dependencies = [
++ "clipboard-win",
++ "log",
++ "osascript",
++ "serde",
++ "serde_json",
++ "windows 0.58.0",
++]
++
+ [[package]]
+ name = "soup3"
+ version = "0.5.0"
+@@ -3506,7 +3553,7 @@ dependencies = [
+  "tao-macros",
+  "unicode-segmentation",
+  "url",
+- "windows",
++ "windows 0.61.3",
+  "windows-core 0.61.2",
+  "windows-version",
+  "x11-dl",
+@@ -3577,7 +3624,7 @@ dependencies = [
+  "webkit2gtk",
+  "webview2-com",
+  "window-vibrancy",
+- "windows",
++ "windows 0.61.3",
+ ]
+ 
+ [[package]]
+@@ -3717,7 +3764,7 @@ dependencies = [
+  "url",
+  "webkit2gtk",
+  "webview2-com",
+- "windows",
++ "windows 0.61.3",
+ ]
+ 
+ [[package]]
+@@ -3742,7 +3789,7 @@ dependencies = [
+  "url",
+  "webkit2gtk",
+  "webview2-com",
+- "windows",
++ "windows 0.61.3",
+  "wry",
+ ]
+ 
+@@ -4483,10 +4530,10 @@ checksum = "7130243a7a5b33c54a444e54842e6a9e133de08b5ad7b5861cd8ed9a6a5bc96a"
+ dependencies = [
+  "webview2-com-macros",
+  "webview2-com-sys",
+- "windows",
++ "windows 0.61.3",
+  "windows-core 0.61.2",
+- "windows-implement",
+- "windows-interface",
++ "windows-implement 0.60.2",
++ "windows-interface 0.59.3",
+ ]
+ 
+ [[package]]
+@@ -4507,7 +4554,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "381336cfffd772377d291702245447a5251a2ffa5bad679c99e61bc48bacbf9c"
+ dependencies = [
+  "thiserror 2.0.20",
+- "windows",
++ "windows 0.61.3",
+  "windows-core 0.61.2",
+ ]
+ 
+@@ -4557,6 +4604,16 @@ dependencies = [
+  "windows-version",
+ ]
+ 
++[[package]]
++name = "windows"
++version = "0.58.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "dd04d41d93c4992d421894c18c8b43496aa748dd4c081bac0dc93eb0489272b6"
++dependencies = [
++ "windows-core 0.58.0",
++ "windows-targets 0.52.6",
++]
++
+ [[package]]
+ name = "windows"
+ version = "0.61.3"
+@@ -4579,14 +4636,27 @@ dependencies = [
+  "windows-core 0.61.2",
+ ]
+ 
++[[package]]
++name = "windows-core"
++version = "0.58.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "6ba6d44ec8c2591c134257ce647b7ea6b20335bf6379a27dac5f1641fcf59f99"
++dependencies = [
++ "windows-implement 0.58.0",
++ "windows-interface 0.58.0",
++ "windows-result 0.2.0",
++ "windows-strings 0.1.0",
++ "windows-targets 0.52.6",
++]
++
+ [[package]]
+ name = "windows-core"
+ version = "0.61.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "c0fdd3ddb90610c7638aa2b3a3ab2904fb9e5cdbecc643ddb3647212781c4ae3"
+ dependencies = [
+- "windows-implement",
+- "windows-interface",
++ "windows-implement 0.60.2",
++ "windows-interface 0.59.3",
+  "windows-link 0.1.3",
+  "windows-result 0.3.4",
+  "windows-strings 0.4.2",
+@@ -4598,8 +4668,8 @@ version = "0.62.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb"
+ dependencies = [
+- "windows-implement",
+- "windows-interface",
++ "windows-implement 0.60.2",
++ "windows-interface 0.59.3",
+  "windows-link 0.2.1",
+  "windows-result 0.4.1",
+  "windows-strings 0.5.1",
+@@ -4616,6 +4686,17 @@ dependencies = [
+  "windows-threading",
+ ]
+ 
++[[package]]
++name = "windows-implement"
++version = "0.58.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "2bbd5b46c938e506ecbce286b6628a02171d56153ba733b6c741fc627ec9579b"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 2.0.119",
++]
++
+ [[package]]
+ name = "windows-implement"
+ version = "0.60.2"
+@@ -4627,6 +4708,17 @@ dependencies = [
+  "syn 2.0.119",
+ ]
+ 
++[[package]]
++name = "windows-interface"
++version = "0.58.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "053c4c462dc91d3b1504c6fe5a726dd15e216ba718e84a0e46a88fbe5ded3515"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 2.0.119",
++]
++
+ [[package]]
+ name = "windows-interface"
+ version = "0.59.3"
+@@ -4660,6 +4752,15 @@ dependencies = [
+  "windows-link 0.1.3",
+ ]
+ 
++[[package]]
++name = "windows-result"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1d1043d8214f791817bab27572aaa8af63732e11bf84aa21a45a78d6c317ae0e"
++dependencies = [
++ "windows-targets 0.52.6",
++]
++
+ [[package]]
+ name = "windows-result"
+ version = "0.3.4"
+@@ -4678,6 +4779,16 @@ dependencies = [
+  "windows-link 0.2.1",
+ ]
+ 
++[[package]]
++name = "windows-strings"
++version = "0.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4cd9b125c486025df0eabcb585e62173c6c9eddcec5d117d3b6e8c30e2ee4d10"
++dependencies = [
++ "windows-result 0.2.0",
++ "windows-targets 0.52.6",
++]
++
+ [[package]]
+ name = "windows-strings"
+ version = "0.4.2"
+@@ -5020,7 +5131,7 @@ dependencies = [
+  "webkit2gtk",
+  "webkit2gtk-sys",
+  "webview2-com",
+- "windows",
++ "windows 0.61.3",
+  "windows-core 0.61.2",
+  "windows-version",
+  "x11-dl",
+diff --git a/Cargo.toml b/Cargo.toml
+index a7a99057..9cad8cac 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -3,7 +3,9 @@ members = [
+   "apps/desktop/src-tauri",
+   "crates/config",
+   "crates/hotkeys",
+-  "crates/transcript"
++  "crates/models",
++  "crates/transcript",
++  "crates/typing"
+ ]
+ resolver = "2"
+ 
+diff --git a/apps/desktop/src-tauri/Cargo.toml b/apps/desktop/src-tauri/Cargo.toml
+index 2ae8ef08..5997bbdb 100644
+--- a/apps/desktop/src-tauri/Cargo.toml
++++ b/apps/desktop/src-tauri/Cargo.toml
+@@ -22,6 +22,7 @@ log = "0.4"
+ serde = { version = "1", features = ["derive"] }
+ serde_json = "1"
+ soravo-hotkeys = { path = "../../../crates/hotkeys" }
++soravo-typing = { path = "../../../crates/typing" }
+ tauri = { version = "2", features = [] }
+ tauri-plugin-log = "2"
+ tauri-plugin-single-instance = "2"
+diff --git a/apps/desktop/src-tauri/src/commands.rs b/apps/desktop/src-tauri/src/commands.rs
+index b1819f7b..5927b4cd 100644
+--- a/apps/desktop/src-tauri/src/commands.rs
++++ b/apps/desktop/src-tauri/src/commands.rs
+@@ -12,6 +12,8 @@ use tauri::{AppHandle, Emitter, State};
+ use crate::events::{PingPayload, SESSION_CHANGED_EVENT, SessionChangedPayload};
+ use crate::session::{SessionMachine, SessionPhase, SessionTransition};
+ 
++use soravo_typing::{TypingConfig, TypingEngine, TypingResult};
++
+ /// Snapshot of the desk runtime handed to the frontend on request.
+ #[derive(Clone, Debug, Serialize)]
+ #[serde(rename_all = "camelCase")]
+@@ -122,3 +124,19 @@ pub fn emit_ping(app: AppHandle, machine: State<'_, Mutex<SessionMachine>>) -> P
+     );
+     reply
+ }
++
++/// Inject committed text into the active application.
++/// This is a typed IPC command callable from the frontend.
++#[tauri::command]
++pub fn inject_text(app: AppHandle, text: String) -> TypingResult {
++    let engine = TypingEngine::new(TypingConfig::default());
++    let result = engine.inject(&text);
++    
++    // Log injection result for diagnostics
++    let _ = app.emit(
++        "typing://result",
++        serde_json::to_value(&result).unwrap_or_default(),
++    );
++    
++    result
++}
+diff --git a/apps/desktop/src-tauri/src/lib.rs b/apps/desktop/src-tauri/src/lib.rs
+index d0dcf3f9..3f75b397 100644
+--- a/apps/desktop/src-tauri/src/lib.rs
++++ b/apps/desktop/src-tauri/src/lib.rs
+@@ -49,6 +49,7 @@ pub fn run() {
+             commands::session_transition,
+             commands::session_reset,
+             commands::emit_ping,
++            commands::inject_text,
+             hotkey::hotkey_config,
+             hotkey::set_hotkey_config,
+             hotkey::hotkey_start,

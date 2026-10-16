@@ -1,0 +1,112 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 0d01db26..5414cab1 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -54,3 +54,21 @@ jobs:
+       - run: cargo fmt --all -- --check
+       - run: cargo clippy --workspace --all-targets -- -D warnings
+       - run: cargo test --workspace
++  desktop:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: pnpm/action-setup@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 22
++          cache: pnpm
++      - uses: dtolnay/rust-toolchain@stable
++      - name: Install Tauri Linux system dependencies
++        run: |
++          sudo apt-get update
++          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
++      - run: pnpm install --frozen-lockfile
++      - name: Build Tauri desktop
++        working-directory: apps/desktop
++        run: pnpm tauri build
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index 2acb4337..eb8954ac 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -55,6 +55,20 @@ export type PingPayload = {
+   timestampMs: number;
+ };
+ 
++/** Mirrors `crate::events::StreamTextPayload`. */
++export type StreamTextPayload = {
++  event: "stream://text";
++  committed: string;
++  tentative: string;
++};
++
++/** Mirrors `crate::events::StreamPhasePayload`. */
++export type StreamPhasePayload = {
++  event: "stream://phase";
++  phase: string;
++  kind: string | null;
++};
++
+ /** Hotkey types mirroring Rust hotkeys crate. */
+ export type Modifiers = {
+   ctrl: boolean;
+@@ -93,6 +107,8 @@ export type HotkeyResult =
+ 
+ export const SESSION_CHANGED_EVENT = "session://changed";
+ export const PING_EVENT = "runtime://ping";
++export const STREAM_TEXT_EVENT = "stream://text";
++export const STREAM_PHASE_EVENT = "stream://phase";
+ 
+ export function getRuntimeStatus(): Promise<RuntimeStatus> {
+   return invoke<RuntimeStatus>("runtime_status");
+@@ -174,4 +190,50 @@ export type AccountSnapshot = {
+ 
+ export function accountSnapshot(): Promise<AccountSnapshot> {
+   return invoke<AccountSnapshot>("account_snapshot");
++}
++
++/** Dictation status snapshot. */
++export type DictationStatus = {
++  active: boolean;
++  sessionId: number | null;
++  phase: SessionPhase;
++  message?: string;
++};
++
++/** Start a dictation session. */
++export function dictationStart(): Promise<DictationStatus> {
++  return invoke<DictationStatus>("dictation_start");
++}
++
++/** Stop and finalize the current dictation session. */
++export function dictationStop(): Promise<DictationStatus> {
++  return invoke<DictationStatus>("dictation_stop");
++}
++
++/** Cancel the current dictation session without finalizing. */
++export function dictationCancel(): Promise<DictationStatus> {
++  return invoke<DictationStatus>("dictation_cancel");
++}
++
++/** Get current dictation session status. */
++export function dictationStatus(): Promise<DictationStatus> {
++  return invoke<DictationStatus>("dictation_status");
++}
++
++/** Subscribe to streaming transcription text updates. Returns an unsubscribe fn. */
++export function onStreamText(
++  handler: (payload: StreamTextPayload) => void
++): Promise<UnlistenFn> {
++  return listen<StreamTextPayload>(STREAM_TEXT_EVENT, (event) =>
++    handler(event.payload)
++  );
++}
++
++/** Subscribe to streaming transcription phase changes. Returns an unsubscribe fn. */
++export function onStreamPhase(
++  handler: (payload: StreamPhasePayload) => void
++): Promise<UnlistenFn> {
++  return listen<StreamPhasePayload>(STREAM_PHASE_EVENT, (event) =>
++    handler(event.payload)
++  );
+ }
+\ No newline at end of file

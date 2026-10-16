@@ -1,0 +1,2989 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index d63600dc..e6a1a00d 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -281,10 +281,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+ 
+ [[package]]
+-name = "base64ct"
+-version = "1.8.3"
++name = "bindgen"
++version = "0.72.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
++checksum = "993776b509cfb49c750f11b8f07a46fa23e0a1386ffc01fb1e7d343efc387895"
++dependencies = [
++ "bitflags 2.13.2",
++ "cexpr",
++ "clang-sys",
++ "itertools",
++ "proc-macro2",
++ "quote",
++ "regex",
++ "rustc-hash",
++ "shlex 1.3.0",
++ "syn 2.0.119",
++]
+ 
+ [[package]]
+ name = "bit-set"
+@@ -484,7 +496,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "a3eb0f42d6c360dc3f8a821f6bf2fdea7f72bfd36b3076eb0e6d1e9e0752fff4"
+ dependencies = [
+  "find-msvc-tools",
+- "shlex",
++ "jobserver",
++ "libc",
++ "shlex 2.0.1",
+ ]
+ 
+ [[package]]
+@@ -493,6 +507,15 @@ version = "1.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
+ 
++[[package]]
++name = "cexpr"
++version = "0.6.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766"
++dependencies = [
++ "nom",
++]
++
+ [[package]]
+ name = "cfb"
+ version = "0.7.3"
+@@ -533,21 +556,23 @@ dependencies = [
+ ]
+ 
+ [[package]]
+-name = "clipboard-win"
+-version = "5.4.1"
++name = "clang-sys"
++version = "1.9.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "bde03770d3df201d4fb868f2c9c59e66a3e4e2bd06692a0fe701e7103c7e84d4"
++checksum = "157a8ba7b480713b56f4c09fd13fc3e0a22a5dfab8097ba61cbc5feef950788a"
+ dependencies = [
+- "error-code",
++ "glob",
++ "libc",
++ "libloading 0.8.9",
+ ]
+ 
+ [[package]]
+-name = "cmake"
+-version = "0.1.58"
++name = "clipboard-win"
++version = "5.4.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c0f78a02292a74a88ac736019ab962ece0bc380e3f977bf72e376c5d78ff0678"
++checksum = "bde03770d3df201d4fb868f2c9c59e66a3e4e2bd06692a0fe701e7103c7e84d4"
+ dependencies = [
+- "cc",
++ "error-code",
+ ]
+ 
+ [[package]]
+@@ -700,38 +725,41 @@ checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
+ 
+ [[package]]
+ name = "coreaudio-rs"
+-version = "0.13.0"
++version = "0.11.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1aae284fbaf7d27aa0e292f7677dfbe26503b0d555026f702940805a630eac17"
++checksum = "321077172d79c662f64f5071a03120748d5bb652f5231570141be24cfcd2bace"
+ dependencies = [
+  "bitflags 1.3.2",
+- "libc",
+- "objc2-audio-toolbox",
+- "objc2-core-audio",
+- "objc2-core-audio-types",
+- "objc2-core-foundation",
++ "core-foundation-sys",
++ "coreaudio-sys",
++]
++
++[[package]]
++name = "coreaudio-sys"
++version = "0.2.18"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "b9b4739a805a62757a83e5654fa3faabec0442666b263bb2287d5a8185bfd953"
++dependencies = [
++ "bindgen",
+ ]
+ 
+ [[package]]
+ name = "cpal"
+-version = "0.16.0"
++version = "0.15.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "cbd307f43cc2a697e2d1f8bc7a1d824b5269e052209e28883e5bc04d095aaa3f"
++checksum = "873dab07c8f743075e57f524c583985fbaf745602acbe916a01539364369a779"
+ dependencies = [
+  "alsa",
++ "core-foundation-sys",
+  "coreaudio-rs",
+  "dasp_sample",
+  "jni",
+  "js-sys",
+  "libc",
+  "mach2",
+- "ndk",
++ "ndk 0.8.0",
+  "ndk-context",
+- "num-derive",
+- "num-traits",
+- "objc2-audio-toolbox",
+- "objc2-core-audio",
+- "objc2-core-audio-types",
++ "oboe",
+  "wasm-bindgen",
+  "wasm-bindgen-futures",
+  "web-sys",
+@@ -820,38 +848,14 @@ version = "0.0.7"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "52560adf09603e58c9a7ee1fe1dcb95a16927b17c127f0ac02d6e768a0e25bc1"
+ 
+-[[package]]
+-name = "darling"
+-version = "0.20.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "fc7f46116c46ff9ab3eb1597a45688b6715c6e628b5c133e288e709a29bcb4ee"
+-dependencies = [
+- "darling_core 0.20.11",
+- "darling_macro 0.20.11",
+-]
+-
+ [[package]]
+ name = "darling"
+ version = "0.24.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec"
+ dependencies = [
+- "darling_core 0.24.1",
+- "darling_macro 0.24.1",
+-]
+-
+-[[package]]
+-name = "darling_core"
+-version = "0.20.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0d00b9596d185e565c2207a0b01f8bd1a135483d02d9b7b0a54b11da8d53412e"
+-dependencies = [
+- "fnv",
+- "ident_case",
+- "proc-macro2",
+- "quote",
+- "strsim",
+- "syn 2.0.119",
++ "darling_core",
++ "darling_macro",
+ ]
+ 
+ [[package]]
+@@ -867,24 +871,13 @@ dependencies = [
+  "syn 3.0.5",
+ ]
+ 
+-[[package]]
+-name = "darling_macro"
+-version = "0.20.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead"
+-dependencies = [
+- "darling_core 0.20.11",
+- "quote",
+- "syn 2.0.119",
+-]
+-
+ [[package]]
+ name = "darling_macro"
+ version = "0.24.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
+ dependencies = [
+- "darling_core 0.24.1",
++ "darling_core",
+  "quote",
+  "syn 3.0.5",
+ ]
+@@ -937,16 +930,6 @@ dependencies = [
+  "thiserror 2.0.20",
+ ]
+ 
+-[[package]]
+-name = "der"
+-version = "0.8.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "a878c850e9e421b20262e9b41f9c860e4785fa07541c266b62ff9d1ef998a80a"
+-dependencies = [
+- "pem-rfc7468",
+- "zeroize",
+-]
+-
+ [[package]]
+ name = "deranged"
+ version = "0.5.8"
+@@ -956,37 +939,6 @@ dependencies = [
+  "serde_core",
+ ]
+ 
+-[[package]]
+-name = "derive_builder"
+-version = "0.20.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "507dfb09ea8b7fa618fcf76e953f4f5e192547945816d5358edffe39f6f94947"
+-dependencies = [
+- "derive_builder_macro",
+-]
+-
+-[[package]]
+-name = "derive_builder_core"
+-version = "0.20.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2d5bcf7b024d6835cfb3d473887cd966994907effbe9227e8c8219824d06c4e8"
+-dependencies = [
+- "darling 0.20.11",
+- "proc-macro2",
+- "quote",
+- "syn 2.0.119",
+-]
+-
+-[[package]]
+-name = "derive_builder_macro"
+-version = "0.20.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ab63b0e2bf4d5928aff72e83a7dace85d7bba5fe12dcc3c5a572d78caffd3f3c"
+-dependencies = [
+- "derive_builder_core",
+- "syn 2.0.119",
+-]
+-
+ [[package]]
+ name = "derive_more"
+ version = "2.1.1"
+@@ -1157,6 +1109,12 @@ version = "1.2.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "afea66474c4036a7e5fa4b072a3b0a09cd0b01f00134da3115d76b7cc5899f03"
+ 
++[[package]]
++name = "either"
++version = "1.18.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
++
+ [[package]]
+ name = "embed-resource"
+ version = "3.0.11"
+@@ -1229,19 +1187,6 @@ dependencies = [
+  "regex",
+ ]
+ 
+-[[package]]
+-name = "env_logger"
+-version = "0.10.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
+-dependencies = [
+- "humantime",
+- "is-terminal",
+- "log",
+- "regex",
+- "termcolor",
+-]
+-
+ [[package]]
+ name = "equivalent"
+ version = "1.0.2"
+@@ -1295,17 +1240,6 @@ dependencies = [
+  "pin-project-lite",
+ ]
+ 
+-[[package]]
+-name = "eyre"
+-version = "0.6.14"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c08309dbcc659c5549a24ddb9b27027640641b282ef5768267c7e675558986a3"
+-dependencies = [
+- "autocfg",
+- "indenter",
+- "once_cell",
+-]
+-
+ [[package]]
+ name = "fastrand"
+ version = "2.5.0"
+@@ -1869,18 +1803,6 @@ version = "0.4.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+ 
+-[[package]]
+-name = "hmac-sha256"
+-version = "1.1.14"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ec9d92d097f4749b64e8cc33d924d9f40a2d4eb91402b458014b781f5733d60f"
+-
+-[[package]]
+-name = "hound"
+-version = "3.5.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "62adaabb884c94955b19907d60019f4e145d091c75345379e70d1ee696f7854f"
+-
+ [[package]]
+ name = "html5ever"
+ version = "0.38.0"
+@@ -1958,12 +1880,6 @@ version = "1.0.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
+ 
+-[[package]]
+-name = "humantime"
+-version = "2.4.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "15cdd26707701c53297e2fa6afb323d55fbc1d0810c3aec078ae3ef0424c3c15"
+-
+ [[package]]
+ name = "hyper"
+ version = "0.14.32"
+@@ -2190,12 +2106,6 @@ dependencies = [
+  "icu_properties",
+ ]
+ 
+-[[package]]
+-name = "indenter"
+-version = "0.3.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "964de6e86d545b246d84badc0fef527924ace5134f30641c203ef52ba83f58d5"
+-
+ [[package]]
+ name = "indexmap"
+ version = "1.9.3"
+@@ -2235,14 +2145,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "791930b43c0d5973160d90a8f3894509f2b273430f5c5c73b668636d0287c5c0"
+ 
+ [[package]]
+-name = "is-terminal"
+-version = "0.4.17"
++name = "itertools"
++version = "0.13.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
++checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+ dependencies = [
+- "hermit-abi",
+- "libc",
+- "windows-sys 0.61.2",
++ "either",
+ ]
+ 
+ [[package]]
+@@ -2372,6 +2280,16 @@ dependencies = [
+  "syn 2.0.119",
+ ]
+ 
++[[package]]
++name = "jobserver"
++version = "0.1.35"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1c00acbd29eabad4a2392fa0e921c874934dbbf4194312ad20f04a0ed67a3cb3"
++dependencies = [
++ "getrandom 0.4.3",
++ "libc",
++]
++
+ [[package]]
+ name = "js-sys"
+ version = "0.3.105"
+@@ -2436,7 +2354,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6e9ec52138abedcc58dc17a7c6c0c00a2bdb4f3427c7f63fa97fd0d859155caf"
+ dependencies = [
+  "gtk-sys",
+- "libloading",
++ "libloading 0.7.4",
+  "once_cell",
+ ]
+ 
+@@ -2465,6 +2383,16 @@ dependencies = [
+  "winapi",
+ ]
+ 
++[[package]]
++name = "libloading"
++version = "0.8.9"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
++dependencies = [
++ "cfg-if",
++ "windows-link 0.2.1",
++]
++
+ [[package]]
+ name = "libredox"
+ version = "0.1.24"
+@@ -2501,12 +2429,6 @@ version = "0.4.34"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+ 
+-[[package]]
+-name = "lzma-rust2"
+-version = "0.15.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e20f57f9918e5bd7bc58c22cdd70a6afc7375d4dd9683af5f2b34bd3d2bba619"
+-
+ [[package]]
+ name = "mach2"
+ version = "0.4.3"
+@@ -2536,16 +2458,6 @@ dependencies = [
+  "web_atoms",
+ ]
+ 
+-[[package]]
+-name = "matrixmultiply"
+-version = "0.3.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "3f607c237553f086e7043417a51df26b2eb899d3caff94e6a67592ff992fedc7"
+-dependencies = [
+- "autocfg",
+- "rawpointer",
+-]
+-
+ [[package]]
+ name = "memchr"
+ version = "2.8.3"
+@@ -2567,6 +2479,12 @@ version = "0.3.17"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+ 
++[[package]]
++name = "minimal-lexical"
++version = "0.2.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
++
+ [[package]]
+ name = "miniz_oxide"
+ version = "0.8.9"
+@@ -2689,18 +2607,17 @@ dependencies = [
+ ]
+ 
+ [[package]]
+-name = "ndarray"
+-version = "0.17.2"
++name = "ndk"
++version = "0.8.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d"
++checksum = "2076a31b7010b17a38c01907c45b945e8f11495ee4dd588309718901b1f7a5b7"
+ dependencies = [
+- "matrixmultiply",
+- "num-complex",
+- "num-integer",
+- "num-traits",
+- "portable-atomic",
+- "portable-atomic-util",
+- "rawpointer",
++ "bitflags 2.13.2",
++ "jni-sys 0.3.1",
++ "log",
++ "ndk-sys 0.5.0+25.2.9519653",
++ "num_enum",
++ "thiserror 1.0.69",
+ ]
+ 
+ [[package]]
+@@ -2712,7 +2629,7 @@ dependencies = [
+  "bitflags 2.13.2",
+  "jni-sys 0.3.1",
+  "log",
+- "ndk-sys",
++ "ndk-sys 0.6.0+11769913",
+  "num_enum",
+  "raw-window-handle",
+  "thiserror 1.0.69",
+@@ -2724,6 +2641,15 @@ version = "0.1.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "27b02d87554356db9e9a873add8782d4ea6e3e58ea071a9adb9a2e8ddb884a8b"
+ 
++[[package]]
++name = "ndk-sys"
++version = "0.5.0+25.2.9519653"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "8c196769dd60fd4f363e11d948139556a344e79d451aeb2fa2fd040738ef7691"
++dependencies = [
++ "jni-sys 0.3.1",
++]
++
+ [[package]]
+ name = "ndk-sys"
+ version = "0.6.0+11769913"
+@@ -2739,6 +2665,16 @@ version = "1.0.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
+ 
++[[package]]
++name = "nom"
++version = "7.1.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
++dependencies = [
++ "memchr",
++ "minimal-lexical",
++]
++
+ [[package]]
+ name = "num-complex"
+ version = "0.4.6"
+@@ -2846,21 +2782,6 @@ dependencies = [
+  "objc2-foundation",
+ ]
+ 
+-[[package]]
+-name = "objc2-audio-toolbox"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "6948501a91121d6399b79abaa33a8aa4ea7857fe019f341b8c23ad6e81b79b08"
+-dependencies = [
+- "bitflags 2.13.2",
+- "libc",
+- "objc2",
+- "objc2-core-audio",
+- "objc2-core-audio-types",
+- "objc2-core-foundation",
+- "objc2-foundation",
+-]
+-
+ [[package]]
+ name = "objc2-cloud-kit"
+ version = "0.3.2"
+@@ -2872,28 +2793,6 @@ dependencies = [
+  "objc2-foundation",
+ ]
+ 
+-[[package]]
+-name = "objc2-core-audio"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e1eebcea8b0dbff5f7c8504f3107c68fc061a3eb44932051c8cf8a68d969c3b2"
+-dependencies = [
+- "dispatch2",
+- "objc2",
+- "objc2-core-audio-types",
+- "objc2-core-foundation",
+-]
+-
+-[[package]]
+-name = "objc2-core-audio-types"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5a89f2ec274a0cf4a32642b2991e8b351a404d290da87bb6a9a9d8632490bd1c"
+-dependencies = [
+- "bitflags 2.13.2",
+- "objc2",
+-]
+-
+ [[package]]
+ name = "objc2-core-data"
+ version = "0.3.2"
+@@ -3055,6 +2954,29 @@ dependencies = [
+  "objc2-foundation",
+ ]
+ 
++[[package]]
++name = "oboe"
++version = "0.6.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "e8b61bebd49e5d43f5f8cc7ee2891c16e0f41ec7954d36bcb6c14c5e0de867fb"
++dependencies = [
++ "jni",
++ "ndk 0.8.0",
++ "ndk-context",
++ "num-derive",
++ "num-traits",
++ "oboe-sys",
++]
++
++[[package]]
++name = "oboe-sys"
++version = "0.6.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "6c8bb09a4a2b1d668170cfe0a7d5bc103f8999fb316c98099b6a9939c9f2e79d"
++dependencies = [
++ "cc",
++]
++
+ [[package]]
+ name = "once_cell"
+ version = "1.21.4"
+@@ -3120,30 +3042,6 @@ dependencies = [
+  "pin-project-lite",
+ ]
+ 
+-[[package]]
+-name = "ort"
+-version = "2.0.0-rc.12"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d7de3af33d24a745ffb8fab904b13478438d1cd52868e6f17735ef6e1f8bf133"
+-dependencies = [
+- "ndarray",
+- "ort-sys",
+- "smallvec",
+- "tracing",
+- "ureq",
+-]
+-
+-[[package]]
+-name = "ort-sys"
+-version = "2.0.0-rc.12"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d7b497d21a8b6fbb4b5a544f8fadb77e801a09ae0add9e411d31c6f89e3c1e90"
+-dependencies = [
+- "hmac-sha256",
+- "lzma-rust2",
+- "ureq",
+-]
+-
+ [[package]]
+ name = "pango"
+ version = "0.18.3"
+@@ -3198,15 +3096,6 @@ dependencies = [
+  "windows-link 0.2.1",
+ ]
+ 
+-[[package]]
+-name = "pem-rfc7468"
+-version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "a6305423e0e7738146434843d1694d621cce767262b2a86910beab705e4493d9"
+-dependencies = [
+- "base64ct",
+-]
+-
+ [[package]]
+ name = "percent-encoding"
+ version = "2.3.2"
+@@ -3523,12 +3412,6 @@ version = "0.6.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+ 
+-[[package]]
+-name = "rawpointer"
+-version = "0.2.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
+-
+ [[package]]
+ name = "realfft"
+ version = "3.5.0"
+@@ -3681,23 +3564,17 @@ dependencies = [
+  "web-sys",
+ ]
+ 
+-[[package]]
+-name = "ringbuffer"
+-version = "0.15.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "3df6368f71f205ff9c33c076d170dd56ebf68e8161c733c0caa07a7a5509ed53"
+-
+ [[package]]
+ name = "rtrb"
+-version = "0.4.0"
++version = "0.3.5"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "9278fb35b3e730abe136e9b395b5b81b96d06b9f5478a50f0c8430a2237b22de"
++checksum = "fae8ee26b0371a29a77d2b2d6b3ae13aa81def6f9bf1b1b92a32d279a5e709b7"
+ 
+ [[package]]
+ name = "rubato"
+-version = "0.16.2"
++version = "0.14.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5258099699851cfd0082aeb645feb9c084d9a5e1f1b8d5372086b989fc5e56a1"
++checksum = "e6dd52e80cfc21894deadf554a5673002938ae4625f7a283e536f9cf7c17b0d5"
+ dependencies = [
+  "num-complex",
+  "num-integer",
+@@ -3756,15 +3633,6 @@ dependencies = [
+  "base64 0.21.7",
+ ]
+ 
+-[[package]]
+-name = "rustls-pki-types"
+-version = "1.15.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2f4925028c7eb5d1fcdaf196971378ed9d2c1c4efc7dc5d011256f76c99c0a96"
+-dependencies = [
+- "zeroize",
+-]
+-
+ [[package]]
+ name = "rustversion"
+ version = "1.0.23"
+@@ -4038,7 +3906,7 @@ version = "3.23.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "1d607aa01a3cb0ad757d6fd216136910db3c97b102fe686585689615a02dbcdc"
+ dependencies = [
+- "darling 0.24.1",
++ "darling",
+  "proc-macro2",
+  "quote",
+  "syn 3.0.5",
+@@ -4086,6 +3954,12 @@ dependencies = [
+  "digest",
+ ]
+ 
++[[package]]
++name = "shlex"
++version = "1.3.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
++
+ [[package]]
+ name = "shlex"
+ version = "2.0.1"
+@@ -4158,17 +4032,6 @@ dependencies = [
+  "windows-sys 0.61.2",
+ ]
+ 
+-[[package]]
+-name = "socks"
+-version = "0.3.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f0c3dbbd9ae980613c6dd8e28a9407b50509d3803b57624d5dfe8315218cd58b"
+-dependencies = [
+- "byteorder",
+- "libc",
+- "winapi",
+-]
+-
+ [[package]]
+ name = "softbuffer"
+ version = "0.4.8"
+@@ -4177,7 +4040,7 @@ checksum = "aac18da81ebbf05109ab275b157c22a653bb3c12cf884450179942f81bcbf6c3"
+ dependencies = [
+  "bytemuck",
+  "js-sys",
+- "ndk",
++ "ndk 0.9.0",
+  "objc2",
+  "objc2-core-foundation",
+  "objc2-core-graphics",
+@@ -4203,7 +4066,6 @@ dependencies = [
+  "rubato",
+  "serde",
+  "thiserror 1.0.69",
+- "vad-rs",
+ ]
+ 
+ [[package]]
+@@ -4259,18 +4121,9 @@ dependencies = [
+ name = "soravo-stt"
+ version = "0.1.0"
+ dependencies = [
+- "anyhow",
+- "crossbeam-channel",
+- "earshot",
+- "log",
+  "serde",
+- "soravo-audio",
+  "soravo-models",
+  "thiserror 1.0.69",
+- "tokio",
+- "transcribe-cpp",
+- "transcribe-rs",
+- "vad-rs",
+ ]
+ 
+ [[package]]
+@@ -4482,8 +4335,8 @@ dependencies = [
+  "jni",
+  "libc",
+  "log",
+- "ndk",
+- "ndk-sys",
++ "ndk 0.9.0",
++ "ndk-sys 0.6.0+11769913",
+  "objc2",
+  "objc2-app-kit",
+  "objc2-foundation",
+@@ -4806,15 +4659,6 @@ dependencies = [
+  "new_debug_unreachable",
+ ]
+ 
+-[[package]]
+-name = "termcolor"
+-version = "1.4.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
+-dependencies = [
+- "winapi-util",
+-]
+-
+ [[package]]
+ name = "thiserror"
+ version = "1.0.69"
+@@ -5138,48 +4982,6 @@ dependencies = [
+  "once_cell",
+ ]
+ 
+-[[package]]
+-name = "transcribe-cpp"
+-version = "0.2.3"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b405c121ef674311b9e8eba83e45d859663da681952c7b95b730792ffde358e7"
+-dependencies = [
+- "log",
+- "thiserror 2.0.20",
+- "transcribe-cpp-sys",
+-]
+-
+-[[package]]
+-name = "transcribe-cpp-sys"
+-version = "0.2.3"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "00e81030804f0ce2dd83761ba18e90e0c0c0c2794d68ca008e24245ed6d2702e"
+-dependencies = [
+- "cmake",
+- "serde_json",
+-]
+-
+-[[package]]
+-name = "transcribe-rs"
+-version = "0.3.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "fb9d5cfb8e68a2a8fc27fb548987473221d3cc3776a331ccde46c8bd8b2eda0f"
+-dependencies = [
+- "base64 0.22.1",
+- "derive_builder",
+- "env_logger",
+- "hound",
+- "log",
+- "ndarray",
+- "once_cell",
+- "ort",
+- "regex",
+- "rustfft",
+- "serde",
+- "serde_json",
+- "thiserror 2.0.20",
+-]
+-
+ [[package]]
+ name = "transpose"
+ version = "0.2.3"
+@@ -5294,36 +5096,6 @@ version = "1.13.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "c6f5d3c3b1bf09027a88a6bc961fc00497d651009560b5463668dc81b0fa87a8"
+ 
+-[[package]]
+-name = "ureq"
+-version = "3.4.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "9a7ac20be9b7726e0bbdbf974c059676d9acb1cd414961f570a4e8231cacd7fc"
+-dependencies = [
+- "base64 0.23.1",
+- "der",
+- "log",
+- "native-tls",
+- "percent-encoding",
+- "rustls-pki-types",
+- "socks",
+- "ureq-proto",
+- "utf8-zero",
+- "webpki-root-certs",
+-]
+-
+-[[package]]
+-name = "ureq-proto"
+-version = "0.6.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f86fd172ccca569e458f61b6bdd6220965a9ef36e672a6852953b51a0e1583be"
+-dependencies = [
+- "base64 0.23.1",
+- "http 1.5.0",
+- "httparse",
+- "log",
+-]
+-
+ [[package]]
+ name = "url"
+ version = "2.5.8"
+@@ -5349,12 +5121,6 @@ dependencies = [
+  "url",
+ ]
+ 
+-[[package]]
+-name = "utf8-zero"
+-version = "0.8.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b8c0a043c9540bae7c578c88f91dda8bd82e59ae27c21baca69c8b191aaf5a6e"
+-
+ [[package]]
+ name = "utf8_iter"
+ version = "1.0.4"
+@@ -5373,17 +5139,6 @@ dependencies = [
+  "wasm-bindgen",
+ ]
+ 
+-[[package]]
+-name = "vad-rs"
+-version = "0.1.6"
+-source = "git+https://github.com/cjpais/vad-rs#2a412ed858695b9251f3f5a1a20d95b59fa7c498"
+-dependencies = [
+- "eyre",
+- "ndarray",
+- "ort",
+- "ringbuffer",
+-]
+-
+ [[package]]
+ name = "vcpkg"
+ version = "0.2.15"
+@@ -5590,15 +5345,6 @@ dependencies = [
+  "system-deps",
+ ]
+ 
+-[[package]]
+-name = "webpki-root-certs"
+-version = "1.0.9"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b96554aa2acc8ccdb7e1c9a58a7a68dd5d13bccc69cd124cb09406db612a1c9b"
+-dependencies = [
+- "rustls-pki-types",
+-]
+-
+ [[package]]
+ name = "webview2-com"
+ version = "0.38.2"
+@@ -6240,7 +5986,7 @@ dependencies = [
+  "javascriptcore-rs",
+  "jni",
+  "libc",
+- "ndk",
++ "ndk 0.9.0",
+  "objc2",
+  "objc2-app-kit",
+  "objc2-core-foundation",
+@@ -6419,12 +6165,6 @@ dependencies = [
+  "synstructure",
+ ]
+ 
+-[[package]]
+-name = "zeroize"
+-version = "1.9.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
+-
+ [[package]]
+ name = "zerotrie"
+ version = "0.2.5"
+diff --git a/crates/audio/Cargo.toml b/crates/audio/Cargo.toml
+index a92e792f..8d0dd74e 100644
+--- a/crates/audio/Cargo.toml
++++ b/crates/audio/Cargo.toml
+@@ -11,10 +11,9 @@ serde = { version = "1.0", features = ["derive"] }
+ log = "0.4"
+ anyhow = "1.0"
+ 
+-cpal = "0.16"
+-rtrb = "0.4"
+-rubato = "0.16"
+-earshot = "1.2"
+-vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
++cpal = "0.15"
++rtrb = "0.3"
++rubato = "0.14"
++earshot = "1.0"
+ 
+ [lints]
+diff --git a/crates/audio/src/vad/mod.rs b/crates/audio/src/vad/mod.rs
+index ca6aa7c5..38ee6708 100644
+--- a/crates/audio/src/vad/mod.rs
++++ b/crates/audio/src/vad/mod.rs
+@@ -70,11 +70,9 @@ pub struct VadTailReport {
+ }
+ 
+ mod earshot;
+-mod silero;
+ mod smoothed;
+ 
+ pub use earshot::EarshotVad;
+-pub use silero::SileroVad;
+ pub use smoothed::SmoothedVad;
+ 
+ #[cfg(test)]
+diff --git a/crates/audio/src/vad/silero.rs b/crates/audio/src/vad/silero.rs
+deleted file mode 100644
+index 638cba99..00000000
+--- a/crates/audio/src/vad/silero.rs
++++ /dev/null
+@@ -1,92 +0,0 @@
+-#![forbid(unsafe_code)]
+-//! Silero VAD adapter using vad-rs crate.
+-//!
+-//! Adapted from Handy's SileroVad implementation.
+-
+-use anyhow::Result;
+-use std::path::Path;
+-
+-use vad_rs::Vad;
+-
+-use super::{VadFrame, VoiceActivityDetector};
+-use crate::constants;
+-
+-const SILERO_FRAME_MS: u32 = 30;
+-const SILERO_FRAME_SAMPLES: usize =
+-    (constants::WHISPER_SAMPLE_RATE * SILERO_FRAME_MS / 1000) as usize;
+-
+-/// Silero VAD wrapper using vad-rs crate.
+-///
+-/// Silero is a high-quality neural VAD that provides good accuracy
+-/// with low latency. It uses an LSTM-based model.
+-pub struct SileroVad {
+-    engine: Vad,
+-    threshold: f32,
+-}
+-
+-impl SileroVad {
+-    /// Create a new Silero VAD from a model file.
+-    ///
+-    /// The model file should be a Silero ONNX model (typically `silero_vad.onnx`).
+-    pub fn new<P: AsRef<Path>>(model_path: P, threshold: f32) -> Result<Self> {
+-        if !(0.0..=1.0).contains(&threshold) {
+-            anyhow::bail!("threshold must be between 0.0 and 1.0");
+-        }
+-
+-        Ok(Self {
+-            engine: Vad::new(&model_path, constants::WHISPER_SAMPLE_RATE as usize)
+-                .map_err(|e| anyhow::anyhow!("Failed to create Silero VAD: {e}"))?,
+-            threshold,
+-        })
+-    }
+-}
+-
+-impl VoiceActivityDetector for SileroVad {
+-    fn push_frame<'a>(&'a mut self, frame: &'a [f32]) -> Result<VadFrame<'a>> {
+-        if frame.len() != SILERO_FRAME_SAMPLES {
+-            anyhow::bail!(
+-                "expected {SILERO_FRAME_SAMPLES} samples, got {}",
+-                frame.len()
+-            );
+-        }
+-
+-        let result = self
+-            .engine
+-            .compute(frame)
+-            .map_err(|e| anyhow::anyhow!("Silero VAD error: {e}"))?;
+-
+-        if result.prob > self.threshold {
+-            Ok(VadFrame::Speech(frame))
+-        } else {
+-            Ok(VadFrame::Noise)
+-        }
+-    }
+-
+-    fn frame_samples(&self) -> usize {
+-        SILERO_FRAME_SAMPLES
+-    }
+-
+-    fn reset(&mut self) {
+-        // Clear the Silero LSTM hidden/cell state so a new session doesn't
+-        // inherit recurrent context from the previous recording.
+-        self.engine.reset();
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    #[test]
+-    fn rejects_wrong_frame_size() {
+-        // Can't test without a model file, but we can verify the frame size constant
+-        assert_eq!(SILERO_FRAME_SAMPLES, 480); // 30ms at 16kHz
+-    }
+-
+-    #[test]
+-    fn validates_threshold() {
+-        // We can't easily test without a model, but the validation logic is simple
+-        assert!(SileroVad::new("/nonexistent.onnx", -0.1).is_err());
+-        assert!(SileroVad::new("/nonexistent.onnx", 1.1).is_err());
+-    }
+-}
+diff --git a/crates/stt/Cargo.toml b/crates/stt/Cargo.toml
+index 6d712fcb..d8a6320a 100644
+--- a/crates/stt/Cargo.toml
++++ b/crates/stt/Cargo.toml
+@@ -9,12 +9,3 @@ authors = ["Soravo Engineering"]
+ thiserror = "1.0"
+ serde = { version = "1.0", features = ["derive"] }
+ soravo-models = { path = "../models" }
+-soravo-audio = { path = "../audio" }
+-transcribe-cpp = { version = "0.2", default-features = false }
+-transcribe-rs = { version = "0.3", features = ["onnx"] }
+-vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
+-earshot = "1.2"
+-tokio = { version = "1.40", features = ["sync", "time"] }
+-anyhow = "1.0"
+-crossbeam-channel = "0.5"
+-log = "0.4"
+diff --git a/crates/stt/src/engines/mod.rs b/crates/stt/src/engines/mod.rs
+deleted file mode 100644
+index cd47ea44..00000000
+--- a/crates/stt/src/engines/mod.rs
++++ /dev/null
+@@ -1,8 +0,0 @@
+-#![forbid(unsafe_code)]
+-//! STT engine implementations.
+-
+-pub mod parakeet;
+-pub mod whisper;
+-
+-pub use parakeet::ParakeetEngine;
+-pub use whisper::WhisperEngine;
+diff --git a/crates/stt/src/engines/parakeet.rs b/crates/stt/src/engines/parakeet.rs
+deleted file mode 100644
+index 647d8513..00000000
+--- a/crates/stt/src/engines/parakeet.rs
++++ /dev/null
+@@ -1,205 +0,0 @@
+-#![forbid(unsafe_code)]
+-//! Parakeet STT engine using transcribe-rs ONNX runtime.
+-//!
+-//! Adapted from Handy's ParakeetModel integration.
+-
+-use std::path::Path;
+-use std::sync::atomic::{AtomicBool, Ordering};
+-
+-use anyhow::Result;
+-use transcribe_rs::onnx::parakeet::{ParakeetModel, ParakeetParams, TimestampGranularity};
+-use transcribe_rs::onnx::Quantization;
+-use transcribe_rs::{SpeechModel, TranscribeOptions};
+-
+-use super::super::{SpeechEngine, SpeechError, TranscriptionConfig, TranscriptionResult};
+-
+-/// Parakeet streaming engine.
+-///
+-/// Uses transcribe-rs ONNX runtime for local inference.
+-/// Supports both batch and streaming transcription.
+-pub struct ParakeetEngine {
+-    model: Option<ParakeetModel>,
+-    session_id: Option<String>,
+-    initialized: AtomicBool,
+-    config: Option<TranscriptionConfig>,
+-    #[allow(dead_code)]
+-    params: ParakeetParams,
+-    quantization: Quantization,
+-}
+-
+-impl Default for ParakeetEngine {
+-    fn default() -> Self {
+-        Self {
+-            model: None,
+-            session_id: None,
+-            initialized: AtomicBool::new(false),
+-            config: None,
+-            params: ParakeetParams {
+-                timestamp_granularity: Some(TimestampGranularity::Segment),
+-                ..Default::default()
+-            },
+-            quantization: Quantization::Int8,
+-        }
+-    }
+-}
+-
+-impl ParakeetEngine {
+-    /// Create a new Parakeet engine with custom parameters.
+-    pub fn with_params(params: ParakeetParams, quantization: Quantization) -> Self {
+-        Self {
+-            params,
+-            quantization,
+-            ..Default::default()
+-        }
+-    }
+-
+-    /// Get the current session ID.
+-    pub fn session_id(&self) -> Option<&str> {
+-        self.session_id.as_deref()
+-    }
+-
+-    /// Check if the engine is initialized.
+-    pub fn is_initialized(&self) -> bool {
+-        self.initialized.load(Ordering::Acquire)
+-    }
+-}
+-
+-impl SpeechEngine for ParakeetEngine {
+-    fn initialize(
+-        &mut self,
+-        model_path: &str,
+-        config: &TranscriptionConfig,
+-    ) -> Result<(), SpeechError> {
+-        let path = Path::new(model_path);
+-        if !path.exists() {
+-            return Err(SpeechError::ModelLoad(format!(
+-                "Model not found at {}",
+-                model_path
+-            )));
+-        }
+-
+-        // Load the Parakeet model
+-        let model = ParakeetModel::load(path, &self.quantization)
+-            .map_err(|e| SpeechError::ModelLoad(format!("Failed to load Parakeet model: {}", e)))?;
+-
+-        self.model = Some(model);
+-        self.session_id = Some(format!(
+-            "session_{}",
+-            std::time::SystemTime::now()
+-                .duration_since(std::time::UNIX_EPOCH)
+-                .unwrap()
+-                .as_millis()
+-        ));
+-        self.config = Some(config.clone());
+-        self.initialized.store(true, Ordering::Release);
+-
+-        log::info!(
+-            "Parakeet engine initialized: model={}, session={:?}",
+-            model_path,
+-            self.session_id
+-        );
+-        Ok(())
+-    }
+-
+-    fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
+-        if !self.initialized.load(Ordering::Acquire) {
+-            return Err(SpeechError::NotInitialized);
+-        }
+-
+-        let model = self.model.as_mut().ok_or(SpeechError::NotInitialized)?;
+-
+-        let session_id = self.session_id.clone().unwrap_or_default();
+-        let sequence = std::time::SystemTime::now()
+-            .duration_since(std::time::UNIX_EPOCH)
+-            .unwrap()
+-            .as_millis() as u64;
+-
+-        // For streaming, we use the model's transcribe method with the audio chunk
+-        // Note: ParakeetModel doesn't have a native streaming API like Whisper,
+-        // so we process chunks and return partial results.
+-        let options = TranscribeOptions {
+-            language: Some(
+-                self.config
+-                    .as_ref()
+-                    .map(|c| c.language.clone())
+-                    .unwrap_or_else(|| "en".to_string()),
+-            ),
+-            ..Default::default()
+-        };
+-
+-        let result = model
+-            .transcribe(audio, &options)
+-            .map_err(|e| SpeechError::Inference(format!("Parakeet inference failed: {}", e)))?;
+-
+-        // Convert transcribe-rs result to our TranscriptionResult
+-        let text = result.text.trim().to_string();
+-
+-        if text.is_empty() {
+-            return Ok(vec![]);
+-        }
+-
+-        // For now, treat all results as final (no native streaming in transcribe-rs Parakeet)
+-        // A future enhancement could implement chunked processing for partials
+-        Ok(vec![TranscriptionResult {
+-            session_id,
+-            sequence,
+-            text,
+-            is_final: true,
+-            timestamp_ms: std::time::SystemTime::now()
+-                .duration_since(std::time::UNIX_EPOCH)
+-                .unwrap()
+-                .as_millis() as u64,
+-        }])
+-    }
+-
+-    fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError> {
+-        if !self.initialized.load(Ordering::Acquire) {
+-            return Err(SpeechError::NotInitialized);
+-        }
+-
+-        // Parakeet doesn't have a separate finalize step - process_audio is complete
+-        Ok(vec![])
+-    }
+-
+-    fn reset(&mut self) {
+-        self.model = None;
+-        self.session_id = None;
+-        self.config = None;
+-        self.initialized.store(false, Ordering::Release);
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    #[test]
+-    fn parakeet_engine_default() {
+-        let engine = ParakeetEngine::default();
+-        assert!(!engine.is_initialized());
+-        assert!(engine.session_id().is_none());
+-    }
+-
+-    #[test]
+-    fn parakeet_engine_with_params() {
+-        let params = ParakeetParams::default();
+-        let engine = ParakeetEngine::with_params(params, Quantization::Int8);
+-        assert!(!engine.is_initialized());
+-    }
+-
+-    #[test]
+-    fn parakeet_initialize_nonexistent_model() {
+-        let mut engine = ParakeetEngine::default();
+-        let config = TranscriptionConfig {
+-            language: "en".to_string(),
+-            streaming: true,
+-            hotwords: vec![],
+-        };
+-        let result = engine.initialize("/nonexistent/model.onnx", &config);
+-        assert!(result.is_err());
+-        match result.unwrap_err() {
+-            SpeechError::ModelLoad(_) => {}
+-            _ => panic!("Expected ModelLoad error"),
+-        }
+-    }
+-}
+diff --git a/crates/stt/src/engines/whisper.rs b/crates/stt/src/engines/whisper.rs
+deleted file mode 100644
+index 9273bdfd..00000000
+--- a/crates/stt/src/engines/whisper.rs
++++ /dev/null
+@@ -1,389 +0,0 @@
+-#![forbid(unsafe_code)]
+-//! Whisper STT engine using transcribe-cpp native runtime.
+-//!
+-//! Adapted from Handy's transcribe-cpp Session integration with streaming support.
+-
+-use std::path::Path;
+-use std::sync::atomic::{AtomicBool, Ordering};
+-use std::sync::Mutex;
+-
+-use anyhow::Result;
+-use transcribe_cpp::{
+-    Backend, Model, ModelOptions, RunOptions, Session, Stream, StreamOptions, Task,
+-};
+-
+-use super::super::{SpeechEngine, SpeechError, TranscriptionConfig, TranscriptionResult};
+-
+-/// Whisper streaming engine.
+-///
+-/// Uses transcribe-cpp for native Whisper/Whisper.cpp inference with streaming support.
+-/// Supports both batch and streaming transcription via Session::stream().
+-///
+-/// The session is protected by a Mutex. For streaming, the streaming worker
+-/// should take ownership of the engine (or lock it for the duration of streaming).
+-pub struct WhisperEngine {
+-    session: Mutex<Option<Session>>,
+-    model_id: Option<String>,
+-    session_id: Option<String>,
+-    initialized: AtomicBool,
+-    config: Mutex<Option<TranscriptionConfig>>,
+-    supported_languages: Vec<String>,
+-    supports_streaming: bool,
+-    model_options: ModelOptions,
+-}
+-
+-impl Default for WhisperEngine {
+-    fn default() -> Self {
+-        Self {
+-            session: Mutex::new(None),
+-            model_id: None,
+-            session_id: None,
+-            initialized: AtomicBool::new(false),
+-            config: Mutex::new(None),
+-            supported_languages: Vec::new(),
+-            supports_streaming: false,
+-            model_options: ModelOptions::default(),
+-        }
+-    }
+-}
+-
+-impl WhisperEngine {
+-    /// Create a new Whisper engine with custom model options.
+-    pub fn with_model_options(model_options: ModelOptions) -> Self {
+-        Self {
+-            model_options,
+-            ..Default::default()
+-        }
+-    }
+-
+-    /// Set the backend explicitly (for testing or specific hardware selection).
+-    pub fn set_backend(&mut self, backend: Backend) {
+-        self.model_options.backend = backend;
+-    }
+-
+-    /// Get the current session ID.
+-    pub fn session_id(&self) -> Option<&str> {
+-        self.session_id.as_deref()
+-    }
+-
+-    /// Check if the engine is initialized.
+-    pub fn is_initialized(&self) -> bool {
+-        self.initialized.load(Ordering::Acquire)
+-    }
+-
+-    /// Check if the loaded model supports streaming.
+-    pub fn supports_streaming(&self) -> bool {
+-        self.supports_streaming
+-    }
+-
+-    /// Get the model's supported languages.
+-    pub fn supported_languages(&self) -> &[String] {
+-        &self.supported_languages
+-    }
+-
+-    /// Build run options from transcription config.
+-    fn build_run_options(&self) -> RunOptions {
+-        let config = self
+-            .config
+-            .lock()
+-            .unwrap()
+-            .clone()
+-            .unwrap_or_else(|| TranscriptionConfig {
+-                language: "en".to_string(),
+-                streaming: true,
+-                hotwords: Vec::new(),
+-            });
+-        let mut run_options = RunOptions::default();
+-
+-        // Task: transcribe or translate
+-        if config.language != "auto" {
+-            run_options.task = Task::Transcribe;
+-        } else {
+-            run_options.task = Task::Translate;
+-        }
+-
+-        // Language
+-        if config.language != "auto" {
+-            run_options.language = Some(config.language.clone());
+-        }
+-
+-        run_options
+-    }
+-
+-    /// Run streaming transcription with a closure that has access to the stream.
+-    ///
+-    /// This follows Handy's pattern: the caller provides a closure that receives
+-    /// the stream. The session lock is held for the duration of the closure.
+-    pub fn with_stream<F, R>(&self, f: F) -> Result<R, SpeechError>
+-    where
+-        F: FnOnce(&mut Stream) -> Result<R, SpeechError>,
+-    {
+-        if !self.supports_streaming {
+-            return Err(SpeechError::Inference(
+-                "Model does not support streaming".to_string(),
+-            ));
+-        }
+-
+-        let mut session_guard = self.session.lock().unwrap();
+-        let session = session_guard.as_mut().ok_or(SpeechError::NotInitialized)?;
+-        let run_options = self.build_run_options();
+-
+-        let mut stream = session
+-            .stream(&run_options, &StreamOptions::default())
+-            .map_err(|e| SpeechError::Inference(format!("Failed to start stream: {}", e)))?;
+-
+-        let result = f(&mut stream);
+-
+-        // The stream is dropped here, releasing the compute lease
+-        result
+-    }
+-
+-    /// Feed audio to a stream (used within with_stream closure).
+-    fn feed_stream(
+-        stream: &mut Stream,
+-        audio: &[f32],
+-        session_id: &str,
+-    ) -> Result<Vec<TranscriptionResult>, SpeechError> {
+-        let _update = stream
+-            .feed(audio)
+-            .map_err(|e| SpeechError::Inference(format!("Stream feed failed: {}", e)))?;
+-
+-        let text = stream.text();
+-        let session_id = session_id.to_string();
+-        let sequence = std::time::SystemTime::now()
+-            .duration_since(std::time::UNIX_EPOCH)
+-            .unwrap()
+-            .as_millis() as u64;
+-
+-        let mut results = Vec::new();
+-
+-        if !text.committed.is_empty() {
+-            results.push(TranscriptionResult {
+-                session_id: session_id.clone(),
+-                sequence,
+-                text: text.committed,
+-                is_final: false,
+-                timestamp_ms: std::time::SystemTime::now()
+-                    .duration_since(std::time::UNIX_EPOCH)
+-                    .unwrap()
+-                    .as_millis() as u64,
+-            });
+-        }
+-
+-        if !text.tentative.is_empty() {
+-            results.push(TranscriptionResult {
+-                session_id,
+-                sequence: sequence + 1,
+-                text: text.tentative,
+-                is_final: false,
+-                timestamp_ms: std::time::SystemTime::now()
+-                    .duration_since(std::time::UNIX_EPOCH)
+-                    .unwrap()
+-                    .as_millis() as u64,
+-            });
+-        }
+-
+-        Ok(results)
+-    }
+-
+-    /// Finalize a stream (used within with_stream closure).
+-    fn finalize_stream(
+-        stream: &mut Stream,
+-        session_id: &str,
+-    ) -> Result<Vec<TranscriptionResult>, SpeechError> {
+-        let _update = stream
+-            .finalize()
+-            .map_err(|e| SpeechError::Inference(format!("Stream finalize failed: {}", e)))?;
+-
+-        let text = stream.text().full;
+-        let session_id = session_id.to_string();
+-        let sequence = std::time::SystemTime::now()
+-            .duration_since(std::time::UNIX_EPOCH)
+-            .unwrap()
+-            .as_millis() as u64;
+-
+-        if text.is_empty() {
+-            return Ok(vec![]);
+-        }
+-
+-        Ok(vec![TranscriptionResult {
+-            session_id,
+-            sequence,
+-            text,
+-            is_final: true,
+-            timestamp_ms: std::time::SystemTime::now()
+-                .duration_since(std::time::UNIX_EPOCH)
+-                .unwrap()
+-                .as_millis() as u64,
+-        }])
+-    }
+-
+-    /// Run batch transcription.
+-    fn run_batch(&self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
+-        let mut session_guard = self.session.lock().unwrap();
+-        let session = session_guard.as_mut().ok_or(SpeechError::NotInitialized)?;
+-        let run_options = self.build_run_options();
+-
+-        let result = session
+-            .run(audio, &run_options)
+-            .map_err(|e| SpeechError::Inference(format!("Whisper inference failed: {}", e)))?;
+-
+-        let text = result.text.trim().to_string();
+-        if text.is_empty() {
+-            return Ok(vec![]);
+-        }
+-
+-        let session_id = self.session_id.clone().unwrap_or_default();
+-        let sequence = std::time::SystemTime::now()
+-            .duration_since(std::time::UNIX_EPOCH)
+-            .unwrap()
+-            .as_millis() as u64;
+-
+-        Ok(vec![TranscriptionResult {
+-            session_id,
+-            sequence,
+-            text,
+-            is_final: true,
+-            timestamp_ms: std::time::SystemTime::now()
+-                .duration_since(std::time::UNIX_EPOCH)
+-                .unwrap()
+-                .as_millis() as u64,
+-        }])
+-    }
+-}
+-
+-impl SpeechEngine for WhisperEngine {
+-    fn initialize(
+-        &mut self,
+-        model_path: &str,
+-        config: &TranscriptionConfig,
+-    ) -> Result<(), SpeechError> {
+-        let path = Path::new(model_path);
+-        if !path.exists() {
+-            return Err(SpeechError::ModelLoad(format!(
+-                "Model not found at {}",
+-                model_path
+-            )));
+-        }
+-
+-        // Load the model
+-        let model = Model::load_with(path, &self.model_options)
+-            .map_err(|e| SpeechError::ModelLoad(format!("Failed to load Whisper model: {}", e)))?;
+-
+-        // Check capabilities
+-        let caps = model.capabilities();
+-        self.supports_streaming = caps.supports_streaming;
+-        self.supported_languages = caps.languages.clone();
+-
+-        log::info!(
+-            "Whisper model loaded: arch={}, variant={}, streaming={}, languages={:?}",
+-            model.arch(),
+-            model.variant(),
+-            caps.supports_streaming,
+-            caps.languages
+-        );
+-
+-        // Create session
+-        let session = model.session().map_err(|e| {
+-            SpeechError::ModelLoad(format!("Failed to create Whisper session: {}", e))
+-        })?;
+-
+-        *self.session.lock().unwrap() = Some(session);
+-        self.model_id = Some(model_path.to_string());
+-        self.session_id = Some(format!(
+-            "session_{}",
+-            std::time::SystemTime::now()
+-                .duration_since(std::time::UNIX_EPOCH)
+-                .unwrap()
+-                .as_millis()
+-        ));
+-        *self.config.lock().unwrap() = Some(config.clone());
+-        self.initialized.store(true, Ordering::Release);
+-
+-        log::info!("Whisper engine initialized: session={:?}", self.session_id);
+-        Ok(())
+-    }
+-
+-    fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
+-        if !self.initialized.load(Ordering::Acquire) {
+-            return Err(SpeechError::NotInitialized);
+-        }
+-
+-        // If model supports streaming, use streaming API
+-        if self.supports_streaming {
+-            let session_id = self.session_id.clone().unwrap_or_default();
+-            return self.with_stream(|stream| Self::feed_stream(stream, audio, &session_id));
+-        }
+-
+-        // Otherwise, fall back to batch transcription
+-        self.run_batch(audio)
+-    }
+-
+-    fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError> {
+-        if !self.initialized.load(Ordering::Acquire) {
+-            return Err(SpeechError::NotInitialized);
+-        }
+-
+-        // For streaming, finalize should be called via with_stream
+-        // For batch, there's nothing to finalize
+-        if self.supports_streaming {
+-            let session_id = self.session_id.clone().unwrap_or_default();
+-            return self.with_stream(|stream| Self::finalize_stream(stream, &session_id));
+-        }
+-
+-        Ok(vec![])
+-    }
+-
+-    fn reset(&mut self) {
+-        *self.session.lock().unwrap() = None;
+-        self.model_id = None;
+-        self.session_id = None;
+-        *self.config.lock().unwrap() = None;
+-        self.supported_languages.clear();
+-        self.supports_streaming = false;
+-        self.initialized.store(false, Ordering::Release);
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    #[test]
+-    fn whisper_engine_default() {
+-        let engine = WhisperEngine::default();
+-        assert!(!engine.is_initialized());
+-        assert!(!engine.supports_streaming());
+-        assert!(engine.session_id().is_none());
+-        assert!(engine.supported_languages().is_empty());
+-    }
+-
+-    #[test]
+-    fn whisper_engine_with_model_options() {
+-        let options = ModelOptions::default();
+-        let engine = WhisperEngine::with_model_options(options);
+-        assert!(!engine.is_initialized());
+-    }
+-
+-    #[test]
+-    fn whisper_initialize_nonexistent_model() {
+-        let mut engine = WhisperEngine::default();
+-        let config = TranscriptionConfig {
+-            language: "en".to_string(),
+-            streaming: true,
+-            hotwords: vec![],
+-        };
+-        let result = engine.initialize("/nonexistent/model.bin", &config);
+-        assert!(result.is_err());
+-        match result.unwrap_err() {
+-            SpeechError::ModelLoad(_) => {}
+-            _ => panic!("Expected ModelLoad error"),
+-        }
+-    }
+-
+-    #[test]
+-    fn whisper_set_backend() {
+-        let mut engine = WhisperEngine::default();
+-        engine.set_backend(Backend::Cpu);
+-    }
+-}
+diff --git a/crates/stt/src/lib.rs b/crates/stt/src/lib.rs
+index c1c87d04..54d92a46 100644
+--- a/crates/stt/src/lib.rs
++++ b/crates/stt/src/lib.rs
+@@ -5,10 +5,6 @@
+ //! Benchmark-driven selection (protocol §12).
+ 
+ pub mod benchmark;
+-pub mod engines;
+-pub mod stream_events;
+-pub mod stream_router;
+-pub mod stream_worker;
+ 
+ use serde::{Deserialize, Serialize};
+ use thiserror::Error;
+@@ -41,57 +37,118 @@ pub struct TranscriptionConfig {
+     pub hotwords: Vec<String>,
+ }
+ 
+-/// Core speech engine trait.
+-///
+-/// Implementations must provide model initialization, audio processing,
+-/// finalization, and reset. For streaming-capable engines, the
+-/// `process_audio` method should return partial results with `is_final=false`
+-/// and the final result with `is_final=true`.
+-///
+-/// Note: The trait only requires `Send` (not `Sync`) because engines may
+-/// contain non-thread-safe native handles. Thread safety is achieved by
+-/// wrapping engines in `Arc<Mutex<...>>` at the manager level.
+-pub trait SpeechEngine: Send {
+-    /// Initialize the engine with a model path and configuration.
++pub trait SpeechEngine: Send + Sync {
+     fn initialize(
+         &mut self,
+         model_path: &str,
+-        config: &TranscriptionConfig,
++        _config: &TranscriptionConfig,
+     ) -> Result<(), SpeechError>;
++    fn process_audio(&mut self, _audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError>;
++    fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError>;
++    fn reset(&mut self);
++}
+ 
+-    /// Process an audio chunk and return transcription results.
+-    ///
+-    /// For streaming engines, this may return partial results with
+-    /// `is_final=false`. The final result should have `is_final=true`.
+-    fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError>;
++#[derive(Default)]
++pub struct ParakeetEngine {
++    initialized: bool,
++    session_id: Option<String>,
++}
+ 
+-    /// Finalize transcription and return any remaining results.
+-    ///
+-    /// For streaming engines, this flushes the stream and returns the
+-    /// complete final text. For batch engines, this may return empty.
+-    fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError>;
++impl SpeechEngine for ParakeetEngine {
++    fn initialize(
++        &mut self,
++        model_path: &str,
++        _config: &TranscriptionConfig,
++    ) -> Result<(), SpeechError> {
++        if std::path::Path::new(model_path).exists() {
++            self.initialized = true;
++            self.session_id = Some(format!(
++                "session_{}",
++                std::time::SystemTime::now()
++                    .duration_since(std::time::UNIX_EPOCH)
++                    .unwrap()
++                    .as_millis()
++            ));
++            Ok(())
++        } else {
++            Err(SpeechError::ModelLoad(format!(
++                "Model not found at {}",
++                model_path
++            )))
++        }
++    }
+ 
+-    /// Reset the engine to uninitialized state.
+-    fn reset(&mut self);
++    fn process_audio(&mut self, _audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
++        if !self.initialized {
++            return Err(SpeechError::NotInitialized);
++        }
+ 
+-    /// Check if the engine supports streaming transcription.
+-    ///
+-    /// Default implementation returns false. Streaming-capable engines
+-    /// should override this to return true.
+-    fn supports_streaming(&self) -> bool {
+-        false
++        // Placeholder: real implementation would run inference
++        Ok(vec![])
+     }
+ 
+-    /// Get the model's supported languages (if known).
+-    ///
+-    /// Default implementation returns empty. Engines that load model
+-    /// metadata should override this.
+-    fn supported_languages(&self) -> Vec<String> {
+-        Vec::new()
++    fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError> {
++        if !self.initialized {
++            return Err(SpeechError::NotInitialized);
++        }
++        Ok(vec![])
+     }
++
++    fn reset(&mut self) {
++        self.initialized = false;
++        self.session_id = None;
++    }
++}
++
++#[derive(Default)]
++pub struct WhisperEngine {
++    initialized: bool,
++    session_id: Option<String>,
+ }
+ 
+-pub use engines::{ParakeetEngine, WhisperEngine};
++impl SpeechEngine for WhisperEngine {
++    fn initialize(
++        &mut self,
++        model_path: &str,
++        _config: &TranscriptionConfig,
++    ) -> Result<(), SpeechError> {
++        if std::path::Path::new(model_path).exists() {
++            self.initialized = true;
++            self.session_id = Some(format!(
++                "session_{}",
++                std::time::SystemTime::now()
++                    .duration_since(std::time::UNIX_EPOCH)
++                    .unwrap()
++                    .as_millis()
++            ));
++            Ok(())
++        } else {
++            Err(SpeechError::ModelLoad(format!(
++                "Model not found at {}",
++                model_path
++            )))
++        }
++    }
++
++    fn process_audio(&mut self, _audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError> {
++        if !self.initialized {
++            return Err(SpeechError::NotInitialized);
++        }
++        Ok(vec![])
++    }
++
++    fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError> {
++        if !self.initialized {
++            return Err(SpeechError::NotInitialized);
++        }
++        Ok(vec![])
++    }
++
++    fn reset(&mut self) {
++        self.initialized = false;
++        self.session_id = None;
++    }
++}
+ 
+ #[cfg(test)]
+ mod tests {
+@@ -111,26 +168,4 @@ mod tests {
+             .initialize("/nonexistent/model.bin", &config)
+             .is_err());
+     }
+-
+-    #[test]
+-    fn test_whisper_engine_initialization() {
+-        let mut engine = WhisperEngine::default();
+-        let config = TranscriptionConfig {
+-            language: "en".to_string(),
+-            streaming: true,
+-            hotwords: vec![],
+-        };
+-
+-        // Test with non-existent path
+-        assert!(engine
+-            .initialize("/nonexistent/model.bin", &config)
+-            .is_err());
+-    }
+-
+-    #[test]
+-    fn test_speech_engine_trait_object() {
+-        // Verify trait object safety
+-        let _engine: Box<dyn SpeechEngine> = Box::new(ParakeetEngine::default());
+-        let _engine: Box<dyn SpeechEngine> = Box::new(WhisperEngine::default());
+-    }
+ }
+diff --git a/crates/stt/src/stream_events.rs b/crates/stt/src/stream_events.rs
+deleted file mode 100644
+index 48b9e2cf..00000000
+--- a/crates/stt/src/stream_events.rs
++++ /dev/null
+@@ -1,139 +0,0 @@
+-#![forbid(unsafe_code)]
+-//! Streaming transcription events — partial/final segmentation for live UI.
+-//!
+-//! Adapted from Handy's StreamTextEvent and StreamPhaseEvent.
+-
+-use serde::{Deserialize, Serialize};
+-
+-/// Live transcription snapshot emitted during a streaming run.
+-/// `committed` is the append-only, flicker-free prefix; `tentative` is the
+-/// volatile suffix the model may still rewrite.
+-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+-pub struct StreamTextEvent {
+-    pub committed: String,
+-    pub tentative: String,
+-}
+-
+-impl StreamTextEvent {
+-    pub fn new(committed: String, tentative: String) -> Self {
+-        Self {
+-            committed,
+-            tentative,
+-        }
+-    }
+-
+-    pub fn full_text(&self) -> String {
+-        format!("{}{}", self.committed, self.tentative)
+-    }
+-
+-    pub fn is_empty(&self) -> bool {
+-        self.committed.is_empty() && self.tentative.is_empty()
+-    }
+-}
+-
+-/// Phase of the streaming transcription, emitted to drive UI state.
+-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+-#[serde(rename_all = "lowercase")]
+-pub enum StreamPhase {
+-    /// Receiving audio / live text (waiting for first speech).
+-    Listening,
+-    /// Finalizing or post-processing — show a spinner.
+-    Working,
+-}
+-
+-/// Semantic kind of "working" phase, used to localize the spinner label.
+-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+-#[serde(rename_all = "lowercase")]
+-pub enum StreamWorkKind {
+-    Transcribing,
+-    Polishing,
+-}
+-
+-/// Emitted to switch the streaming overlay to a working spinner.
+-#[derive(Clone, Debug, Serialize, Deserialize)]
+-pub struct StreamPhaseEvent {
+-    pub phase: StreamPhase,
+-    #[serde(skip_serializing_if = "Option::is_none")]
+-    pub kind: Option<StreamWorkKind>,
+-}
+-
+-impl StreamPhaseEvent {
+-    pub fn listening() -> Self {
+-        Self {
+-            phase: StreamPhase::Listening,
+-            kind: None,
+-        }
+-    }
+-
+-    pub fn working(kind: StreamWorkKind) -> Self {
+-        Self {
+-            phase: StreamPhase::Working,
+-            kind: Some(kind),
+-        }
+-    }
+-}
+-
+-/// Output language evidence for post-processing decisions.
+-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+-pub enum OutputLanguageEvidence {
+-    /// Language not yet determined.
+-    Unknown,
+-    /// Language explicitly set by user.
+-    Forced(String),
+-    /// Language detected by model (whisper LID).
+-    Detected(String),
+-}
+-
+-/// Finalized stream text with post-processing metadata.
+-#[derive(Clone, Debug, Serialize, Deserialize)]
+-pub struct FinalizedStreamText {
+-    pub text: String,
+-    pub output_language: OutputLanguageEvidence,
+-    /// The streaming model's supported languages, for text-based detection.
+-    pub supported_languages: Vec<String>,
+-}
+-
+-impl FinalizedStreamText {
+-    pub fn new(
+-        text: String,
+-        output_language: OutputLanguageEvidence,
+-        supported_languages: Vec<String>,
+-    ) -> Self {
+-        Self {
+-            text,
+-            output_language,
+-            supported_languages,
+-        }
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    #[test]
+-    fn stream_text_event_full_text() {
+-        let event = StreamTextEvent::new("Hello".to_string(), " world".to_string());
+-        assert_eq!(event.full_text(), "Hello world");
+-    }
+-
+-    #[test]
+-    fn stream_text_event_empty() {
+-        let event = StreamTextEvent::new("".to_string(), "".to_string());
+-        assert!(event.is_empty());
+-    }
+-
+-    #[test]
+-    fn stream_phase_event_listening() {
+-        let event = StreamPhaseEvent::listening();
+-        assert_eq!(event.phase, StreamPhase::Listening);
+-        assert!(event.kind.is_none());
+-    }
+-
+-    #[test]
+-    fn stream_phase_event_working() {
+-        let event = StreamPhaseEvent::working(StreamWorkKind::Transcribing);
+-        assert_eq!(event.phase, StreamPhase::Working);
+-        assert_eq!(event.kind, Some(StreamWorkKind::Transcribing));
+-    }
+-}
+diff --git a/crates/stt/src/stream_router.rs b/crates/stt/src/stream_router.rs
+deleted file mode 100644
+index b8f950d1..00000000
+--- a/crates/stt/src/stream_router.rs
++++ /dev/null
+@@ -1,151 +0,0 @@
+-#![forbid(unsafe_code)]
+-//! Stream router for real-time audio frame feeding.
+-//!
+-//! Adapted from Handy's StreamRouter. Routes audio frames from the audio
+-//! recorder directly to the streaming worker thread, bypassing Tauri state
+-//! lookups for minimal per-frame overhead.
+-
+-use crossbeam_channel::{unbounded, Receiver, Sender};
+-use std::sync::atomic::{AtomicBool, Ordering};
+-use std::sync::{Arc, Mutex};
+-
+-/// Commands sent to the streaming worker thread. Audio frames and the finalize
+-/// request travel the same channel so FIFO ordering guarantees every fed frame
+-/// is processed before finalize runs.
+-#[derive(Debug)]
+-pub enum StreamCmd {
+-    /// Feed a 16 kHz mono audio frame to the streaming worker.
+-    Feed(Vec<f32>),
+-    /// Flush the stream and reply with the final text, or `None` if no stream
+-    /// was ever active (caller should fall back to batch transcription).
+-    Finalize(Sender<Option<super::stream_events::FinalizedStreamText>>),
+-    /// Cancel the active stream without producing output.
+-    Cancel,
+-}
+-
+-/// Routes real-time audio frames to the active streaming worker. Shared between
+-/// the STT engine (opens/closes the route) and the audio recorder's
+-/// per-frame callback (feeds frames). The recorder holds an `Arc<StreamRouter>`
+-/// directly, so a frame with no stream pending costs a single relaxed atomic
+-/// load — no mutex lock.
+-#[derive(Clone)]
+-pub struct StreamRouter {
+-    /// Command channel to the active streaming worker, present from
+-    /// `open` until `take`/`clear`.
+-    tx: Arc<Mutex<Option<Sender<StreamCmd>>>>,
+-    /// True while a stream is pending or active (channel is open). The audio
+-    /// callback checks this first to avoid the mutex lock when no stream runs.
+-    open: Arc<AtomicBool>,
+-}
+-
+-impl StreamRouter {
+-    /// Create a new closed stream router.
+-    pub fn new() -> Self {
+-        Self {
+-            tx: Arc::new(Mutex::new(None)),
+-            open: Arc::new(AtomicBool::new(false)),
+-        }
+-    }
+-
+-    /// Open a fresh command channel for a new streaming session, returning the
+-    /// receiver the worker should drain. Caller must ensure no prior channel is
+-    /// still open.
+-    pub fn open(&self) -> Receiver<StreamCmd> {
+-        let (tx, rx) = unbounded::<StreamCmd>();
+-        *self.tx.lock().unwrap() = Some(tx);
+-        self.open.store(true, Ordering::Relaxed);
+-        rx
+-    }
+-
+-    /// Take the sender out (closing the channel to new feeds). Returns the
+-    /// sender so the caller can send the final `Finalize`/`Cancel` command.
+-    pub fn take(&self) -> Option<Sender<StreamCmd>> {
+-        self.open.store(false, Ordering::Relaxed);
+-        self.tx.lock().unwrap().take()
+-    }
+-
+-    /// Drop the channel and mark closed without sending a final command (used
+-    /// when the worker exits without a finalize/cancel handshake).
+-    pub fn clear(&self) {
+-        self.open.store(false, Ordering::Relaxed);
+-        *self.tx.lock().unwrap() = None;
+-    }
+-
+-    /// Forward a 16 kHz frame to the active streaming worker. Cheap no-op (a
+-    /// single relaxed atomic load) when no stream is pending.
+-    pub fn feed(&self, frame: &[f32]) {
+-        if !self.open.load(Ordering::Relaxed) {
+-            return;
+-        }
+-        if let Some(tx) = self.tx.lock().unwrap().as_ref() {
+-            let _ = tx.send(StreamCmd::Feed(frame.to_vec()));
+-        }
+-    }
+-
+-    /// Whether a stream is pending or active.
+-    pub fn is_open(&self) -> bool {
+-        self.open.load(Ordering::Relaxed)
+-    }
+-}
+-
+-impl Default for StreamRouter {
+-    fn default() -> Self {
+-        Self::new()
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-    use crossbeam_channel::unbounded;
+-
+-    #[test]
+-    fn router_feed_when_closed_is_noop() {
+-        let router = StreamRouter::new();
+-        assert!(!router.is_open());
+-        router.feed(&[0.1, 0.2, 0.3]); // Should not panic
+-    }
+-
+-    #[test]
+-    fn router_open_returns_receiver() {
+-        let router = StreamRouter::new();
+-        let _rx = router.open();
+-        assert!(router.is_open());
+-        // Send a command and verify it's received
+-        let (tx, _rx2) = unbounded::<StreamCmd>();
+-        tx.send(StreamCmd::Feed(vec![0.1, 0.2])).unwrap();
+-        drop(tx);
+-        // The router's internal channel should have the command
+-        assert!(router.is_open());
+-    }
+-
+-    #[test]
+-    fn router_take_closes_channel() {
+-        let router = StreamRouter::new();
+-        router.open();
+-        assert!(router.is_open());
+-        let _tx = router.take();
+-        assert!(!router.is_open());
+-    }
+-
+-    #[test]
+-    fn router_clear_closes_without_sender() {
+-        let router = StreamRouter::new();
+-        router.open();
+-        router.clear();
+-        assert!(!router.is_open());
+-    }
+-
+-    #[test]
+-    fn router_feed_when_open_queues_command() {
+-        let router = StreamRouter::new();
+-        let rx = router.open();
+-        router.feed(&[0.1, 0.2, 0.3]);
+-        // Command should be in the channel
+-        let cmd = rx.try_recv().expect("command should be queued");
+-        match cmd {
+-            StreamCmd::Feed(samples) => assert_eq!(samples, vec![0.1, 0.2, 0.3]),
+-            _ => panic!("expected Feed command"),
+-        }
+-    }
+-}
+diff --git a/crates/stt/src/stream_worker.rs b/crates/stt/src/stream_worker.rs
+deleted file mode 100644
+index 9813a4cf..00000000
+--- a/crates/stt/src/stream_worker.rs
++++ /dev/null
+@@ -1,223 +0,0 @@
+-#![forbid(unsafe_code)]
+-//! Streaming worker thread for live transcription.
+-//!
+-//! Adapted from Handy's TranscriptionManager::run_stream_worker.
+-
+-use std::sync::atomic::{AtomicBool, Ordering};
+-use std::sync::Arc;
+-use std::time::{Duration, Instant};
+-
+-use crossbeam_channel::{Receiver, Sender};
+-
+-use super::stream_events::{FinalizedStreamText, OutputLanguageEvidence, StreamTextEvent};
+-use super::stream_router::StreamCmd;
+-use super::SpeechEngine;
+-
+-/// Configuration for the streaming worker.
+-pub struct StreamWorkerConfig {
+-    pub model_id: String,
+-    pub supported_languages: Vec<String>,
+-    pub output_language: OutputLanguageEvidence,
+-    pub text_emitter: Box<dyn Fn(&StreamTextEvent) + Send + 'static>,
+-    pub phase_emitter: Box<dyn Fn(super::stream_events::StreamPhaseEvent) + Send + 'static>,
+-    pub engine_return: Sender<Box<dyn SpeechEngine + Send>>,
+-}
+-
+-/// Run the streaming worker loop.
+-///
+-/// This function takes ownership of the engine and runs until it receives
+-/// a Finalize or Cancel command. It returns the engine back to the caller
+-/// via the `engine_return` channel.
+-pub fn run_stream_worker<E>(mut engine: E, rx: Receiver<StreamCmd>, config: StreamWorkerConfig)
+-where
+-    E: SpeechEngine + Send + 'static,
+-{
+-    let _stream_active = StreamActiveGuard::new();
+-
+-    // Emit initial listening phase
+-    (config.phase_emitter)(super::stream_events::StreamPhaseEvent::listening());
+-
+-    let mut perf = StreamPerf::new();
+-    let mut finalize_reply: Option<Sender<Option<FinalizedStreamText>>> = None;
+-    let mut finalize_result: Option<Option<FinalizedStreamText>> = None;
+-
+-    while let Ok(cmd) = rx.recv() {
+-        match cmd {
+-            StreamCmd::Feed(pcm) => {
+-                perf.record_feed(pcm.len());
+-                let feed_start = Instant::now();
+-
+-                // Process audio through the engine
+-                match engine.process_audio(&pcm) {
+-                    Ok(results) => {
+-                        perf.record_compute(feed_start.elapsed());
+-
+-                        for result in results {
+-                            if result.is_final {
+-                                // For final results, we still emit as committed
+-                                (config.text_emitter)(&StreamTextEvent::new(
+-                                    result.text,
+-                                    String::new(),
+-                                ));
+-                            } else {
+-                                // Partial results: emit as committed + tentative
+-                                // The engine should provide the split if it supports it
+-                                (config.text_emitter)(&StreamTextEvent::new(
+-                                    result.text,
+-                                    String::new(),
+-                                ));
+-                            }
+-                        }
+-                        perf.maybe_log();
+-                    }
+-                    Err(e) => {
+-                        perf.record_compute(feed_start.elapsed());
+-                        log::warn!("Stream feed failed: {}", e);
+-                    }
+-                }
+-            }
+-            StreamCmd::Finalize(reply) => {
+-                let finalize_start = Instant::now();
+-                let result = match engine.finalize() {
+-                    Ok(results) => {
+-                        perf.record_compute(finalize_start.elapsed());
+-
+-                        let text = if results.is_empty() {
+-                            String::new()
+-                        } else {
+-                            // Concatenate all final results
+-                            results
+-                                .iter()
+-                                .map(|r| r.text.as_str())
+-                                .collect::<Vec<_>>()
+-                                .join(" ")
+-                        };
+-
+-                        perf.log_finalized(text.len());
+-
+-                        Some(FinalizedStreamText::new(
+-                            text,
+-                            config.output_language.clone(),
+-                            config.supported_languages.clone(),
+-                        ))
+-                    }
+-                    Err(e) => {
+-                        perf.record_compute(finalize_start.elapsed());
+-                        log::error!(
+-                            "Stream finalize failed: {}; falling back to batch transcription",
+-                            e
+-                        );
+-                        None
+-                    }
+-                };
+-                finalize_reply = Some(reply);
+-                finalize_result = Some(result);
+-                break;
+-            }
+-            StreamCmd::Cancel => {
+-                log::info!("Stream cancelled");
+-                break;
+-            }
+-        }
+-    }
+-
+-    // Send finalize reply if we have one
+-    if let (Some(reply), Some(result)) = (finalize_reply, finalize_result) {
+-        let _ = reply.send(result);
+-    }
+-
+-    // Return the engine to the caller
+-    let _ = config.engine_return.send(Box::new(engine));
+-}
+-
+-/// RAII guard that tracks stream active state.
+-struct StreamActiveGuard {
+-    active: Arc<AtomicBool>,
+-}
+-
+-impl StreamActiveGuard {
+-    fn new() -> Self {
+-        let active = Arc::new(AtomicBool::new(true));
+-        // In a real implementation, this would be shared with the manager
+-        // For now, just track locally
+-        Self { active }
+-    }
+-}
+-
+-impl Drop for StreamActiveGuard {
+-    fn drop(&mut self) {
+-        self.active.store(false, Ordering::Release);
+-    }
+-}
+-
+-/// Performance tracking for streaming.
+-struct StreamPerf {
+-    feed_count: u64,
+-    total_feed_samples: u64,
+-    total_compute_time: Duration,
+-    last_log: Instant,
+-}
+-
+-impl StreamPerf {
+-    fn new() -> Self {
+-        Self {
+-            feed_count: 0,
+-            total_feed_samples: 0,
+-            total_compute_time: Duration::ZERO,
+-            last_log: Instant::now(),
+-        }
+-    }
+-
+-    fn record_feed(&mut self, samples: usize) {
+-        self.feed_count += 1;
+-        self.total_feed_samples += samples as u64;
+-    }
+-
+-    fn record_compute(&mut self, elapsed: Duration) {
+-        self.total_compute_time += elapsed;
+-    }
+-
+-    fn maybe_log(&mut self) {
+-        const LOG_INTERVAL: Duration = Duration::from_secs(5);
+-        if self.last_log.elapsed() >= LOG_INTERVAL {
+-            log::debug!(
+-                "Stream perf: feeds={}, samples={}, compute_time={:?}",
+-                self.feed_count,
+-                self.total_feed_samples,
+-                self.total_compute_time
+-            );
+-            self.last_log = Instant::now();
+-        }
+-    }
+-
+-    fn log_finalized(&self, chars: usize) {
+-        log::info!(
+-            "Stream finalized: {} chars, {} feeds, {:?} compute",
+-            chars,
+-            self.feed_count,
+-            self.total_compute_time
+-        );
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    #[test]
+-    fn stream_perf_tracks_feeds() {
+-        let mut perf = StreamPerf::new();
+-        perf.record_feed(480);
+-        perf.record_feed(480);
+-        assert_eq!(perf.feed_count, 2);
+-        assert_eq!(perf.total_feed_samples, 960);
+-    }
+-
+-    #[test]
+-    fn stream_perf_tracks_compute() {
+-        let mut perf = StreamPerf::new();
+-        perf.record_compute(Duration::from_millis(10));
+-        perf.record_compute(Duration::from_millis(20));
+-        assert_eq!(perf.total_compute_time, Duration::from_millis(30));
+-    }
+-}
+diff --git a/progress/STT-003-HANDY-REUSE-AUDIT.md b/progress/STT-003-HANDY-REUSE-AUDIT.md
+deleted file mode 100644
+index 12a0f06b..00000000
+--- a/progress/STT-003-HANDY-REUSE-AUDIT.md
++++ /dev/null
+@@ -1,293 +0,0 @@
+-# STT-003 Handy Reuse Audit Report
+-
+-**Date:** 2026-09-19  
+-**Task:** STT-003 — Streaming transcription with partial/final segmentation and VAD integration  
+-**Handy Revision:** `ba10ce1943ef34e93c09494027fc0b9ced2e8a44` (from https://github.com/cjpais/Handy)
+-
+----
+-
+-## 1. Source Code Inspected
+-
+-### Handy Audio Capture
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/audio/recorder.rs` (1046 lines)
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/audio/mod.rs`
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/audio/device.rs`
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/audio/resampler.rs` (351 lines)
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/audio/visualizer.rs`
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/constants.rs`
+-
+-### Handy VAD
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/vad/mod.rs` (101 lines)
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/vad/smoothed.rs` (237 lines)
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/vad/earshot.rs` (116 lines)
+-- `/tmp/handy-src/src-tauri/src/audio_toolkit/vad/silero.rs` (62 lines)
+-
+-### Handy STT/Transcription
+-- `/tmp/handy-src/src-tauri/src/managers/transcription.rs` (1800+ lines)
+-- `/tmp/handy-src/src-tauri/src/transcription_coordinator.rs` (1360+ lines)
+-- `/tmp/handy-src/src-tauri/src/commands/transcription.rs`
+-
+-### Soravo Counterparts
+-- `crates/audio/src/audio/recorder.rs` (1000 lines)
+-- `crates/audio/src/audio/resampler.rs` (215 lines)
+-- `crates/audio/src/vad/mod.rs` (97 lines)
+-- `crates/audio/src/vad/smoothed.rs` (203 lines)
+-- `crates/audio/src/vad/earshot.rs` (109 lines)
+-- `crates/stt/src/lib.rs` (171 lines)
+-- `crates/stt/src/benchmark.rs` (387 lines)
+-- `crates/transcript/src/lib.rs` (221 lines)
+-- `crates/models/src/lib.rs` (720 lines)
+-
+----
+-
+-## 2. Exact Code Comparison
+-
+-### 2.1 Audio Capture — NEAR IDENTICAL
+-
+-| Aspect | Soravo | Handy | Verdict |
+-|--------|--------|-------|---------|
+-| Ring buffer | `rtrb::RingBuffer` 2s capacity | `rtrb::RingBuffer` 2s capacity | **Identical** |
+-| CPAL integration | Multi-format (U8/I8/I16/I32/F32) | Multi-format (U8/I8/I16/I32/F32) | **Identical** |
+-| Resampling | `rubato::FftFixedIn` 1024 chunk | `rubato::FftFixedIn` 1024 chunk | **Identical** |
+-| VAD integration | `VoiceActivityDetector` trait | `VoiceActivityDetector` trait | **Identical** |
+-| Device config caching | Per-device name cache | Per-device name cache | **Identical** |
+-| Pause/ack protocol | `CaptureTransportState` atomics | `CaptureTransportState` atomics | **Identical** |
+-| VadPolicy enum | Disabled/Offline/Streaming | Disabled/Offline/Streaming | **Identical** |
+-| Overrun tracking | `AtomicU64` + warning log | `AtomicU64` + warning log | **Identical** |
+-| Pre-touched ring pages | No | Yes (lines 443-454) | Handy better |
+-| Audio visualizer | Basic level callback | `AudioVisualiser` with FFT buckets | Handy richer |
+-| Target sample rate | 16000 Hz constant | 16000 Hz constant | **Identical** |
+-
+-**Conclusion**: Soravo's audio implementation is a clean-room reimplementation of Handy's architecture. They are functionally equivalent. **No replacement needed** — Soravo audio is production-quality.
+-
+----
+-
+-### 2.2 VAD — IDENTICAL CORE, HANDY HAS SILO
+-
+-| Aspect | Soravo | Handy | Verdict |
+-|--------|--------|-------|---------|
+-| `VoiceActivityDetector` trait | Identical (push_frame, frame_samples, is_voice, set_hangover_frames, tail_report, reset) | Identical | **Identical** |
+-| `SmoothedVad` wrapper | Identical prefill/onset/hangover logic | Identical | **Identical** |
+-| `EarshotVad` | Identical (256 samples, clamping) | Identical | **Identical** |
+-| `SileroVad` | **Missing** | Present (uses `vad_rs`, 30ms frames) | Handy has extra |
+-| Frame timing constants | VAD_PREFILL_MS=450, OFFLINE_HANGOVER=450, STREAMING_HANGOVER=1650, ONSET=60 | Same constants | **Identical** |
+-
+-**Conclusion**: Soravo VAD is a subset of Handy VAD. Can adopt Silero if benchmark shows benefit. **No replacement needed** for core VAD.
+-
+----
+-
+-### 2.3 STT/Transcription — MAJOR GAP
+-
+-| Aspect | Soravo | Handy | Verdict |
+-|--------|--------|-------|---------|
+-| Engine abstraction | `SpeechEngine` trait (initialize, process_audio, finalize, reset) | Implicit via `LoadedEngine` enum + `TranscriptionManager` | **Different** |
+-| Streaming architecture | **None** (placeholder only) | Full: `StreamRouter`, `StreamCmd`, worker thread, `StreamTextEvent` | **Handy wins** |
+-| Partial/final segmentation | `TranscriptionResult::is_final` bool | `StreamTextEvent { committed, tentative }` | **Handy wins** |
+-| Session/sequence tracking | `TranscriptOrder` + `TranscriptState` with session_id, sequence | Implicit via stream revision | **Soravo wins** |
+-| VAD-controlled inference | `VadPolicy::Streaming` in audio | Same policy passed to recorder | **Compatible** |
+-| Engine implementations | Stub ParakeetEngine, WhisperEngine | Real: transcribe-cpp (Whisper), transcribe-rs (Parakeet, Moonshine, SenseVoice, GigaAM, Canary, Cohere) | **Handy wins** |
+-| Model loading | Basic check path exists | Full: `Model::load`, `Session::stream`, capabilities detection | **Handy wins** |
+-| Post-processing | None | Custom words, filler removal, language detection, output language resolution | **Handy wins** |
+-| Cancellation | None | `StreamCmd::Cancel`, worker guard cleanup | **Handy wins** |
+-| Finalization timeout | None | 30s timeout with fallback to batch | **Handy wins** |
+-
+-**Conclusion**: **Handy's streaming architecture must be adopted** for STT-003. Soravo's `SpeechEngine` trait should wrap Handy's implementations.
+-
+----
+-
+-### 2.4 Transcript Stabilization — SORAVO SUPERIOR
+-
+-| Aspect | Soravo | Handy | Verdict |
+-|--------|--------|-------|---------|
+-| Session isolation | `SessionId` + `TranscriptOrder` | Implicit single stream | **Soravo wins** |
+-| Sequence ordering | `sequence` with stale rejection | Stream revision (internal) | **Soravo wins** |
+-| Tentative/Committed/Final | Explicit `TranscriptKind` enum | `committed`/`tentative` in event | **Soravo richer** |
+-| Tentative injection guard | `TranscriptState.update()` returns `None` for tentative | Frontend responsibility | **Soravo wins** |
+-| Duplicate prevention | Sequence-based rejection | Not explicit | **Soravo wins** |
+-
+-**Conclusion**: **Preserve Soravo's transcript crate** — it provides stronger guarantees than Handy's streaming output. Integrate Handy's streaming output INTO Soravo's transcript state machine.
+-
+----
+-
+-### 2.5 Model Management — SORAVO MORE SECURE
+-
+-| Aspect | Soravo | Handy | Verdict |
+-|--------|--------|-------|---------|
+-| HTTPS enforcement | Yes | Not explicit | **Soravo wins** |
+-| SSRF protection | Private/link-local IP blocking | Not explicit | **Soravo wins** |
+-| Checksum verification | SHA-256 per file | Not explicit | **Soravo wins** |
+-| Size verification | Yes | Not explicit | **Soravo wins** |
+-| Atomic install + rollback | Yes (backup dir) | Model swap via mutex | **Soravo wins** |
+-| Manifest metadata | Full (license, hardware, languages, streaming, source, repo) | Basic (name, path, engine_type) | **Soravo wins** |
+-| transcribe-rs integration | None | Full (Parakeet, Moonshine, etc.) | **Handy wins** |
+-
+-**Conclusion**: **Preserve Soravo's model security layer**. Adopt Handy's model loading for inference engines.
+-
+----
+-
+-## 3. Reuse Decision Matrix
+-
+-| Component | Decision | Reason |
+-|-----------|----------|--------|
+-| Audio capture | **KEEP Soravo** | Already equivalent, no friction |
+-| VAD (Earshot/Smoothed) | **KEEP Soravo** | Identical implementation |
+-| VAD (Silero) | **ADOPT from Handy** | Additional backend option for benchmark |
+-| STT Streaming architecture | **ADOPT from Handy** | Soravo has none; Handy has production streaming |
+-| Whisper engine | **ADOPT from Handy** | Uses `transcribe-cpp` with streaming support |
+-| Parakeet engine | **ADOPT from Handy** | Uses `transcribe-rs` ONNX with streaming |
+-| Moonshine/SenseVoice/GigaAM | **ADOPT from Handy** | Additional engine options |
+-| Engine abstraction | **KEEP Soravo `SpeechEngine`** | Clean abstraction, wrap Handy engines |
+-| Transcript state machine | **KEEP Soravo** | Superior ordering/stale-rejection guarantees |
+-| Model security (download/verify) | **KEEP Soravo** | Supply-chain requirements |
+-| Model loading (inference) | **ADOPT from Handy** | Actual engine initialization |
+-
+----
+-
+-## 4. Licensing Compatibility
+-
+-| Dependency | License | Soravo Compatible? |
+-|------------|---------|-------------------|
+-| `transcribe-cpp` | MIT | ✅ Yes |
+-| `transcribe-rs` (ONNX) | MIT/Apache-2.0 | ✅ Yes |
+-| `vad-rs` (Silero) | MIT | ✅ Yes |
+-| `earshot` | MIT | ✅ Yes |
+-| `cpal` | MIT | ✅ Yes |
+-| `rtrb` | MIT | ✅ Yes |
+-| `rubato` | MIT | ✅ Yes |
+-| `rubato` | MIT | ✅ Yes |
+-| `rdev` | MIT | ✅ Yes |
+-| `enigo` | MIT/Apache-2.0 | ✅ Yes |
+-| `hf-hub` | MIT | ✅ Yes |
+-
+-All Handy dependencies are permissive licenses compatible with Soravo's proprietary distribution. No GPL/LGPL dependencies found.
+-
+----
+-
+-## 5. Security Considerations
+-
+-### Adopted from Handy (Safe)
+-- `transcribe-cpp` / `transcribe-rs`: Local inference only, no network
+-- `vad-rs` / `earshot`: Pure local VAD, no network
+-- Audio capture: Local microphone only
+-
+-### Soravo Security Layer Preserved
+-- Model download: HTTPS-only, SSRF protection, checksums, atomic install
+-- No cloud STT, no audio upload, no transcript upload (enforced by architecture)
+-- `SpeechEngine` abstraction prevents direct dependency on inference internals
+-
+----
+-
+-## 6. Architecture After Migration
+-
+-```
+-┌─────────────────────────────────────────────────────────────┐
+-│                    Soravo Application                        │
+-├─────────────────────────────────────────────────────────────┤
+-│  AudioRecorder (Soravo)                                     │
+-│    ├── Ring buffer (2s)                                     │
+-│    ├── Resampler (rubato) → 16kHz frames                    │
+-│    ├── VAD: Earshot/Smoothed/Silero (Soravo + Handy Silero)│
+-│    └── AudioFrameCallback → StreamRouter.feed()             │
+-├─────────────────────────────────────────────────────────────┤
+-│  StreamRouter (from Handy)                                  │
+-│    ├── Feed(Vec<f32>) → streaming worker                   │
+-│    ├── Finalize → returns final text                       │
+-│    └── Cancel → abandons stream                             │
+-├─────────────────────────────────────────────────────────────┤
+-│  Streaming Worker (from Handy)                              │
+-│    ├── transcribe-cpp Session::stream() for Whisper        │
+-│    ├── transcribe-rs ParakeetModel/MoonshineStreaming      │
+-│    ├── Emits StreamTextEvent { committed, tentative }      │
+-│    └── Post-processing: custom words, filler, language     │
+-├─────────────────────────────────────────────────────────────┤
+-│  Transcript State Machine (Soravo — PRESERVED)             │
+-│    ├── TranscriptOrder: session_id + sequence stale reject │
+-│    ├── TranscriptState: tentative→committed→final          │
+-│    └── Only committed/final text reaches TypingEngine      │
+-├─────────────────────────────────────────────────────────────┤
+-│  SpeechEngine Trait (Soravo — PRESERVED)                   │
+-│    ├── ParakeetEngine → wraps transcribe-rs ParakeetModel  │
+-│    ├── WhisperEngine → wraps transcribe-cpp Session        │
+-│    ├── MoonshineEngine → wraps transcribe-rs StreamingModel│
+-│    └── Benchmark harness compatible                        │
+-└─────────────────────────────────────────────────────────────┘
+-```
+-
+----
+-
+-## 7. Implementation Plan for STT-003
+-
+-### Phase 1: Dependencies & Infrastructure
+-1. Add `transcribe-cpp`, `transcribe-rs` (with `onnx` feature), `vad-rs` to workspace
+-2. Add `hf-hub` for model downloads (or use Soravo's downloader)
+-3. Create `crates/stt/src/engines/` module structure
+-
+-### Phase 2: Streaming Infrastructure (from Handy)
+-1. Port `StreamRouter` → `crates/stt/src/stream_router.rs`
+-2. Port `StreamCmd` / `StreamTextEvent` / `StreamPhaseEvent`
+-3. Port streaming worker thread pattern
+-4. Integrate with `AudioRecorder::with_audio_callback`
+-
+-### Phase 3: Engine Implementations
+-1. `WhisperEngine` using `transcribe-cpp::Session::stream()`
+-2. `ParakeetEngine` using `transcribe-rs::onnx::parakeet::ParakeetModel`
+-3. Implement `SpeechEngine` trait for both
+-4. Add streaming-capable `process_audio_stream` method to trait
+-
+-### Phase 4: Transcript Integration
+-1. Route `StreamTextEvent.committed` → `TranscriptState.update(Committed)`
+-2. Route `StreamTextEvent.tentative` → UI preview only (never typed)
+-3. On `Finalize` → `TranscriptState.update(Final)`
+-4. Session ID / sequence from `TranscriptOrder`
+-
+-### Phase 5: VAD Integration
+-1. Use existing `VadPolicy::Streaming` (1650ms hangover)
+-2. Configure `SmoothedVad` with streaming hangover frames
+-3. VAD controls `StreamRouter.feed()` gating (not capture)
+-
+-### Phase 6: Benchmarking & Tests
+-1. Extend STT-002 harness for streaming metrics
+-2. Measure: first partial latency, finalization latency, RTF, WER
+-3. Unit tests for transcript state machine + streaming integration
+-
+----
+-
+-## 8. Files to Create/Modify
+-
+-### New Files
+-- `crates/stt/src/stream_router.rs` — StreamRouter from Handy
+-- `crates/stt/src/stream_worker.rs` — Streaming worker from Handy
+-- `crates/stt/src/stream_events.rs` — StreamTextEvent, StreamPhaseEvent
+-- `crates/stt/src/engines/whisper.rs` — WhisperEngine wrapper
+-- `crates/stt/src/engines/parakeet.rs` — ParakeetEngine wrapper
+-- `crates/stt/src/engines/moonshine.rs` — MoonshineEngine (optional)
+-- `crates/stt/src/engines/mod.rs` — Engine registry
+-
+-### Modified Files
+-- `crates/stt/src/lib.rs` — Extend SpeechEngine with streaming, re-export new modules
+-- `crates/stt/Cargo.toml` — Add transcribe-cpp, transcribe-rs, vad-rs dependencies
+-- `crates/audio/src/vad/mod.rs` — Re-export SileroVad from Handy (if adopted)
+-- `Cargo.toml` (workspace) — Add new dependencies
+-
+----
+-
+-## 9. Performance Targets (from spec)
+-
+-| Metric | Target | Measurement |
+-|--------|--------|-------------|
+-| Warm hotkey → capture ready | <50 ms | AudioRecorder.start() + first callback |
+-| First useful partial | <300 ms | StreamTextEvent.tentative non-empty |
+-| Speech end → final | <500 ms | StreamCmd::Finalize → final text |
+-| Committed injection | <50 ms | TranscriptState.update(Committed) → TypingEngine |
+-| Warm startup | <2 s | Model load + Session creation |
+-
+----
+-
+-## 10. Sign-off
+-
+-**Audit Complete:** ✅  
+-**Reuse Opportunities Exhausted:** ✅  
+-**Audio Replacement Evaluated:** ✅ (Keep Soravo — equivalent)  
+-**Architecture Decision Documented:** ✅  
+-
+-**Ready for Implementation:** STT-003 streaming foundation using Handy's streaming architecture wrapped in Soravo's engine abstraction and transcript state machine.
+\ No newline at end of file
+diff --git a/progress/STT-003-IMPLEMENTATION-SUMMARY.md b/progress/STT-003-IMPLEMENTATION-SUMMARY.md
+deleted file mode 100644
+index bd3372d7..00000000
+--- a/progress/STT-003-IMPLEMENTATION-SUMMARY.md
++++ /dev/null
+@@ -1,200 +0,0 @@
+-# STT-003 Implementation Summary
+-
+-**Date:** 2026-09-19  
+-**Task:** STT-003 — Streaming transcription with partial/final segmentation and VAD integration  
+-**Status:** COMPLETE
+-
+----
+-
+-## Overview
+-
+-Implemented the streaming STT foundation for Soravo, adopting Handy's production streaming architecture while preserving Soravo's superior transcript state machine and security model.
+-
+----
+-
+-## Audit Results (from STT-003-HANDY-REUSE-AUDIT.md)
+-
+-| Component | Decision | Reason |
+-|-----------|----------|--------|
+-| Audio capture | **KEEP Soravo** | Already equivalent to Handy |
+-| VAD (Earshot/Smoothed) | **KEEP Soravo** | Identical implementation |
+-| VAD (Silero) | **ADOPT from Handy** | Additional backend option |
+-| STT Streaming architecture | **ADOPT from Handy** | Soravo had none |
+-| Whisper engine | **ADOPT from Handy** | Uses transcribe-cpp with streaming |
+-| Parakeet engine | **ADOPT from Handy** | Uses transcribe-rs ONNX |
+-| Engine abstraction | **KEEP Soravo** | Clean `SpeechEngine` trait |
+-| Transcript state machine | **KEEP Soravo** | Superior ordering guarantees |
+-| Model security | **KEEP Soravo** | Supply-chain requirements |
+-
+----
+-
+-## Files Created
+-
+-### New STT Modules
+-| File | Description |
+-|------|-------------|
+-| `crates/stt/src/stream_events.rs` | `StreamTextEvent`, `StreamPhaseEvent`, `FinalizedStreamText` — adapted from Handy |
+-| `crates/stt/src/stream_router.rs` | `StreamRouter`, `StreamCmd` — zero-overhead audio frame routing from Handy |
+-| `crates/stt/src/stream_worker.rs` | Streaming worker thread with `StreamWorkerConfig` — adapted from Handy |
+-| `crates/stt/src/engines/mod.rs` | Engine registry module |
+-| `crates/stt/src/engines/whisper.rs` | `WhisperEngine` using `transcribe-cpp` with streaming support |
+-| `crates/stt/src/engines/parakeet.rs` | `ParakeetEngine` using `transcribe-rs` ONNX runtime |
+-
+-### Modified Files
+-| File | Changes |
+-|------|---------|
+-| `crates/stt/src/lib.rs` | Extended `SpeechEngine` with `supports_streaming()`, `supported_languages()`; re-exported new modules |
+-| `crates/stt/Cargo.toml` | Added dependencies: `transcribe-cpp`, `transcribe-rs`, `vad-rs`, `earshot`, `tokio`, `crossbeam-channel`, `log` |
+-| `crates/audio/Cargo.toml` | Updated versions to match Handy; added `vad-rs` for Silero VAD |
+-| `crates/audio/src/vad/mod.rs` | Exported `SileroVad` |
+-| `crates/audio/src/vad/silero.rs` | **NEW** — Silero VAD adapter from Handy |
+-
+----
+-
+-## Architecture
+-
+-```
+-┌─────────────────────────────────────────────────────────────────┐
+-│ Soravo Application                                               │
+-├─────────────────────────────────────────────────────────────────┤
+-│ AudioRecorder (Soravo)                                          │
+-│   ├── Ring buffer (2s)                                          │
+-│   ├── Resampler (rubato) → 16kHz frames                         │
+-│   ├── VAD: Earshot/Smoothed/Silero (Soravo + Handy Silero)     │
+-│   └── AudioFrameCallback → StreamRouter.feed()                  │
+-├─────────────────────────────────────────────────────────────────┤
+-│ StreamRouter (from Handy)                                       │
+-│   ├── Feed(Vec<f32>) → streaming worker                         │
+-│   ├── Finalize → returns final text                             │
+-│   └── Cancel → abandons stream                                  │
+-├─────────────────────────────────────────────────────────────────┤
+-│ Streaming Worker (from Handy)                                   │
+-│   ├── transcribe-cpp Session::stream() for Whisper             │
+-│   ├── transcribe-rs ParakeetModel for Parakeet                 │
+-│   ├── Emits StreamTextEvent { committed, tentative }           │
+-│   └── Post-processing: custom words, filler, language          │
+-├─────────────────────────────────────────────────────────────────┤
+-│ Transcript State Machine (Soravo — PRESERVED)                  │
+-│   ├── TranscriptOrder: session_id + sequence stale reject      │
+-│   ├── TranscriptState: tentative→committed→final               │
+-│   └── Only committed/final text reaches TypingEngine           │
+-├─────────────────────────────────────────────────────────────────┤
+-│ SpeechEngine Trait (Soravo — PRESERVED)                        │
+-│   ├── WhisperEngine → wraps transcribe-cpp Session             │
+-│   ├── ParakeetEngine → wraps transcribe-rs ParakeetModel       │
+-│   └── Benchmark harness compatible                             │
+-└─────────────────────────────────────────────────────────────────┘
+-```
+-
+----
+-
+-## Key Features Implemented
+-
+-### 1. Streaming Transcription with Partial/Final Segmentation
+-- `StreamTextEvent { committed: String, tentative: String }` — directly from Handy
+-- Committed text is stable (won't be rewritten)
+-- Tentative text is volatile (may be rewritten)
+-- Only committed/final text reaches the typing layer
+-
+-### 2. VAD Integration
+-- `VadPolicy::Streaming` (1650ms hangover) for streaming models
+-- `VadPolicy::Offline` (450ms hangover) for batch models
+-- `VadPolicy::Disabled` bypasses VAD entirely
+-- VAD controls recognition work, NOT capture (audio always captured)
+-
+-### 3. Engine Abstraction (`SpeechEngine`)
+-```rust
+-trait SpeechEngine: Send {
+-    fn initialize(&mut self, model_path: &str, config: &TranscriptionConfig) -> Result<(), SpeechError>;
+-    fn process_audio(&mut self, audio: &[f32]) -> Result<Vec<TranscriptionResult>, SpeechError>;
+-    fn finalize(&mut self) -> Result<Vec<TranscriptionResult>, SpeechError>;
+-    fn reset(&mut self);
+-    fn supports_streaming(&self) -> bool { false }
+-    fn supported_languages(&self) -> Vec<String> { vec![] }
+-}
+-```
+-
+-### 4. Whisper Engine (`transcribe-cpp`)
+-- Streaming via `Session::stream()` with `StreamOptions`
+-- Committed/tentative text from `Stream::text()`
+-- Batch fallback via `Session::run()`
+-- Capability detection (streaming, translation, language detect)
+-
+-### 5. Parakeet Engine (`transcribe-rs` ONNX)
+-- Currently batch-only (no native streaming in transcribe-rs)
+-- Returns final results via `process_audio`
+-- Future: chunked processing for partials
+-
+-### 6. Silero VAD (from Handy)
+-- Neural VAD using `vad-rs` crate
+-- 30ms frames (480 samples at 16kHz)
+-- LSTM-based, high accuracy
+-- Requires ONNX model file (`silero_vad.onnx`)
+-
+----
+-
+-## Performance Targets (from spec)
+-
+-| Metric | Target |
+-|--------|--------|
+-| Warm hotkey → capture ready | <50 ms |
+-| First useful partial | <300 ms |
+-| Speech end → final | <500 ms |
+-| Committed injection | <50 ms |
+-| Warm startup | <2 s |
+-
+----
+-
+-## Tests
+-
+-All tests pass:
+-- **soravo-stt**: 27 tests (engine init, streaming events, router, worker perf, benchmark)
+-- **soravo-audio**: 27 tests (recorder, resampler, Earshot VAD, Silero VAD, Smoothed VAD)
+-- **soravo-transcript**: 6 tests (session isolation, ordering, tentative guard, stale rejection)
+-- **soravo-typing**: 9 tests (injection, clipboard, config)
+-- **workspace**: All crates compile and test cleanly
+-
+----
+-
+-## Code Quality
+-
+-- ✅ `cargo check --workspace` — clean
+-- ✅ `cargo clippy --workspace` — clean
+-- ✅ `cargo fmt --all -- --check` — clean
+-- ✅ `cargo test --workspace` — all pass
+-- ✅ `#![forbid(unsafe_code)]` on all new modules
+-- ✅ Proper error handling with `anyhow`/`thiserror`
+-
+----
+-
+-## Integration Points (for STT-004+)
+-
+-1. **AudioRecorder** → `with_audio_callback` feeds `StreamRouter.feed()`
+-2. **StreamRouter** → `StreamTextEvent` emitted to UI
+-3. **TranscriptState** → consumes committed/final, rejects tentative
+-4. **TypingEngine** → receives only committed/final text
+-5. **BenchmarkHarness** → measures streaming metrics
+-
+----
+-
+-## Next Steps (STT-004)
+-
+-1. Integrate `StreamRouter` with `AudioRecorder` in the desktop app
+-2. Connect `StreamTextEvent` emission to UI overlay
+-3. Wire `TranscriptState` to consume streaming output
+-4. Add benchmark integration for streaming metrics
+-5. Implement model download/verification for transcribe-cpp/transcribe-rs models
+-6. Add Parakeet streaming support when transcribe-rs adds it
+-
+----
+-
+-## Reuse Audit Compliance
+-
+-✅ **Handy source actually inspected** — `/tmp/handy-src` at pinned commit  
+-✅ **Reuse opportunities exhausted** — Audio/VAD kept, STT streaming adopted  
+-✅ **Audio replacement evaluated** — Soravo equivalent, no replacement  
+-✅ **Architecture documented** — This summary + STT-003-HANDY-REUSE-AUDIT.md  
+-✅ **Licensing verified** — All deps MIT/Apache-2.0 compatible  
+-✅ **Security preserved** — Soravo model security layer kept  
+-✅ **Tests pass** — All workspace tests green  
+-✅ **CI ready** — cargo check/clippy/fmt/test all clean
+\ No newline at end of file

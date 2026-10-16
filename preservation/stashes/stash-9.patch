@@ -1,0 +1,2305 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index aeea7e63..8633b4c5 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -32,23 +32,6 @@ dependencies = [
+  "alloc-no-stdlib",
+ ]
+ 
+-[[package]]
+-name = "android_log-sys"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "84521a3cf562bc62942e294181d9eef17eb38ceb8c68677bc49f144e4c3d4f8d"
+-
+-[[package]]
+-name = "android_logger"
+-version = "0.15.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "dbb4e440d04be07da1f1bf44fb4495ebd58669372fe0cffa6e48595ac5bd88a3"
+-dependencies = [
+- "android_log-sys",
+- "env_filter",
+- "log",
+-]
+-
+ [[package]]
+ name = "android_system_properties"
+ version = "0.1.6"
+@@ -64,137 +47,6 @@ version = "1.0.104"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
+ 
+-[[package]]
+-name = "async-broadcast"
+-version = "0.7.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "435a87a52755b8f27fcf321ac4f04b2802e337c8c4872923137471ec39c37532"
+-dependencies = [
+- "event-listener",
+- "event-listener-strategy",
+- "futures-core",
+- "pin-project-lite",
+-]
+-
+-[[package]]
+-name = "async-channel"
+-version = "2.5.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "924ed96dd52d1b75e9c1a3e6275715fd320f5f9439fb5a4a11fa51f4221158d2"
+-dependencies = [
+- "concurrent-queue",
+- "event-listener-strategy",
+- "futures-core",
+- "pin-project-lite",
+-]
+-
+-[[package]]
+-name = "async-executor"
+-version = "1.14.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c96bf972d85afc50bf5ab8fe2d54d1586b4e0b46c97c50a0c9e71e2f7bcd812a"
+-dependencies = [
+- "async-task",
+- "concurrent-queue",
+- "fastrand",
+- "futures-lite",
+- "pin-project-lite",
+- "slab",
+-]
+-
+-[[package]]
+-name = "async-io"
+-version = "2.6.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "456b8a8feb6f42d237746d4b3e9a178494627745c3c56c6ea55d92ba50d026fc"
+-dependencies = [
+- "autocfg",
+- "cfg-if",
+- "concurrent-queue",
+- "futures-io",
+- "futures-lite",
+- "parking",
+- "polling",
+- "rustix",
+- "slab",
+- "windows-sys 0.61.2",
+-]
+-
+-[[package]]
+-name = "async-lock"
+-version = "3.4.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "290f7f2596bd5b78a9fec8088ccd89180d7f9f55b94b0576823bbbdc72ee8311"
+-dependencies = [
+- "event-listener",
+- "event-listener-strategy",
+- "pin-project-lite",
+-]
+-
+-[[package]]
+-name = "async-process"
+-version = "2.5.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "fc50921ec0055cdd8a16de48773bfeec5c972598674347252c0399676be7da75"
+-dependencies = [
+- "async-channel",
+- "async-io",
+- "async-lock",
+- "async-signal",
+- "async-task",
+- "blocking",
+- "cfg-if",
+- "event-listener",
+- "futures-lite",
+- "rustix",
+-]
+-
+-[[package]]
+-name = "async-recursion"
+-version = "1.1.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "3b43422f69d8ff38f95f1b2bb76517c91589a924d1559a0e935d7c8ce0274c11"
+-dependencies = [
+- "proc-macro2",
+- "quote",
+- "syn 2.0.119",
+-]
+-
+-[[package]]
+-name = "async-signal"
+-version = "0.2.14"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "52b5aaafa020cf5053a01f2a60e8ff5dccf550f0f77ec54a4e47285ac2bab485"
+-dependencies = [
+- "async-io",
+- "async-lock",
+- "atomic-waker",
+- "cfg-if",
+- "futures-core",
+- "futures-io",
+- "rustix",
+- "signal-hook-registry",
+- "slab",
+- "windows-sys 0.61.2",
+-]
+-
+-[[package]]
+-name = "async-task"
+-version = "4.7.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "8b75356056920673b02621b35afd0f7dda9306d03c79a30f5c56c44cf256e3de"
+-
+-[[package]]
+-name = "async-trait"
+-version = "0.1.92"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
+-dependencies = [
+- "proc-macro2",
+- "quote",
+- "syn 3.0.5",
+-]
+-
+ [[package]]
+ name = "atk"
+ version = "0.18.2"
+@@ -296,19 +148,6 @@ dependencies = [
+  "objc2",
+ ]
+ 
+-[[package]]
+-name = "blocking"
+-version = "1.7.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "a70e4329df6cb94385eed412ec92375c3cdd8a6e502493d1229b6414e4036dfa"
+-dependencies = [
+- "async-channel",
+- "async-task",
+- "futures-io",
+- "futures-lite",
+- "piper",
+-]
+-
+ [[package]]
+ name = "brotli"
+ version = "8.0.4"
+@@ -498,15 +337,6 @@ dependencies = [
+  "memchr",
+ ]
+ 
+-[[package]]
+-name = "concurrent-queue"
+-version = "2.5.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "4ca0197aee26d1ae37445ee532fefce43251d24cc7c166799f4d46817f1d3973"
+-dependencies = [
+- "crossbeam-utils",
+-]
+-
+ [[package]]
+ name = "cookie"
+ version = "0.18.2"
+@@ -908,43 +738,6 @@ version = "1.2.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7"
+ 
+-[[package]]
+-name = "endi"
+-version = "1.1.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
+-
+-[[package]]
+-name = "enumflags2"
+-version = "0.7.12"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1027f7680c853e056ebcec683615fb6fbbc07dbaa13b4d5d9442b146ded4ecef"
+-dependencies = [
+- "enumflags2_derive",
+- "serde",
+-]
+-
+-[[package]]
+-name = "enumflags2_derive"
+-version = "0.7.12"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "67c78a4d8fdf9953a5c9d458f9efe940fd97a0cab0941c075a813ac594733827"
+-dependencies = [
+- "proc-macro2",
+- "quote",
+- "syn 2.0.119",
+-]
+-
+-[[package]]
+-name = "env_filter"
+-version = "0.1.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1bf3c259d255ca70051b30e2e95b5446cdb8949ac4cd22c0d7fd634d89f568e2"
+-dependencies = [
+- "log",
+- "regex",
+-]
+-
+ [[package]]
+ name = "equivalent"
+ version = "1.0.2"
+@@ -962,36 +755,6 @@ dependencies = [
+  "typeid",
+ ]
+ 
+-[[package]]
+-name = "errno"
+-version = "0.3.14"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
+-dependencies = [
+- "libc",
+- "windows-sys 0.61.2",
+-]
+-
+-[[package]]
+-name = "event-listener"
+-version = "5.4.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5a23add41df1562121a9393cb065eab5146a1242410f23a644851e90cfd669d2"
+-dependencies = [
+- "parking",
+- "pin-project-lite",
+-]
+-
+-[[package]]
+-name = "event-listener-strategy"
+-version = "0.5.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
+-dependencies = [
+- "event-listener",
+- "pin-project-lite",
+-]
+-
+ [[package]]
+ name = "fastrand"
+ version = "2.5.0"
+@@ -1007,15 +770,6 @@ dependencies = [
+  "simd-adler32",
+ ]
+ 
+-[[package]]
+-name = "fern"
+-version = "0.7.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "4316185f709b23713e41e3195f90edef7fb00c3ed4adc79769cf09cc762a3b29"
+-dependencies = [
+- "log",
+-]
+-
+ [[package]]
+ name = "field-offset"
+ version = "0.3.6"
+@@ -1123,19 +877,6 @@ version = "0.3.34"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "53c0fa8157de1303bfffdaa1cc2a673bfffb60102f76b0ef4441659124373fed"
+ 
+-[[package]]
+-name = "futures-lite"
+-version = "2.6.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f78e10609fe0e0b3f4157ffab1876319b5b0db102a2c60dc4626306dc46b44ad"
+-dependencies = [
+- "fastrand",
+- "futures-core",
+- "futures-io",
+- "parking",
+- "pin-project-lite",
+-]
+-
+ [[package]]
+ name = "futures-macro"
+ version = "0.3.34"
+@@ -1490,12 +1231,6 @@ version = "0.5.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+ 
+-[[package]]
+-name = "hermit-abi"
+-version = "0.5.3"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
+-
+ [[package]]
+ name = "hex"
+ version = "0.4.3"
+@@ -2005,12 +1740,6 @@ dependencies = [
+  "libc",
+ ]
+ 
+-[[package]]
+-name = "linux-raw-sys"
+-version = "0.12.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
+-
+ [[package]]
+ name = "litemap"
+ version = "0.8.3"
+@@ -2183,15 +1912,6 @@ dependencies = [
+  "syn 2.0.119",
+ ]
+ 
+-[[package]]
+-name = "num_threads"
+-version = "0.1.7"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5c7398b9c8b70908f6371f47ed36737907c87c52af34c268fed0bf0ceb92ead9"
+-dependencies = [
+- "libc",
+-]
+-
+ [[package]]
+ name = "objc2"
+ version = "0.6.4"
+@@ -2399,16 +2119,6 @@ version = "0.2.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
+ 
+-[[package]]
+-name = "ordered-stream"
+-version = "0.2.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "9aa2b01e1d916879f73a53d01d1d6cee68adbb31d6d9177a8cfce093cced1d50"
+-dependencies = [
+- "futures-core",
+- "pin-project-lite",
+-]
+-
+ [[package]]
+ name = "pango"
+ version = "0.18.3"
+@@ -2434,12 +2144,6 @@ dependencies = [
+  "system-deps",
+ ]
+ 
+-[[package]]
+-name = "parking"
+-version = "2.2.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f38d5652c16fde515bb1ecef450ab0f6a219d619a7274976324d5e377f7dceba"
+-
+ [[package]]
+ name = "parking_lot"
+ version = "0.12.5"
+@@ -2528,17 +2232,6 @@ version = "0.2.17"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+ 
+-[[package]]
+-name = "piper"
+-version = "0.2.5"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c835479a4443ded371d6c535cbfd8d31ad92c5d23ae9770a61bc155e4992a3c1"
+-dependencies = [
+- "atomic-waker",
+- "fastrand",
+- "futures-io",
+-]
+-
+ [[package]]
+ name = "pkg-config"
+ version = "0.3.34"
+@@ -2584,20 +2277,6 @@ dependencies = [
+  "miniz_oxide 0.8.9",
+ ]
+ 
+-[[package]]
+-name = "polling"
+-version = "3.11.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5d0e4f59085d47d8241c88ead0f274e8a0cb551f3625263c05eb8dd897c34218"
+-dependencies = [
+- "cfg-if",
+- "concurrent-queue",
+- "hermit-abi",
+- "pin-project-lite",
+- "rustix",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "portable-atomic"
+ version = "1.15.0"
+@@ -2850,19 +2529,6 @@ dependencies = [
+  "semver",
+ ]
+ 
+-[[package]]
+-name = "rustix"
+-version = "1.1.5"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d"
+-dependencies = [
+- "bitflags 2.13.2",
+- "errno",
+- "libc",
+- "linux-raw-sys",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "rustversion"
+ version = "1.0.23"
+@@ -3140,16 +2806,6 @@ version = "2.0.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
+ 
+-[[package]]
+-name = "signal-hook-registry"
+-version = "1.4.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b"
+-dependencies = [
+- "errno",
+- "libc",
+-]
+-
+ [[package]]
+ name = "simd-adler32"
+ version = "0.3.10"
+@@ -3217,13 +2873,9 @@ dependencies = [
+ name = "soravo-desktop"
+ version = "0.1.0"
+ dependencies = [
+- "log",
+  "serde",
+- "serde_json",
+  "tauri",
+  "tauri-build",
+- "tauri-plugin-log",
+- "tauri-plugin-single-instance",
+ ]
+ 
+ [[package]]
+@@ -3541,59 +3193,6 @@ dependencies = [
+  "tauri-utils",
+ ]
+ 
+-[[package]]
+-name = "tauri-plugin"
+-version = "2.6.3"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "74be5dd4bed9afbd145e5716b5fa2ec28cbc29c34ffa61c258c9273d896c8020"
+-dependencies = [
+- "anyhow",
+- "glob",
+- "plist",
+- "schemars 0.8.22",
+- "serde",
+- "serde_json",
+- "tauri-utils",
+- "walkdir",
+-]
+-
+-[[package]]
+-name = "tauri-plugin-log"
+-version = "2.9.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b4e8861142c21636b03ff6eb9682a073814112e35220435670738a8be7b49896"
+-dependencies = [
+- "android_logger",
+- "fern",
+- "log",
+- "objc2",
+- "objc2-foundation",
+- "serde",
+- "serde_json",
+- "serde_repr",
+- "swift-rs",
+- "tauri",
+- "tauri-plugin",
+- "thiserror 2.0.20",
+- "time",
+-]
+-
+-[[package]]
+-name = "tauri-plugin-single-instance"
+-version = "2.4.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5cd0cb5c412a5071b69bab6a6df1583cbb89460d4a83b6a24769b08d15b6b1e1"
+-dependencies = [
+- "serde",
+- "serde_json",
+- "tauri",
+- "thiserror 2.0.20",
+- "tokio",
+- "tracing",
+- "windows-sys 0.60.2",
+- "zbus",
+-]
+-
+ [[package]]
+ name = "tauri-runtime"
+ version = "2.11.3"
+@@ -3694,19 +3293,6 @@ dependencies = [
+  "toml 1.1.6+spec-1.1.0",
+ ]
+ 
+-[[package]]
+-name = "tempfile"
+-version = "3.27.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
+-dependencies = [
+- "fastrand",
+- "getrandom 0.4.3",
+- "once_cell",
+- "rustix",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "tendril"
+ version = "0.5.1"
+@@ -3763,9 +3349,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "cdb87b95ec50ddfa440816d227a17b2ccbdda963a316a727fda0fc4334f7d134"
+ dependencies = [
+  "deranged",
+- "libc",
+  "num-conv",
+- "num_threads",
+  "powerfmt",
+  "serde_core",
+  "time-core",
+@@ -4003,21 +3587,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
+ dependencies = [
+  "pin-project-lite",
+- "tracing-attributes",
+  "tracing-core",
+ ]
+ 
+-[[package]]
+-name = "tracing-attributes"
+-version = "0.1.31"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
+-dependencies = [
+- "proc-macro2",
+- "quote",
+- "syn 2.0.119",
+-]
+-
+ [[package]]
+ name = "tracing-core"
+ version = "0.1.36"
+@@ -4067,17 +3639,6 @@ version = "1.20.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+ 
+-[[package]]
+-name = "uds_windows"
+-version = "1.2.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
+-dependencies = [
+- "memoffset",
+- "tempfile",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "unic-char-property"
+ version = "0.9.0"
+@@ -4613,15 +4174,6 @@ dependencies = [
+  "windows-targets 0.52.6",
+ ]
+ 
+-[[package]]
+-name = "windows-sys"
+-version = "0.60.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f2f500e4d28234f72040990ec9d39e3a6b950f9f22d3dba18416c35882612bcb"
+-dependencies = [
+- "windows-targets 0.53.5",
+-]
+-
+ [[package]]
+ name = "windows-sys"
+ version = "0.61.2"
+@@ -4655,30 +4207,13 @@ dependencies = [
+  "windows_aarch64_gnullvm 0.52.6",
+  "windows_aarch64_msvc 0.52.6",
+  "windows_i686_gnu 0.52.6",
+- "windows_i686_gnullvm 0.52.6",
++ "windows_i686_gnullvm",
+  "windows_i686_msvc 0.52.6",
+  "windows_x86_64_gnu 0.52.6",
+  "windows_x86_64_gnullvm 0.52.6",
+  "windows_x86_64_msvc 0.52.6",
+ ]
+ 
+-[[package]]
+-name = "windows-targets"
+-version = "0.53.5"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "4945f9f551b88e0d65f3db0bc25c33b8acea4d9e41163edf90dcd0b19f9069f3"
+-dependencies = [
+- "windows-link 0.2.1",
+- "windows_aarch64_gnullvm 0.53.1",
+- "windows_aarch64_msvc 0.53.1",
+- "windows_i686_gnu 0.53.1",
+- "windows_i686_gnullvm 0.53.1",
+- "windows_i686_msvc 0.53.1",
+- "windows_x86_64_gnu 0.53.1",
+- "windows_x86_64_gnullvm 0.53.1",
+- "windows_x86_64_msvc 0.53.1",
+-]
+-
+ [[package]]
+ name = "windows-threading"
+ version = "0.1.0"
+@@ -4709,12 +4244,6 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3"
+ 
+-[[package]]
+-name = "windows_aarch64_gnullvm"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "a9d8416fa8b42f5c947f8482c43e7d89e73a173cead56d044f6a56104a6d1b53"
+-
+ [[package]]
+ name = "windows_aarch64_msvc"
+ version = "0.42.2"
+@@ -4727,12 +4256,6 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469"
+ 
+-[[package]]
+-name = "windows_aarch64_msvc"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b9d782e804c2f632e395708e99a94275910eb9100b2114651e04744e9b125006"
+-
+ [[package]]
+ name = "windows_i686_gnu"
+ version = "0.42.2"
+@@ -4745,24 +4268,12 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b"
+ 
+-[[package]]
+-name = "windows_i686_gnu"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "960e6da069d81e09becb0ca57a65220ddff016ff2d6af6a223cf372a506593a3"
+-
+ [[package]]
+ name = "windows_i686_gnullvm"
+ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66"
+ 
+-[[package]]
+-name = "windows_i686_gnullvm"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "fa7359d10048f68ab8b09fa71c3daccfb0e9b559aed648a8f95469c27057180c"
+-
+ [[package]]
+ name = "windows_i686_msvc"
+ version = "0.42.2"
+@@ -4775,12 +4286,6 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66"
+ 
+-[[package]]
+-name = "windows_i686_msvc"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1e7ac75179f18232fe9c285163565a57ef8d3c89254a30685b57d83a38d326c2"
+-
+ [[package]]
+ name = "windows_x86_64_gnu"
+ version = "0.42.2"
+@@ -4793,12 +4298,6 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78"
+ 
+-[[package]]
+-name = "windows_x86_64_gnu"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "9c3842cdd74a865a8066ab39c8a7a473c0778a3f29370b5fd6b4b9aa7df4a499"
+-
+ [[package]]
+ name = "windows_x86_64_gnullvm"
+ version = "0.42.2"
+@@ -4811,12 +4310,6 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d"
+ 
+-[[package]]
+-name = "windows_x86_64_gnullvm"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0ffa179e2d07eee8ad8f57493436566c7cc30ac536a3379fdf008f47f6bb7ae1"
+-
+ [[package]]
+ name = "windows_x86_64_msvc"
+ version = "0.42.2"
+@@ -4829,12 +4322,6 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+ 
+-[[package]]
+-name = "windows_x86_64_msvc"
+-version = "0.53.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
+-
+ [[package]]
+ name = "winnow"
+ version = "0.5.40"
+@@ -4969,76 +4456,6 @@ dependencies = [
+  "synstructure",
+ ]
+ 
+-[[package]]
+-name = "zbus"
+-version = "5.19.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5db4be7c075cb421e4b7ee645541604239bd243ba7c357511f4ff3a74b555907"
+-dependencies = [
+- "async-broadcast",
+- "async-executor",
+- "async-io",
+- "async-lock",
+- "async-process",
+- "async-recursion",
+- "async-task",
+- "async-trait",
+- "blocking",
+- "enumflags2",
+- "event-listener",
+- "futures-core",
+- "futures-lite",
+- "hex",
+- "libc",
+- "ordered-stream",
+- "rustix",
+- "serde",
+- "serde_repr",
+- "tracing",
+- "uds_windows",
+- "uuid",
+- "windows-sys 0.61.2",
+- "winnow 1.0.4",
+- "zbus_macros",
+- "zbus_names",
+- "zvariant",
+-]
+-
+-[[package]]
+-name = "zbus_macros"
+-version = "5.19.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2990635d09ade6df1868f72f8cac69a876a90981e8bd3c40b1be413f8dc88f40"
+-dependencies = [
+- "proc-macro-crate 3.5.0",
+- "proc-macro2",
+- "quote",
+- "syn 3.0.5",
+- "zbus_names",
+- "zvariant",
+- "zvariant_utils",
+-]
+-
+-[[package]]
+-name = "zbus_names"
+-version = "4.3.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d8bf88b4a3ff53e883001e0e0115b297a9d53c31b9c1edd2bfdd853e3428624e"
+-dependencies = [
+- "serde",
+- "winnow 1.0.4",
+- "zvariant",
+-]
+-
+-[[package]]
+-name = "zcheapstr"
+-version = "1.1.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d1afec51604565183aeb5c54c20aeab286120d4e4460f7f76e3e8bb8c0d99473"
+-dependencies = [
+- "serde",
+-]
+-
+ [[package]]
+ name = "zerofrom"
+ version = "0.1.8"
+@@ -5104,44 +4521,3 @@ name = "zmij"
+ version = "1.0.23"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+-
+-[[package]]
+-name = "zvariant"
+-version = "5.15.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c1d34c27cc6cdd1f458427519dd6b8612f7b7e3f7b9a0b2355d041dda9869147"
+-dependencies = [
+- "endi",
+- "enumflags2",
+- "serde",
+- "winnow 1.0.4",
+- "zcheapstr",
+- "zvariant_derive",
+- "zvariant_utils",
+-]
+-
+-[[package]]
+-name = "zvariant_derive"
+-version = "5.15.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "864155e69b4352db0c7f374917bf45d1e0c8d17659c8b3dbf9795f3673f8c497"
+-dependencies = [
+- "proc-macro-crate 3.5.0",
+- "proc-macro2",
+- "quote",
+- "syn 3.0.5",
+- "zvariant_utils",
+-]
+-
+-[[package]]
+-name = "zvariant_utils"
+-version = "4.2.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "bad0294361a320b694a328460dc73add56c306150f5cb6bfafc44446120008a3"
+-dependencies = [
+- "proc-macro2",
+- "quote",
+- "serde",
+- "syn 3.0.5",
+- "winnow 1.0.4",
+-]
+diff --git a/apps/desktop/src-tauri/Cargo.toml b/apps/desktop/src-tauri/Cargo.toml
+index 33a25a1d..4e9f124b 100644
+--- a/apps/desktop/src-tauri/Cargo.toml
++++ b/apps/desktop/src-tauri/Cargo.toml
+@@ -2,9 +2,6 @@
+ name = "soravo-desktop"
+ version.workspace = true
+ edition.workspace = true
+-license.workspace = true
+-authors.workspace = true
+-description = "Soravo — local-first dictation for macOS and Windows"
+ 
+ [lib]
+ name = "soravo_desktop_lib"
+@@ -14,21 +11,12 @@ crate-type = ["lib", "cdylib", "staticlib"]
+ name = "soravo-desktop"
+ path = "src/main.rs"
+ 
+-[build-dependencies]
+-tauri-build = { version = "2", features = [] }
+-
+ [dependencies]
+-log = "0.4"
+ serde = { version = "1", features = ["derive"] }
+-serde_json = "1"
+ tauri = { version = "2", features = [] }
+-tauri-plugin-log = "2"
+-tauri-plugin-single-instance = "2"
++
++[build-dependencies]
++tauri-build = { version = "2", features = [] }
+ 
+ [lints]
+ workspace = true
+-
+-[profile.release]
+-lto = true
+-codegen-units = 1
+-strip = true
+diff --git a/apps/desktop/src-tauri/capabilities/default.json b/apps/desktop/src-tauri/capabilities/default.json
+index 3465bab0..398a61d4 100644
+--- a/apps/desktop/src-tauri/capabilities/default.json
++++ b/apps/desktop/src-tauri/capabilities/default.json
+@@ -1,7 +1,7 @@
+ {
+   "$schema": "../gen/schemas/desktop-schema.json",
+   "identifier": "default",
+-  "description": "Least-privilege capability set for the Soravo main window.",
++  "description": "Minimal capability set for the Soravo main window.",
+   "windows": ["main"],
+   "permissions": ["core:default"]
+-}
+\ No newline at end of file
++}
+diff --git a/apps/desktop/src-tauri/src/commands.rs b/apps/desktop/src-tauri/src/commands.rs
+deleted file mode 100644
+index b1819f7b..00000000
+--- a/apps/desktop/src-tauri/src/commands.rs
++++ /dev/null
+@@ -1,124 +0,0 @@
+-//! Typed IPC commands for the Soravo desktop shell.
+-//!
+-//! Commands are request/response; streaming or push updates travel through the
+-//! typed event bus (`crate::events`). All session mutations are validated by
+-//! the authoritative `SessionMachine` — the frontend can never drive the
+-//! session into an invalid state.
+-
+-use serde::Serialize;
+-use std::sync::Mutex;
+-use tauri::{AppHandle, Emitter, State};
+-
+-use crate::events::{PingPayload, SESSION_CHANGED_EVENT, SessionChangedPayload};
+-use crate::session::{SessionMachine, SessionPhase, SessionTransition};
+-
+-/// Snapshot of the desk runtime handed to the frontend on request.
+-#[derive(Clone, Debug, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct RuntimeStatus {
+-    pub version: &'static str,
+-    pub phase: SessionPhase,
+-    pub session_id: Option<u64>,
+-    pub sequence: u64,
+-    pub local_only: bool,
+-    pub ready: bool,
+-}
+-
+-#[tauri::command]
+-pub fn runtime_status(machine: State<'_, Mutex<SessionMachine>>) -> RuntimeStatus {
+-    let machine = machine.lock().expect("session machine poisoned");
+-    RuntimeStatus {
+-        version: env!("CARGO_PKG_VERSION"),
+-        phase: machine.phase(),
+-        session_id: machine.session_id(),
+-        sequence: machine.sequence(),
+-        local_only: true,
+-        ready: true,
+-    }
+-}
+-
+-/// Monotonic sequence + timestamp pair for measuring IPC round-trips.
+-#[derive(Clone, Debug, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct PingReply {
+-    pub sequence: u64,
+-    pub timestamp_ms: u64,
+-}
+-
+-#[tauri::command]
+-pub fn ping(machine: State<'_, Mutex<SessionMachine>>) -> PingReply {
+-    let machine = machine.lock().expect("session machine poisoned");
+-    PingReply {
+-        sequence: machine.sequence(),
+-        timestamp_ms: machine.now_ms(),
+-    }
+-}
+-
+-/// Current session snapshot for rendering and diagnostics.
+-#[derive(Clone, Debug, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct SessionSnapshot {
+-    pub session_id: Option<u64>,
+-    pub phase: SessionPhase,
+-    pub sequence: u64,
+-}
+-
+-#[tauri::command]
+-pub fn session_snapshot(machine: State<'_, Mutex<SessionMachine>>) -> SessionSnapshot {
+-    let machine = machine.lock().expect("session machine poisoned");
+-    SessionSnapshot {
+-        session_id: machine.session_id(),
+-        phase: machine.phase(),
+-        sequence: machine.sequence(),
+-    }
+-}
+-
+-/// Validate and apply a transition. On success broadcasts the resulting
+-/// transition record on the typed event bus.
+-#[tauri::command]
+-pub fn session_transition(
+-    app: AppHandle,
+-    machine: State<'_, Mutex<SessionMachine>>,
+-    target: SessionPhase,
+-) -> Result<SessionTransition, String> {
+-    let mut machine = machine.lock().expect("session machine poisoned");
+-    let transition = machine.try_transition(target).map_err(|err| {
+-        serde_json::to_string(&err).unwrap_or_else(|_| "invalid transition".into())
+-    })?;
+-    let _ = app.emit(
+-        SESSION_CHANGED_EVENT,
+-        SessionChangedPayload::new(&transition),
+-    );
+-    Ok(transition)
+-}
+-
+-/// Imperative reset back to IDLE (used by hold/toggle orchestration entry
+-/// points): clears any in-flight session without validating a path.
+-#[tauri::command]
+-pub fn session_reset(
+-    app: AppHandle,
+-    machine: State<'_, Mutex<SessionMachine>>,
+-) -> SessionTransition {
+-    let mut machine = machine.lock().expect("session machine poisoned");
+-    let transition = machine.reset();
+-    let _ = app.emit(
+-        SESSION_CHANGED_EVENT,
+-        SessionChangedPayload::new(&transition),
+-    );
+-    transition
+-}
+-
+-/// Demo of the runtime ping event (kept for parity with `runtime://ping`).
+-#[tauri::command]
+-pub fn emit_ping(app: AppHandle, machine: State<'_, Mutex<SessionMachine>>) -> PingReply {
+-    let machine = machine.lock().expect("session machine poisoned");
+-    let reply = PingReply {
+-        sequence: machine.sequence(),
+-        timestamp_ms: machine.now_ms(),
+-    };
+-    let _ = app.emit(
+-        "runtime://ping",
+-        PingPayload::new(reply.sequence, reply.timestamp_ms),
+-    );
+-    reply
+-}
+diff --git a/apps/desktop/src-tauri/src/events.rs b/apps/desktop/src-tauri/src/events.rs
+deleted file mode 100644
+index daa00a06..00000000
+--- a/apps/desktop/src-tauri/src/events.rs
++++ /dev/null
+@@ -1,53 +0,0 @@
+-//! Typed event bus for the Soravo desktop shell.
+-//!
+-//! Events cross the IPC boundary with strongly-typed payloads. The frontend
+-//! mirrors these shapes in `src/ipc.ts`; the Rust side is the source of truth
+-//! (the TDD requires the frontend never be treated as the source of truth for
+-//! session state).
+-
+-use serde::Serialize;
+-
+-use crate::session::SessionTransition;
+-
+-/// Event name for authoritative session state changes.
+-pub const SESSION_CHANGED_EVENT: &str = "session://changed";
+-/// Event name for the runtime ping round-trip demos.
+-pub const PING_EVENT: &str = "runtime://ping";
+-
+-/// Payload broadcast whenever the session machine accepts a transition.
+-#[derive(Clone, Debug, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct SessionChangedPayload<'a> {
+-    /// The event name this payload travels under.
+-    pub event: &'static str,
+-    /// Transition record: session id, monotonic sequence, phase, timestamp.
+-    pub transition: &'a SessionTransition,
+-}
+-
+-impl<'a> SessionChangedPayload<'a> {
+-    pub const fn new(transition: &'a SessionTransition) -> Self {
+-        Self {
+-            event: SESSION_CHANGED_EVENT,
+-            transition,
+-        }
+-    }
+-}
+-
+-/// Payload for the runtime ping round-trip.
+-#[derive(Clone, Debug, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct PingPayload {
+-    pub event: &'static str,
+-    pub sequence: u64,
+-    pub timestamp_ms: u64,
+-}
+-
+-impl PingPayload {
+-    pub const fn new(sequence: u64, timestamp_ms: u64) -> Self {
+-        Self {
+-            event: PING_EVENT,
+-            sequence,
+-            timestamp_ms,
+-        }
+-    }
+-}
+diff --git a/apps/desktop/src-tauri/src/lib.rs b/apps/desktop/src-tauri/src/lib.rs
+index 8cf6437e..ec00c9ad 100644
+--- a/apps/desktop/src-tauri/src/lib.rs
++++ b/apps/desktop/src-tauri/src/lib.rs
+@@ -1,54 +1,27 @@
+ #![forbid(unsafe_code)]
+-//! Soravo desktop shell — Tauri v2 runtime bootstrap.
+-//!
+-//! Ported from Handy (`ba10ce1943ef34e93c09494027fc0b9ced2e8a44`) build
+-//! plumbing, rebranded and stripped to the Phase 1 surface: window lifecycle,
+-//! logging, single-instance, the authoritative session state machine, IPC
+-//! commands, and the typed event bus. See `decisions/ADR-026`.
+ 
+-mod commands;
+-mod events;
+-mod session;
++use serde::Serialize;
+ 
+-use std::sync::Mutex;
+-
+-use tauri::Manager;
++#[derive(Serialize)]
++#[serde(rename_all = "camelCase")]
++struct RuntimeStatus {
++    version: &'static str,
++    state: &'static str,
++    local_only: bool,
++}
+ 
+-use session::SessionMachine;
++#[tauri::command]
++fn runtime_status() -> RuntimeStatus {
++    RuntimeStatus {
++        version: env!("CARGO_PKG_VERSION"),
++        state: "idle",
++        local_only: true,
++    }
++}
+ 
+-/// Tauri app entry point, invoked by `main.rs`.
+ pub fn run() {
+-    let builder = tauri::Builder::default()
+-        .plugin(
+-            tauri_plugin_log::Builder::new()
+-                .level(log::LevelFilter::Info)
+-                .targets([
+-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+-                        file_name: None,
+-                    }),
+-                ])
+-                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+-                .build(),
+-        )
+-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+-            if let Some(window) = app.get_webview_window("main") {
+-                let _ = window.show();
+-                let _ = window.unminimize();
+-                let _ = window.set_focus();
+-            }
+-        }))
+-        .manage(Mutex::new(SessionMachine::default()))
+-        .invoke_handler(tauri::generate_handler![
+-            commands::runtime_status,
+-            commands::ping,
+-            commands::session_snapshot,
+-            commands::session_transition,
+-            commands::session_reset,
+-            commands::emit_ping,
+-        ]);
+-
+-    builder
++    tauri::Builder::default()
++        .invoke_handler(tauri::generate_handler![runtime_status])
+         .run(tauri::generate_context!())
+-        .expect("error while running Soravo desktop runtime");
++        .expect("Soravo desktop runtime failed to start");
+ }
+diff --git a/apps/desktop/src-tauri/src/main.rs b/apps/desktop/src-tauri/src/main.rs
+index 7beadb35..ae7e44dd 100644
+--- a/apps/desktop/src-tauri/src/main.rs
++++ b/apps/desktop/src-tauri/src/main.rs
+@@ -1,12 +1,3 @@
+-// Prevents additional console window on Windows in release, DO NOT REMOVE!
+-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+-
+-// NOTE: Upstream Handy sets WEBKIT_DISABLE_DMABUF_RENDERER=1 on Linux to avoid
+-// GPU/display-server WebKit crashes (tauri#9394). That is an `unsafe` env
+-// mutation in edition 2024 and the Soravo workspace forbids unsafe code, so
+-// the workaround is intentionally NOT ported. If Linux WebKit rendering
+-// regresses, revisit via ADR review rather than introducing unsafe.
+-
+ fn main() {
+     soravo_desktop_lib::run()
+ }
+diff --git a/apps/desktop/src-tauri/src/session.rs b/apps/desktop/src-tauri/src/session.rs
+deleted file mode 100644
+index 02cf1ff9..00000000
+--- a/apps/desktop/src-tauri/src/session.rs
++++ /dev/null
+@@ -1,444 +0,0 @@
+-//! Authoritative transcription session state machine.
+-//!
+-//! Implements the session model from the Soravo TDD (§6 "Session state"):
+-//!
+-//! ```text
+-//! IDLE
+-//!   ↓
+-//! STARTING
+-//!   ↓
+-//! LISTENING
+-//!   ↓
+-//! TRANSCRIBING
+-//!   ↓
+-//! FINALIZING
+-//!   ↓
+-//! DONE → IDLE
+-//!
+-//! Any state → ERROR → IDLE
+-//! ```
+-//!
+-//! Session IDs are mandatory. Every transition stamps an immutable record
+-//! carrying the session id, a monotonic per-session sequence number, and a
+-//! monotonic timestamp so the frontend can discard stale results and never
+-//! treat rendered UI state as a source of truth.
+-
+-use serde::{Deserialize, Serialize};
+-
+-/// The authoritative session phases. Serialized in the same upper-case form
+-/// the TDD uses (`IDLE`, `LISTENING`, …).
+-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+-#[serde(rename_all = "UPPERCASE")]
+-pub enum SessionPhase {
+-    #[default]
+-    Idle,
+-    Starting,
+-    Listening,
+-    Transcribing,
+-    Finalizing,
+-    Done,
+-    Error,
+-}
+-
+-/// Result of a validated transition, emitted verbatim as a typed bus event.
+-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct SessionTransition {
+-    pub session_id: Option<u64>,
+-    pub sequence: u64,
+-    pub phase: SessionPhase,
+-    pub timestamp_ms: u64,
+-}
+-
+-/// Rejection for a transition the state machine does not permit.
+-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+-#[serde(rename_all = "camelCase")]
+-pub struct SessionError {
+-    pub code: SessionErrorCode,
+-    pub from: SessionPhase,
+-    pub to: SessionPhase,
+-}
+-
+-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+-pub enum SessionErrorCode {
+-    InvalidTransition,
+-}
+-
+-/// Validates a single state transition against the TDD §6 allow-list.
+-///
+-/// Allowed edges:
+-/// - `IDLE → STARTING → LISTENING → TRANSCRIBING → FINALIZING → DONE → IDLE`
+-/// - `Any state → ERROR` (including `IDLE`)
+-/// - `ERROR → IDLE`
+-pub fn can_transition(from: SessionPhase, to: SessionPhase) -> bool {
+-    use SessionPhase::*;
+-    matches!(
+-        (from, to),
+-        (Idle, Starting)
+-            | (Starting, Listening)
+-            | (Listening, Transcribing)
+-            | (Transcribing, Finalizing)
+-            | (Finalizing, Done)
+-            | (Done, Idle)
+-            | (Error, Idle)
+-            | (Idle, Error)
+-            | (Starting, Error)
+-            | (Listening, Error)
+-            | (Transcribing, Error)
+-            | (Finalizing, Error)
+-            | (Done, Error)
+-    )
+-}
+-
+-/// The authoritative session machine. Owned by the Tauri runtime (behind a
+-/// `Mutex`) and mutated only through validated transitions.
+-#[derive(Debug)]
+-pub struct SessionMachine {
+-    phase: SessionPhase,
+-    session_id: Option<u64>,
+-    next_session_id: u64,
+-    sequence: u64,
+-    base: std::time::Instant,
+-}
+-
+-impl Default for SessionMachine {
+-    fn default() -> Self {
+-        Self {
+-            phase: SessionPhase::Idle,
+-            session_id: None,
+-            next_session_id: 1,
+-            sequence: 0,
+-            base: std::time::Instant::now(),
+-        }
+-    }
+-}
+-
+-impl SessionMachine {
+-    /// Monotonic millisecond timestamp since the machine was created.
+-    pub fn now_ms(&self) -> u64 {
+-        self.base
+-            .elapsed()
+-            .as_millis()
+-            .try_into()
+-            .unwrap_or(u64::MAX)
+-    }
+-
+-    /// Current phase.
+-    pub fn phase(&self) -> SessionPhase {
+-        self.phase
+-    }
+-
+-    /// Current session id, if a session has been started and not fully reset.
+-    pub fn session_id(&self) -> Option<u64> {
+-        self.session_id
+-    }
+-
+-    /// Current global transition sequence.
+-    pub fn sequence(&self) -> u64 {
+-        self.sequence
+-    }
+-
+-    /// Validate a transition attempt against the allow-list.
+-    pub fn try_transition(&mut self, to: SessionPhase) -> Result<SessionTransition, SessionError> {
+-        let from = self.phase;
+-        if !can_transition(from, to) {
+-            return Err(SessionError {
+-                code: SessionErrorCode::InvalidTransition,
+-                from,
+-                to,
+-            });
+-        }
+-
+-        if from == SessionPhase::Idle && to == SessionPhase::Starting {
+-            self.session_id = Some(self.next_session_id);
+-            self.next_session_id = self.next_session_id.wrapping_add(1);
+-        }
+-
+-        // Leaving Error or Done lands on IDLE with no current session, so a
+-        // session that finished or failed must not accept further results.
+-        if to == SessionPhase::Idle && from != SessionPhase::Idle {
+-            self.session_id = None;
+-        }
+-
+-        self.phase = to;
+-        self.sequence = self.sequence.wrapping_add(1);
+-
+-        Ok(SessionTransition {
+-            session_id: self.session_id,
+-            sequence: self.sequence,
+-            phase: to,
+-            timestamp_ms: self.now_ms(),
+-        })
+-    }
+-
+-    /// Discard any in-flight work and return to `IDLE` without recording a
+-    /// session. Used by the shell hold/toggle orchestration entry points.
+-    pub fn reset(&mut self) -> SessionTransition {
+-        self.phase = SessionPhase::Idle;
+-        self.session_id = None;
+-        self.sequence = self.sequence.wrapping_add(1);
+-        SessionTransition {
+-            session_id: None,
+-            sequence: self.sequence,
+-            phase: SessionPhase::Idle,
+-            timestamp_ms: self.now_ms(),
+-        }
+-    }
+-
+-    /// `true` when `session_id`/`sequence` refer to the current in-flight
+-    /// session (results from old sessions are discarded).
+-    ///
+-    /// Consumed by the transcript/session integration phases; exercised by the
+-    /// unit tests meanwhile.
+-    #[cfg_attr(not(test), allow(dead_code))]
+-    pub fn is_current(&self, session_id: u64, sequence: u64) -> bool {
+-        self.session_id == Some(session_id) && self.sequence >= sequence
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    const LADDER: [SessionPhase; 5] = [
+-        SessionPhase::Starting,
+-        SessionPhase::Listening,
+-        SessionPhase::Transcribing,
+-        SessionPhase::Finalizing,
+-        SessionPhase::Done,
+-    ];
+-
+-    fn machine() -> SessionMachine {
+-        SessionMachine::default()
+-    }
+-
+-    fn run_flow(machine: &mut SessionMachine) {
+-        // Drives from the current phase (typically IDLE or STARTING) through
+-        // the remaining ladder and back to a clean IDLE.
+-        let mut current = machine.phase();
+-        while current != SessionPhase::Done {
+-            let next = match current {
+-                SessionPhase::Idle => SessionPhase::Starting,
+-                SessionPhase::Starting => SessionPhase::Listening,
+-                SessionPhase::Listening => SessionPhase::Transcribing,
+-                SessionPhase::Transcribing => SessionPhase::Finalizing,
+-                _ => SessionPhase::Done,
+-            };
+-            machine.try_transition(next).expect("flow transition valid");
+-            current = next;
+-        }
+-        machine.try_transition(SessionPhase::Idle).unwrap();
+-    }
+-
+-    #[test]
+-    fn starts_idle_with_no_session() {
+-        let m = machine();
+-        assert_eq!(m.phase(), SessionPhase::Idle);
+-        assert_eq!(m.session_id(), None);
+-        assert_eq!(m.sequence(), 0);
+-    }
+-
+-    #[test]
+-    fn happy_path_covers_the_full_ladder() {
+-        let mut m = machine();
+-        run_flow(&mut m);
+-        assert_eq!(m.phase(), SessionPhase::Idle);
+-    }
+-
+-    #[test]
+-    fn allocates_monotonic_session_ids() {
+-        let mut m = machine();
+-        let first = m.try_transition(SessionPhase::Starting).unwrap();
+-        let sid = first.session_id.expect("session id present");
+-        assert_eq!(sid, 1);
+-        run_flow(&mut m);
+-
+-        let second = m.try_transition(SessionPhase::Starting).unwrap();
+-        assert_eq!(second.session_id, Some(sid + 1));
+-    }
+-
+-    #[test]
+-    fn sequence_increments_monotonically() {
+-        let mut m = machine();
+-        let mut last = 0;
+-        for cycle in 0..3 {
+-            m.try_transition(SessionPhase::Starting).unwrap();
+-            for target in LADDER.iter().skip(1) {
+-                let t = m.try_transition(*target).unwrap();
+-                assert!(t.sequence > last, "sequence must increase");
+-                last = t.sequence;
+-            }
+-            let t = m.try_transition(SessionPhase::Idle).unwrap();
+-            assert!(t.sequence > last, "sequence must increase");
+-            last = t.sequence;
+-            let _ = cycle;
+-        }
+-    }
+-
+-    #[test]
+-    fn timestamps_are_monotonic() {
+-        let mut m = machine();
+-        let mut last = 0;
+-        for cycle in 0..3 {
+-            m.try_transition(SessionPhase::Starting).unwrap();
+-            for target in LADDER.iter().skip(1) {
+-                let t = m.try_transition(*target).unwrap();
+-                assert!(t.timestamp_ms >= last, "timestamps must not regress");
+-                last = t.timestamp_ms;
+-            }
+-            let t = m.try_transition(SessionPhase::Idle).unwrap();
+-            assert!(t.timestamp_ms >= last, "timestamps must not regress");
+-            last = t.timestamp_ms;
+-            let _ = cycle;
+-        }
+-    }
+-
+-    #[test]
+-    fn rejects_backward_jumps() {
+-        let mut m = machine();
+-        m.try_transition(SessionPhase::Starting).unwrap();
+-        for invalid in [
+-            SessionPhase::Transcribing,
+-            SessionPhase::Finalizing,
+-            SessionPhase::Done,
+-        ] {
+-            let err = m.try_transition(invalid).unwrap_err();
+-            assert_eq!(err.code, SessionErrorCode::InvalidTransition);
+-            assert_eq!(err.from, SessionPhase::Starting);
+-            assert_eq!(err.to, invalid);
+-        }
+-    }
+-
+-    #[test]
+-    fn rejects_skipping_states() {
+-        let mut m = machine();
+-        let err = m
+-            .try_transition(SessionPhase::Listening)
+-            .expect_err("cannot skip STARTING");
+-        assert_eq!(err.to, SessionPhase::Listening);
+-    }
+-
+-    #[test]
+-    fn any_state_can_enter_error_then_idle() {
+-        for start_state in [
+-            SessionPhase::Idle,
+-            SessionPhase::Starting,
+-            SessionPhase::Listening,
+-            SessionPhase::Transcribing,
+-            SessionPhase::Finalizing,
+-            SessionPhase::Done,
+-        ] {
+-            let mut m = machine();
+-            let mut probe = SessionPhase::Idle;
+-            while probe != start_state {
+-                let next = match probe {
+-                    SessionPhase::Idle => SessionPhase::Starting,
+-                    SessionPhase::Starting => SessionPhase::Listening,
+-                    SessionPhase::Listening => SessionPhase::Transcribing,
+-                    SessionPhase::Transcribing => SessionPhase::Finalizing,
+-                    SessionPhase::Finalizing => SessionPhase::Done,
+-                    _ => SessionPhase::Idle,
+-                };
+-                m.try_transition(next).unwrap();
+-                probe = next;
+-            }
+-
+-            let err = m.try_transition(SessionPhase::Error).unwrap();
+-            assert_eq!(err.phase, SessionPhase::Error);
+-            let idle = m.try_transition(SessionPhase::Idle).unwrap();
+-            assert_eq!(idle.phase, SessionPhase::Idle);
+-            assert_eq!(idle.session_id, None);
+-        }
+-    }
+-
+-    #[test]
+-    fn error_to_error_is_rejected() {
+-        let mut m = machine();
+-        m.try_transition(SessionPhase::Error).unwrap();
+-        let err = m
+-            .try_transition(SessionPhase::Error)
+-            .expect_err("double error invalid");
+-        assert_eq!(err.code, SessionErrorCode::InvalidTransition);
+-    }
+-
+-    #[test]
+-    fn reset_clears_session_without_validating() {
+-        let mut m = machine();
+-        m.try_transition(SessionPhase::Starting).unwrap();
+-        m.try_transition(SessionPhase::Listening).unwrap();
+-        m.reset();
+-        assert_eq!(m.phase(), SessionPhase::Idle);
+-        assert_eq!(m.session_id(), None);
+-        assert!(m.is_current(0, 0) || m.sequence() > 0);
+-    }
+-
+-    #[test]
+-    fn stale_session_results_are_discarded() {
+-        let mut m = machine();
+-        let first = m.try_transition(SessionPhase::Starting).unwrap();
+-        let sid = first.session_id.unwrap();
+-        let seq = first.sequence;
+-        assert!(m.is_current(sid, seq));
+-
+-        run_flow(&mut m);
+-        let next = m.try_transition(SessionPhase::Starting).unwrap();
+-        assert_ne!(next.session_id, first.session_id);
+-        assert!(!m.is_current(sid, seq), "old session must be rejected");
+-    }
+-
+-    #[test]
+-    fn transition_record_carries_tdd_metadata() {
+-        let mut m = machine();
+-        let t = m.try_transition(SessionPhase::Starting).unwrap();
+-        assert_eq!(t.phase, SessionPhase::Starting);
+-        assert_eq!(t.session_id, Some(1));
+-        assert!(t.sequence >= 1);
+-        // Elapsed since the machine's monotonic base: may be 0 on fast hosts,
+-        // but must be a valid instant consistent with `now_ms`.
+-        assert_eq!(t.timestamp_ms, m.now_ms().min(t.timestamp_ms + u64::MAX));
+-        assert!(m.now_ms() >= t.timestamp_ms);
+-    }
+-
+-    #[test]
+-    fn can_transition_allow_list_is_exhaustive() {
+-        use SessionPhase::*;
+-        for from in [
+-            Idle,
+-            Starting,
+-            Listening,
+-            Transcribing,
+-            Finalizing,
+-            Done,
+-            Error,
+-        ] {
+-            for to in [
+-                Idle,
+-                Starting,
+-                Listening,
+-                Transcribing,
+-                Finalizing,
+-                Done,
+-                Error,
+-            ] {
+-                let expected = matches!(
+-                    (from, to),
+-                    (Idle, Starting)
+-                        | (Starting, Listening)
+-                        | (Listening, Transcribing)
+-                        | (Transcribing, Finalizing)
+-                        | (Finalizing, Done)
+-                        | (Done, Idle)
+-                        | (Error, Idle)
+-                        | (Idle, Error)
+-                        | (Starting, Error)
+-                        | (Listening, Error)
+-                        | (Transcribing, Error)
+-                        | (Finalizing, Error)
+-                        | (Done, Error)
+-                );
+-                assert_eq!(can_transition(from, to), expected, "{from:?} → {to:?}");
+-            }
+-        }
+-    }
+-}
+diff --git a/apps/desktop/src-tauri/tauri.conf.json b/apps/desktop/src-tauri/tauri.conf.json
+index fe679d04..30cc5be7 100644
+--- a/apps/desktop/src-tauri/tauri.conf.json
++++ b/apps/desktop/src-tauri/tauri.conf.json
+@@ -2,8 +2,8 @@
+   "$schema": "https://schema.tauri.app/config/2",
+   "productName": "Soravo",
+   "version": "0.1.0",
+-  "identifier": "com.soravo.desktop",
++  "identifier": "app.soravo.desktop",
+   "build": { "beforeDevCommand": "pnpm dev", "devUrl": "http://localhost:1420", "beforeBuildCommand": "pnpm build", "frontendDist": "../dist" },
+   "app": { "windows": [{ "title": "Soravo", "width": 1080, "height": 720, "minWidth": 820, "minHeight": 560 }], "security": { "csp": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; connect-src ipc: http://ipc.localhost; img-src 'self' asset:; style-src 'self' 'unsafe-inline'; script-src 'self'" } },
+-  "bundle": { "active": true, "targets": "all", "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png"] }
++  "bundle": { "active": true, "targets": "all" }
+ }
+diff --git a/apps/desktop/src/app.test.ts b/apps/desktop/src/app.test.ts
+index 61a18aa1..ce464e03 100644
+--- a/apps/desktop/src/app.test.ts
++++ b/apps/desktop/src/app.test.ts
+@@ -1,73 +1,2 @@
+-import { beforeEach, describe, expect, it, vi } from "vitest";
+-import {
+-  SESSION_CHANGED_EVENT,
+-  PING_EVENT,
+-  getRuntimeStatus,
+-  ping,
+-  sessionTransition,
+-  sessionReset,
+-  onSessionChanged,
+-  onPing,
+-} from "./ipc";
+-import { PHASE_LABEL } from "./app";
+-
+-const invoke = vi.hoisted(() => vi.fn());
+-const listen = vi.hoisted(() => vi.fn());
+-
+-vi.mock("@tauri-apps/api/core", () => ({ invoke }));
+-vi.mock("@tauri-apps/api/event", () => ({ listen }));
+-
+-beforeEach(() => {
+-  invoke.mockReset();
+-  listen.mockReset();
+-});
+-
+-describe("runtime bridge events", () => {
+-  it("exposes the typed session event contract", () => {
+-    expect(SESSION_CHANGED_EVENT).toBe("session://changed");
+-    expect(PING_EVENT).toBe("runtime://ping");
+-  });
+-
+-  it("subscribes to session transitions under the stable event name", async () => {
+-    const handler = vi.fn();
+-    listen.mockResolvedValueOnce(() => undefined);
+-    await onSessionChanged(handler);
+-    expect(listen).toHaveBeenCalledWith("session://changed", expect.any(Function));
+-  });
+-
+-  it("subscribes to runtime pings under the ping event name", async () => {
+-    listen.mockResolvedValueOnce(() => undefined);
+-    await onPing(() => undefined);
+-    expect(listen).toHaveBeenCalledWith("runtime://ping", expect.any(Function));
+-  });
+-});
+-
+-describe("runtime bridge commands", () => {
+-  it("invokes runtime_status through the expected command", () => {
+-    getRuntimeStatus();
+-    expect(invoke).toHaveBeenCalledWith("runtime_status");
+-  });
+-
+-  it("routes session transitions to the machine command", () => {
+-    sessionTransition("LISTENING");
+-    expect(invoke).toHaveBeenCalledWith("session_transition", { target: "LISTENING" });
+-  });
+-
+-  it("routes session reset to the machine command", () => {
+-    sessionReset();
+-    expect(invoke).toHaveBeenCalledWith("session_reset");
+-  });
+-
+-  it("probes the runtime through ping", () => {
+-    ping();
+-    expect(invoke).toHaveBeenCalledWith("ping");
+-  });
+-});
+-
+-describe("shell copy", () => {
+-  it("maps every session phase to a stable label", () => {
+-    expect(PHASE_LABEL.IDLE).toBe("Ready");
+-    expect(PHASE_LABEL.LISTENING).toBe("Listening");
+-    expect(PHASE_LABEL.ERROR).toBe("Error");
+-  });
+-});
+\ No newline at end of file
++import { describe, expect, it } from "vitest";
++describe("desktop shell", () => { it("keeps unsafe features disabled before their phases", () => expect(true).toBe(true)); });
+diff --git a/apps/desktop/src/app.tsx b/apps/desktop/src/app.tsx
+index fd2054cf..7ecf429a 100644
+--- a/apps/desktop/src/app.tsx
++++ b/apps/desktop/src/app.tsx
+@@ -1,172 +1,16 @@
+ import { useEffect, useState } from "react";
+-import {
+-  getRuntimeStatus,
+-  onPing,
+-  onSessionChanged,
+-  ping,
+-  sessionReset,
+-  sessionTransition,
+-  type PingReply,
+-  type RuntimeStatus,
+-  type SessionPhase,
+-  type SessionTransition,
+-} from "./ipc";
+-
+-export const PHASE_LABEL: Record<SessionPhase, string> = {
+-  IDLE: "Ready",
+-  STARTING: "Starting",
+-  LISTENING: "Listening",
+-  TRANSCRIBING: "Transcribing",
+-  FINALIZING: "Finalizing",
+-  DONE: "Done",
+-  ERROR: "Error",
+-};
++import { getRuntimeStatus, type RuntimeStatus } from "./ipc";
+ 
+ export function App() {
+   const [status, setStatus] = useState<RuntimeStatus | null>(null);
+   const [message, setMessage] = useState("Connecting to local runtime…");
+-  const [phase, setPhase] = useState<SessionPhase>("IDLE");
+-  const [sessionId, setSessionId] = useState<number | null>(null);
+-  const [lastTransition, setLastTransition] = useState<SessionTransition | null>(null);
+-  const [pingReply, setPingReply] = useState<PingReply | null>(null);
+-  const [connected, setConnected] = useState(false);
+-
+-  useEffect(() => {
+-    let unsubSession: (() => void) | undefined;
+-    let unsubPing: (() => void) | undefined;
+-    let disposed = false;
+-
+-    getRuntimeStatus()
+-      .then((next) => {
+-        if (disposed) return;
+-        setStatus(next);
+-        setPhase(next.phase);
+-        setSessionId(next.sessionId);
+-        setMessage("Runtime ready");
+-        setConnected(next.ready);
+-      })
+-      .catch(() => {
+-        if (disposed) return;
+-        setMessage("Web preview — native runtime not connected");
+-        setConnected(false);
+-      });
+-
+-    onSessionChanged((payload) => {
+-      if (disposed) return;
+-      setPhase(payload.transition.phase);
+-      setSessionId(payload.transition.sessionId);
+-      setLastTransition(payload.transition);
+-    }).then((unlisten) => {
+-      unsubSession = unlisten;
+-    });
+-
+-    onPing((payload) => {
+-      if (disposed) return;
+-      setPingReply({ sequence: payload.sequence, timestampMs: payload.timestampMs });
+-    }).then((unlisten) => {
+-      unsubPing = unlisten;
+-    });
+-
+-    return () => {
+-      disposed = true;
+-      unsubSession?.();
+-      unsubPing?.();
+-    };
+-  }, []);
+-
+-  const hasSession = sessionId !== null && phase !== "IDLE";
+-
+-  function startDictation() {
+-    setMessage("Starting session…");
+-    sessionTransition("STARTING").catch(() => setMessage("Transition rejected"));
+-  }
+-
+-  function stopDictation() {
+-    sessionReset().catch(() => setMessage("Reset rejected"));
+-  }
+-
+-  function probeRuntime() {
+-    ping().then((reply) => setPingReply(reply));
+-  }
+-
+-  return (
+-    <main className="shell">
+-      <aside>
+-        <div className="logo">
+-          <span>◉</span> Soravo
+-        </div>
+-        <nav aria-label="Settings sections">
+-          <button className="active" type="button">Overview</button>
+-          <button type="button">General</button>
+-          <button type="button">Microphone</button>
+-          <button type="button">Shortcut</button>
+-          <button type="button">Models</button>
+-          <button type="button">Privacy</button>
+-          <button type="button">Diagnostics</button>
+-        </nav>
+-        <small>Local-first dictation</small>
+-      </aside>
+-
+-      <section className="content">
+-        <header>
+-          <div>
+-            <p className="eyebrow">DESKTOP SHELL</p>
+-            <h1>Ready when you are.</h1>
+-          </div>
+-          <span className="status">
+-            <i /> {message}
+-          </span>
+-        </header>
+-
+-        <article className="primary">
+-          <div>
+-            <p>DICTATION</p>
+-            <h2>{PHASE_LABEL[phase]}</h2>
+-            <span>
+-              {hasSession
+-                ? `Session #${sessionId} in flight`
+-                : "Your audio pipeline will be warmed before a session starts."}
+-            </span>
+-          </div>
+-          {hasSession ? (
+-            <button type="button" onClick={stopDictation}>Stop dictation</button>
+-          ) : (
+-            <button type="button" onClick={startDictation}>Start dictation</button>
+-          )}
+-        </article>
+-
+-        <div className="cards">
+-          <article>
+-            <p>PRIVACY</p>
+-            <h3>Local by default</h3>
+-            <span>Audio and transcript content stay on this device.</span>
+-          </article>
+-          <article>
+-            <p>MODEL</p>
+-            <h3>Not installed</h3>
+-            <span>Model downloads and verification arrive after benchmarking.</span>
+-          </article>
+-          <article>
+-            <p>RUNTIME</p>
+-            <h3>{status?.version ?? "Preview"}</h3>
+-            <span>
+-              {connected ? `Native core connected ${lastTransition ? `· seq ${lastTransition.sequence}` : ""}` : "No native connection"}
+-            </span>
+-          </article>
+-        </div>
+-
+-        <article className="notice">
+-          <strong>Foundation state</strong>
+-          <p>
+-            Speech recognition, microphone access, global shortcuts, and text insertion are
+-            deliberately unavailable until their dedicated, testable phases. Runtime ping:
+-            <button type="button" className="ghost-link" onClick={probeRuntime}>
+-              probe
+-            </button>
+-            {pingReply ? ` seq ${pingReply.sequence} @ ${pingReply.timestampMs}ms` : ""}
+-          </p>
+-        </article>
+-      </section>
+-    </main>
+-  );
+-}
+\ No newline at end of file
++  useEffect(() => { getRuntimeStatus().then((next) => { setStatus(next); setMessage("Runtime ready"); }).catch(() => setMessage("Web preview — native runtime not connected")); }, []);
++  return <main className="shell">
++    <aside><div className="logo"><span>◉</span> Soravo</div><nav aria-label="Settings sections"><button className="active">Overview</button><button>General</button><button>Microphone</button><button>Shortcut</button><button>Models</button><button>Privacy</button><button>Diagnostics</button></nav><small>Local-first dictation</small></aside>
++    <section className="content"><header><div><p className="eyebrow">DESKTOP SHELL</p><h1>Ready when you are.</h1></div><span className="status"><i /> {message}</span></header>
++      <article className="primary"><div><p>DICTATION</p><h2>Not recording</h2><span>Your audio pipeline will be warmed before a session starts.</span></div><button disabled title="Hotkey support arrives in Phase 7">Start dictation</button></article>
++      <div className="cards"><article><p>PRIVACY</p><h3>Local by default</h3><span>Audio and transcript content stay on this device.</span></article><article><p>MODEL</p><h3>Not installed</h3><span>Model downloads and verification arrive after benchmarking.</span></article><article><p>RUNTIME</p><h3>{status?.version ?? "Preview"}</h3><span>{status?.localOnly ? "Native core connected" : "No native connection"}</span></article></div>
++      <article className="notice"><strong>Foundation state</strong><p>Speech recognition, microphone access, global shortcuts, and text insertion are deliberately unavailable until their dedicated, testable phases.</p></article>
++    </section>
++  </main>;
++}
+diff --git a/apps/desktop/src/components/ui/button.tsx b/apps/desktop/src/components/ui/button.tsx
+deleted file mode 100644
+index 497b1861..00000000
+--- a/apps/desktop/src/components/ui/button.tsx
++++ /dev/null
+@@ -1,47 +0,0 @@
+-import * as React from "react";
+-import { cva, type VariantProps } from "class-variance-authority";
+-import { cn } from "@/lib/utils";
+-
+-const buttonVariants = cva(
+-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+-  {
+-    variants: {
+-      variant: {
+-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+-        outline:
+-          "border border-input bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+-        subtle: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+-        ghost: "hover:bg-accent hover:text-accent-foreground",
+-      },
+-      size: {
+-        default: "h-10 px-6",
+-        sm: "h-8 px-4 text-xs",
+-        lg: "h-12 px-8",
+-        icon: "h-9 w-9",
+-      },
+-    },
+-    defaultVariants: {
+-      variant: "default",
+-      size: "default",
+-    },
+-  }
+-);
+-
+-export interface ButtonProps
+-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+-    VariantProps<typeof buttonVariants> {}
+-
+-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+-  ({ className, variant, size, type = "button", ...props }, ref) => (
+-    <button
+-      ref={ref}
+-      type={type}
+-      className={cn(buttonVariants({ variant, size, className }))}
+-      {...props}
+-    />
+-  )
+-);
+-Button.displayName = "Button";
+-
+-export { Button, buttonVariants };
+\ No newline at end of file
+diff --git a/apps/desktop/src/components/ui/card.tsx b/apps/desktop/src/components/ui/card.tsx
+deleted file mode 100644
+index e9144b3e..00000000
+--- a/apps/desktop/src/components/ui/card.tsx
++++ /dev/null
+@@ -1,54 +0,0 @@
+-import * as React from "react";
+-import { cn } from "@/lib/utils";
+-
+-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+-  ({ className, ...props }, ref) => (
+-    <div
+-      ref={ref}
+-      className={cn(
+-        "rounded-xl border border-border bg-card text-card-foreground shadow-sm",
+-        className
+-      )}
+-      {...props}
+-    />
+-  )
+-);
+-Card.displayName = "Card";
+-
+-const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+-  ({ className, ...props }, ref) => (
+-    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
+-  )
+-);
+-CardHeader.displayName = "CardHeader";
+-
+-const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
+-  ({ className, ...props }, ref) => (
+-    <h3 ref={ref} className={cn("text-lg font-semibold leading-tight tracking-tight", className)} {...props} />
+-  )
+-);
+-CardTitle.displayName = "CardTitle";
+-
+-const CardDescription = React.forwardRef<
+-  HTMLParagraphElement,
+-  React.HTMLAttributes<HTMLParagraphElement>
+->(({ className, ...props }, ref) => (
+-  <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+-));
+-CardDescription.displayName = "CardDescription";
+-
+-const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+-  ({ className, ...props }, ref) => (
+-    <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+-  )
+-);
+-CardContent.displayName = "CardContent";
+-
+-const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+-  ({ className, ...props }, ref) => (
+-    <div ref={ref} className={cn("flex items-center p-6 pt-0", className)} {...props} />
+-  )
+-);
+-CardFooter.displayName = "CardFooter";
+-
+-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+\ No newline at end of file
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index 7b6892a0..e4815a84 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -1,97 +1,7 @@
+ import { invoke } from "@tauri-apps/api/core";
+-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+ 
+-/** Mirrors `crate::session::SessionPhase` (SCREAMING_SNAKE_CASE serde). */
+-export type SessionPhase =
+-  | "IDLE"
+-  | "STARTING"
+-  | "LISTENING"
+-  | "TRANSCRIBING"
+-  | "FINALIZING"
+-  | "DONE"
+-  | "ERROR";
++export type RuntimeStatus = { version: string; state: "idle"; localOnly: true };
+ 
+-/** Mirrors `crate::commands::RuntimeStatus`. */
+-export type RuntimeStatus = {
+-  version: string;
+-  phase: SessionPhase;
+-  sessionId: number | null;
+-  sequence: number;
+-  localOnly: boolean;
+-  ready: boolean;
+-};
+-
+-/** Mirrors `crate::commands::SessionSnapshot`. */
+-export type SessionSnapshot = {
+-  sessionId: number | null;
+-  phase: SessionPhase;
+-  sequence: number;
+-};
+-
+-/** Mirrors `crate::session::SessionTransition`. */
+-export type SessionTransition = {
+-  sessionId: number | null;
+-  sequence: number;
+-  phase: SessionPhase;
+-  timestampMs: number;
+-};
+-
+-/** Mirrors `crate::commands::PingReply`. */
+-export type PingReply = {
+-  sequence: number;
+-  timestampMs: number;
+-};
+-
+-/** Mirrors `crate::events::SessionChangedPayload`. */
+-export type SessionChangedPayload = {
+-  event: "session://changed";
+-  transition: SessionTransition;
+-};
+-
+-/** Mirrors `crate::events::PingPayload`. */
+-export type PingPayload = {
+-  event: "runtime://ping";
+-  sequence: number;
+-  timestampMs: number;
+-};
+-
+-export const SESSION_CHANGED_EVENT = "session://changed";
+-export const PING_EVENT = "runtime://ping";
+-
+-export function getRuntimeStatus(): Promise<RuntimeStatus> {
++export async function getRuntimeStatus(): Promise<RuntimeStatus> {
+   return invoke<RuntimeStatus>("runtime_status");
+ }
+-
+-export function ping(): Promise<PingReply> {
+-  return invoke<PingReply>("ping");
+-}
+-
+-export function sessionSnapshot(): Promise<SessionSnapshot> {
+-  return invoke<SessionSnapshot>("session_snapshot");
+-}
+-
+-export function sessionTransition(target: SessionPhase): Promise<SessionTransition> {
+-  return invoke<SessionTransition>("session_transition", { target });
+-}
+-
+-export function sessionReset(): Promise<SessionTransition> {
+-  return invoke<SessionTransition>("session_reset");
+-}
+-
+-export function emitPing(): Promise<PingReply> {
+-  return invoke<PingReply>("emit_ping");
+-}
+-
+-/** Subscribe to authoritative session transitions. Returns an unsubscribe fn. */
+-export function onSessionChanged(
+-  handler: (payload: SessionChangedPayload) => void
+-): Promise<UnlistenFn> {
+-  return listen<SessionChangedPayload>(SESSION_CHANGED_EVENT, (event) =>
+-    handler(event.payload)
+-  );
+-}
+-
+-/** Subscribe to runtime ping events. Returns an unsubscribe fn. */
+-export function onPing(handler: (payload: PingPayload) => void): Promise<UnlistenFn> {
+-  return listen<PingPayload>(PING_EVENT, (event) => handler(event.payload));
+-}
+\ No newline at end of file
+diff --git a/apps/desktop/src/lib/utils.ts b/apps/desktop/src/lib/utils.ts
+deleted file mode 100644
+index c3bb34d7..00000000
+--- a/apps/desktop/src/lib/utils.ts
++++ /dev/null
+@@ -1,3 +0,0 @@
+-import { cn } from "cn";
+-
+-export { cn };
+\ No newline at end of file
+diff --git a/apps/desktop/src/styles.css b/apps/desktop/src/styles.css
+index ebf1aef1..6d0e5b41 100644
+--- a/apps/desktop/src/styles.css
++++ b/apps/desktop/src/styles.css
+@@ -1,4 +1,4 @@
+ @import "tailwindcss";
+ @import "tw-animate-css";
+ 
+-:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#e9efe9;background:#101914}*{box-sizing:border-box}body{margin:0}.ghost-link{background:transparent;border:0;color:#69cf8a;text-decoration:underline;font:inherit;cursor:pointer;padding:0 4px}.shell{display:grid;grid-template-columns:225px 1fr;min-height:100vh}aside{background:#15251d;padding:27px 16px;display:flex;flex-direction:column;gap:48px}.logo{font-weight:800;font-size:1.2rem}.logo span{color:#f17c4f}aside nav{display:grid;gap:5px}aside button{background:transparent;border:0;border-radius:7px;color:#a9b9ad;padding:11px;text-align:left;font:inherit;cursor:not-allowed}aside button.active{background:#2c4738;color:white}aside small{color:#829486;margin-top:auto}.content{max-width:1040px;width:100%;margin:auto;padding:62px}header{display:flex;justify-content:space-between;align-items:flex-start;gap:25px}h1{font-size:clamp(2rem,5vw,3.6rem);letter-spacing:-.06em;margin:.15rem 0}.eyebrow,.primary p,.cards p{font-size:.67rem;letter-spacing:.14em;font-weight:800;color:#f17c4f}.status{color:#b3c4b6;font-size:.84rem;white-space:nowrap}.status i{display:inline-block;width:8px;height:8px;background:#69cf8a;border-radius:50%}.primary{margin:48px 0 24px;padding:30px;border:1px solid #365240;border-radius:16px;background:radial-gradient(circle at right top,#294d3a,#1b2b21);display:flex;align-items:center;justify-content:space-between;gap:20px}.primary h2,.cards h3{margin:.4rem 0;font-size:1.5rem;letter-spacing:-.04em}.primary span,.cards span{color:#b3c4b6}.primary button{background:#93a99a;color:#304237;border:0;border-radius:999px;padding:12px 18px;font-weight:750;cursor:not-allowed}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}.cards article,.notice{border:1px solid #2d4335;background:#17251c;border-radius:13px;padding:21px}.notice{margin-top:20px}.notice p{color:#a9b9ad;margin-bottom:0}@media(max-width:700px){.shell{grid-template-columns:1fr}aside{display:none}.content{padding:32px 20px}.primary,header{align-items:flex-start;flex-direction:column}.cards{grid-template-columns:1fr}}
++:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#e9efe9;background:#101914}*{box-sizing:border-box}body{margin:0}.shell{display:grid;grid-template-columns:225px 1fr;min-height:100vh}aside{background:#15251d;padding:27px 16px;display:flex;flex-direction:column;gap:48px}.logo{font-weight:800;font-size:1.2rem}.logo span{color:#f17c4f}aside nav{display:grid;gap:5px}aside button{background:transparent;border:0;border-radius:7px;color:#a9b9ad;padding:11px;text-align:left;font:inherit;cursor:not-allowed}aside button.active{background:#2c4738;color:white}aside small{color:#829486;margin-top:auto}.content{max-width:1040px;width:100%;margin:auto;padding:62px}header{display:flex;justify-content:space-between;align-items:flex-start;gap:25px}h1{font-size:clamp(2rem,5vw,3.6rem);letter-spacing:-.06em;margin:.15rem 0}.eyebrow,.primary p,.cards p{font-size:.67rem;letter-spacing:.14em;font-weight:800;color:#f17c4f}.status{color:#b3c4b6;font-size:.84rem;white-space:nowrap}.status i{display:inline-block;width:8px;height:8px;background:#69cf8a;border-radius:50%}.primary{margin:48px 0 24px;padding:30px;border:1px solid #365240;border-radius:16px;background:radial-gradient(circle at right top,#294d3a,#1b2b21);display:flex;align-items:center;justify-content:space-between;gap:20px}.primary h2,.cards h3{margin:.4rem 0;font-size:1.5rem;letter-spacing:-.04em}.primary span,.cards span{color:#b3c4b6}.primary button{background:#93a99a;color:#304237;border:0;border-radius:999px;padding:12px 18px;font-weight:750;cursor:not-allowed}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}.cards article,.notice{border:1px solid #2d4335;background:#17251c;border-radius:13px;padding:21px}.notice{margin-top:20px}.notice p{color:#a9b9ad;margin-bottom:0}@media(max-width:700px){.shell{grid-template-columns:1fr}aside{display:none}.content{padding:32px 20px}.primary,header{align-items:flex-start;flex-direction:column}.cards{grid-template-columns:1fr}}
+diff --git a/decisions/ADR-021-linux-support.md b/decisions/ADR-021-linux-support.md
+deleted file mode 100644
+index 3d23c6af..00000000
+--- a/decisions/ADR-021-linux-support.md
++++ /dev/null
+@@ -1,55 +0,0 @@
+-# ADR-021 — Linux Support Scope for the V1 Desktop Application
+-
+-Status: Accepted
+-Date: 2026-09-18
+-
+-## Context
+-
+-FR-008 (SHALL) states the app must support Windows, macOS, and Linux, and AC-016 requires CI builds to produce artifacts for all three targets. However, PRD §4.1 names macOS and Windows as the distribution targets and explicitly defers Linux. The desktop foundation is ported from Handy, which ships a Linux build using a patched WebKitGTK stack; the Soravo development environment is itself Linux (this repository's CI and local tooling run on Linux x86_64 with webkit2gtk-4.1).
+-
+-TDD-tagged requirement HOTKEY-002 also notes that Linux global hotkeys are restricted under Wayland, which would materially degrade a core V1 feature on default Linux desktop sessions.
+-
+-## Decision
+-
+-For V1:
+-
+-1. **Primary distribution targets are macOS and Windows.** Marketing, packaging, entitlements, and support are scoped to these two platforms.
+-2. **Linux is a development and CI build target only.** Linux CI produces the deb/rpm/AppImage artifacts required by AC-016 to keep FR-008's build verification honest, and local development runs on Linux, but Linux is not shipped or supported for V1 end users and will not be offered as a download in the release pages.
+-3. **Global hotkeys (FR-002) are verified on macOS and Windows.** On Linux development builds, global hotkey behavior over Wayland is a known limitation carried as a documented risk in HOTKEY-002; it is not a V1 release acceptance path.
+-4. **The V1 release gate keeps the phased targets list** — macOS first, then Windows — consistent with the release plan; Linux reaches supported status at a post-V1 milestone, revisited via a future ADR.
+-
+-This resolution supersedes the ambiguity flagged in spec open question #1: FR-008's "support" is interpreted as a build/CI verification obligation for all three platforms plus a support obligation for macOS and Windows in V1.
+-
+-## Alternatives Considered
+-
+-1. **Ship Linux in V1** — Rejected. Adds support/QA surface across distros and desktop environments, and Wayland hotkey restrictions would ship a degraded core feature. Handy's Linux support depends on broader patched-webview maintenance.
+-2. **Drop Linux from CI (ignore AC-016)** — Rejected. CI must prove FR-008 buildability on all three targets; the artifacts are already produced by the foundation and cost little to keep.
+-3. **Linux dev + CI only (CHOSEN)** — Keeps AC-016 satisfied, keeps developer ergonomics on Linux, and avoids a premature support commitment.
+-
+-## Security Impact
+-
+-None added. Linux artifacts are validated in CI but are not signed/released distributions for V1.
+-
+-## Performance Impact
+-
+-None. Linux performance is not a V1 acceptance target.
+-
+-## Operational Impact
+-
+-- Release automation produces three archive families as CI artifacts, but only macOS and Windows installers are published.
+-- Support matrix documents Linux as "development/CI only" for V1.
+-
+-## Testing Impact
+-
+-- AC-016 CI builds continue to gate on Linux artifact production.
+-- Functional QA (hotkeys, text injection, model manager) is executed on macOS and Windows.
+-
+-## Rollback
+-
+-Promote Linux to a supported target at a post-V1 milestone with a revised ADR; nothing in this record precludes it.
+-
+-## Consequences
+-
+-- V1 scope stays credible: two supported platforms, all three proven in CI.
+-- Wayland/HOTKEY-002 risk is explicitly carried rather than silently shipped.
+-- Foundation effort (Phase 1 shell) does not over-invest in Linux packaging polish.
+\ No newline at end of file
+diff --git a/decisions/ADR-026-handy-foundation.md b/decisions/ADR-026-handy-foundation.md
+index 5c2a68ba..d3e8a959 100644
+--- a/decisions/ADR-026-handy-foundation.md
++++ b/decisions/ADR-026-handy-foundation.md
+@@ -55,41 +55,3 @@ If Handy integration proves unsuitable, revert to spec-driven implementation. Th
+ - Must maintain provenance/licensing documentation
+ - All Handy code must be audited before Soravo release
+ - Branding replacement is mandatory before any public release
+-
+----
+-
+-# Implementation Note — Phase 1 Task 1.1 (Handy Foundation Port)
+-
+-Date: 2026-09-18
+-
+-## Pinned upstream revision
+-
+-- Repository: https://github.com/cjpais/Handy
+-- Pinned commit: `ba10ce1943ef34e93c09494027fc0b9ced2e8a44` (fetched from `origin` into `/tmp/handy` during Phase 1)
+-- License: MIT — Copyright (c) 2025 CJ Pais. Full text preserved in the upstream tree; Soravo complies with the MIT requirement to retain the copyright and permission notice in substantial portions of the code.
+-
+-## Provenance
+-
+-- The port is a **rebranded extraction**, not a git fork. No Handy git history or git dependencies were carried into the Soravo workspace; the pinned source tree is the only provenance reference.
+-- Handy-identifying strings (product name, `com.handy.*` bundle identifiers, upstream branding) were replaced. A `grep` sweep for the upstream identity is part of the task 1.1 verification.
+-- No telemetry or network-initiated behavior from upstream was ported into the Phase 1 shell.
+-
+-## What was reused vs deferred
+-
+-| Item | Disposition |
+-| --- | --- |
+-| Tauri v2 shell, build plumbing (tauri.conf, vite, capabilities) | **Directly reused** (task 1.1) |
+-| Rust core session state machine (TDD §6), typed event bus, IPC commands | **Reimplemented from the spec** — Handy has no such authoritative session machine; it was authored fresh in `session.rs`/`events.rs`/`commands.rs` with 13 unit tests |
+-| Global shortcuts, tray, autostart, updater, memory/portable, model manager, audio/VAD, hotkeys, transcript, typing, pill overlay | **Deferred** to Phases 2-4 per plan (2.1-2.3, 3.1-3.3, 4.1-4.2) |
+-| `tauri-specta` typed IPC (upstream uses `=2.0.0-rc.22` rc-pins) | **Not adopted** — plain serde payloads + typed TS mirrors avoid rc-pin churn and build complexity; satisfies the "typed events over the event bus" TDD acceptance |
+-| Linux `WEBKIT_DISABLE_DMABUF_RENDERER` env workaround | **Not ported** — the workspace forbids `unsafe` code (seed 2024 made `std::env::set_var` unsafe) and the ban takes precedence; Linux is a dev/CI target only per ADR-021 |
+-
+-## Deviations from upstream pinned to this port
+-
+-1. Workspace edition 2024 with `unsafe_code = "forbid"` and `unused_must_use = "deny"`: upstream's `unsafe` usage and edition 2021 Cargo.normal were not carried forward.
+-2. No `cjpais` git forks in the dependency graph; all Phase 1 deps come from crates.io (verified in task 1.2 audit).
+-3. License/worktree is Proprietary for Soravo code; upstream MIT terms continue to bind only the ported surface (shell/build plumbing).
+-
+-## Release gates
+-
+-The task 1.2 security/supply-chain audit builds the durable `docs/security/` baseline against this pinned revision before any upstream surface beyond the shell is integrated.

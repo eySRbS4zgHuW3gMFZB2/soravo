@@ -1,0 +1,10 @@
+[package]
+name = "soravo-licensing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Soravo entitlement and license validation"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
