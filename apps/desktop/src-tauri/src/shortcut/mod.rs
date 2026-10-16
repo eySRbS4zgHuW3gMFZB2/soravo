@@ -583,13 +583,7 @@ pub fn change_shortcut_activation_setting(
 ) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.shortcut_activation = activation;
-    // R1-GAP-023 (ADR-032): canonical write first; mirror the just-persisted
-    // values best-effort. A mirror failure never rolls back canonical state.
-    // `HoldOrToggle` (the upstream default) is unrepresentable in the
-    // compatibility store and is left untouched, never approximated.
-    let persisted = settings.clone();
     settings::write_settings(&app, settings);
-    crate::settings_mirror::mirror_after_canonical_write(&persisted);
     Ok(())
 }
 
@@ -751,18 +745,6 @@ pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(),
     crate::utils::update_overlay_position(&app);
 
     Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn get_overlay_style_setting(app: AppHandle) -> Result<String, String> {
-    let settings = settings::get_settings(&app);
-    // Return the lowercase wire value that mirrors OverlayStyle enum variants.
-    Ok(match settings.overlay_style {
-        settings::OverlayStyle::None => "none".to_string(),
-        settings::OverlayStyle::Minimal => "minimal".to_string(),
-        settings::OverlayStyle::Live => "live".to_string(),
-    })
 }
 
 #[tauri::command]

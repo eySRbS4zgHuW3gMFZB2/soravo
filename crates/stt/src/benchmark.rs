@@ -387,18 +387,11 @@ impl BenchmarkHarness {
         // Get ground truth
         let ground_truth = self.get_ground_truth(file_id).cloned().unwrap_or_default();
 
-        // Create engine
+        // Create engine via the caller factory, which returns it fully
+        // initialized against the real model path (T11-A: a previous revision
+        // re-initialized with a "dummy" path here, which unconditionally
+        // failed model loading and broke every batch benchmark).
         let mut engine = engine_factory()?;
-
-        // Initialize engine
-        let config = super::TranscriptionConfig {
-            language: "en".to_string(),
-            streaming: false,
-            hotwords: vec![],
-        };
-        engine
-            .initialize("dummy", &config) // Will be overridden by actual model path in factory
-            .map_err(|e| BenchmarkError::ParseError(format!("Engine init failed: {}", e)))?;
 
         // Warmup runs
         for _ in 0..self.config.warmup_runs {

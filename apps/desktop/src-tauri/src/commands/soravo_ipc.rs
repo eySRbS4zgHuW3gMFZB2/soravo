@@ -198,6 +198,14 @@ pub fn inject_text(app: AppHandle, text: String) -> Result<soravo_typing::Typing
     validate_inject_text(&text)?;
     let engine = soravo_typing::TypingEngine::new(soravo_typing::TypingConfig::default());
     let result = engine.inject(&text);
+    // Live-mic E2E diagnostic (2026-10-10): the clipboard-fallback outcome
+    // was invisible in logs when insertion into the external editor failed.
+    log::debug!(
+        "inject_text: success={} method={:?} message={}",
+        result.success,
+        result.method,
+        result.message
+    );
     let _ = app.emit(
         "typing://result",
         serde_json::to_value(&result).unwrap_or_default(),

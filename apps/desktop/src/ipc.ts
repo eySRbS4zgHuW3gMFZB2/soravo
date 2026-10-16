@@ -179,34 +179,6 @@ export function onTypingResult(
   );
 }
 
-/**
- * Overlay visibility signals emitted window-scoped by the Handy-derived
- * native overlay abstraction (`overlay.rs`: `show_overlay_state_on_main`
- * emits `show-overlay` with the UI state, `hide_recording_overlay` emits
- * `hide-overlay` before the delayed native hide). The payload selects the
- * overlay format only — pill content (state label, transcript text) comes
- * from the canonical session/transcript buses, never from this signal, so
- * no second state machine is introduced.
- */
-export type OverlaySignal = "recording" | "streaming" | "transcribing" | "processing";
-
-export const SHOW_OVERLAY_EVENT = "show-overlay";
-export const HIDE_OVERLAY_EVENT = "hide-overlay";
-
-/** Subscribe to overlay show signals on the recording-overlay window. Returns an unsubscribe fn. */
-export function onShowOverlay(
-  handler: (signal: OverlaySignal) => void
-): Promise<UnlistenFn> {
-  return listen<OverlaySignal>(SHOW_OVERLAY_EVENT, (event) =>
-    handler(event.payload)
-  );
-}
-
-/** Subscribe to overlay hide signals on the recording-overlay window. Returns an unsubscribe fn. */
-export function onHideOverlay(handler: () => void): Promise<UnlistenFn> {
-  return listen(HIDE_OVERLAY_EVENT, () => handler());
-}
-
 // Settings types
 export type SchemaInfo = {
   version: number;
@@ -263,85 +235,8 @@ export function updateHotkeySettings(settings: HotkeySettings): Promise<Settings
   return invoke<SettingsResponse>("update_hotkey_settings", { settings });
 }
 
-// G2 hotkey-rebind exposure — thin wrappers over the existing Handy-derived
-// rebind contract (`shortcut/mod.rs`). Registration only on the Rust side;
-// these names must stay in sync with the `generate_handler!` list in
-// `src-tauri/src/main.rs` (locked by `shortcut_rebind_tests.rs`).
-
-/** Mirrors `crate::settings::ShortcutBinding` (snake_case wire keys). */
-export type ShortcutBinding = {
-  id: string;
-  name: string;
-  description: string;
-  default_binding: string;
-  current_binding: string;
-};
-
-/** Mirrors `crate::shortcut::BindingResponse`. */
-export type BindingResponse = {
-  success: boolean;
-  binding: ShortcutBinding | null;
-  error: string | null;
-};
-
-export function changeHotkeyBinding(id: string, binding: string): Promise<BindingResponse> {
-  return invoke<BindingResponse>("change_binding", { id, binding });
-}
-
-export function resetHotkeyBinding(id: string): Promise<BindingResponse> {
-  return invoke<BindingResponse>("reset_binding", { id });
-}
-
-export function suspendHotkeyBindings(): Promise<void> {
-  return invoke<void>("suspend_all_bindings");
-}
-
-export function resumeHotkeyBindings(): Promise<void> {
-  return invoke<void>("resume_all_bindings");
-}
-
-/**
- * Build a backend-accepted hotkey string (e.g. `"ctrl+space"`) from a DOM
- * keydown. Returns `null` for modifier-only keydowns (no committable combo
- * yet). The grammar mirrors `tauri_impl::validate_shortcut`: lowercase
- * `+`-joined parts with at least one non-modifier key; the backend re-validates
- * on commit, so this is a convenience, never the authority.
- */
-export function formatHotkeyFromKeyboardEvent(e: {
-  key: string;
-  ctrlKey: boolean;
-  shiftKey: boolean;
-  altKey: boolean;
-  metaKey: boolean;
-}): string | null {
-  const parts: string[] = [];
-  if (e.ctrlKey) parts.push("ctrl");
-  if (e.shiftKey) parts.push("shift");
-  if (e.altKey) parts.push("alt");
-  if (e.metaKey) parts.push("super");
-
-  const key = e.key.toLowerCase();
-  // Modifier-only keydown: the combo is not complete yet.
-  if (["control", "shift", "alt", "meta", "altgraph", "fn"].includes(key)) {
-    return null;
-  }
-  parts.push(key === " " ? "space" : key);
-  return parts.join("+");
-}
-
 export function updateModelSettings(settings: ModelSettings): Promise<SettingsResponse> {
   return invoke<SettingsResponse>("update_model_settings", { settings });
-}
-
-/** Mirrors `crate::settings::OverlayStyle` (lowercase serde wire values). */
-export type OverlayStyleSetting = "none" | "minimal" | "live";
-
-export function getOverlayStyle(): Promise<string> {
-  return invoke<string>("get_overlay_style_setting");
-}
-
-export function changeOverlayStyle(style: OverlayStyleSetting): Promise<void> {
-  return invoke<void>("change_overlay_style_setting", { style });
 }
 
 // Model catalog / management types and commands.

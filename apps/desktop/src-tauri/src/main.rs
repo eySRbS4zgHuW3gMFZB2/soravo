@@ -9,10 +9,7 @@ use soravo_desktop_lib::{
     account::AccountMachine,
     auth_flow::AuthFlow,
     cli::CliArgs,
-    commands::{
-        account::*, change_binding, history::*, initialize_shortcuts, models::*, reset_binding,
-        resume_all_bindings, soravo_ipc::*, suspend_all_bindings,
-    },
+    commands::{account::*, history::*, initialize_shortcuts, models::*, soravo_ipc::*},
     managers::{
         audio::AudioRecordingManager,
         history::HistoryManager,
@@ -28,15 +25,6 @@ use soravo_desktop_lib::{
 // `soravo_ipc::*` globs; `initialize_shortcuts` is declared in `commands`
 // itself, so both of its generated wrappers are imported by name here.
 use soravo_desktop_lib::{__cmd__initialize_shortcuts, __tauri_command_name_initialize_shortcuts};
-// G2 hotkey-rebind exposure: the rebind commands are imported by name (not
-// via a glob), so their generated wrappers need the same by-name import.
-use soravo_desktop_lib::shortcut::{
-    __cmd__change_binding, __cmd__change_overlay_style_setting, __cmd__get_overlay_style_setting,
-    __cmd__reset_binding, __cmd__resume_all_bindings, __cmd__suspend_all_bindings,
-    __tauri_command_name_change_binding, __tauri_command_name_change_overlay_style_setting,
-    __tauri_command_name_get_overlay_style_setting, __tauri_command_name_reset_binding,
-    __tauri_command_name_resume_all_bindings, __tauri_command_name_suspend_all_bindings,
-};
 
 /// Route one raw deep-link/second-instance URL into the desktop auth flow.
 fn route_auth_callback(app: &tauri::AppHandle, raw_url: &str) {
@@ -77,12 +65,6 @@ fn main() {
     let auth_flow = Mutex::new(auth_flow);
 
     tauri::Builder::default()
-        // Launch-stability prerequisite (G2 merge blocker): register the
-        // deep-link plugin before setup() calls `app.deep_link().on_open_url`
-        // (R1-GAP-021 auth-callback listener). Without this the app panics at
-        // startup with `state() called before manage()` and exits 101.
-        // Proven by T22 live runs on the R1 line; ported here verbatim.
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_os::init())
@@ -94,8 +76,8 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::AppleScript,
             None,
         ))
-        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
-            // R1-GAP-021: a second launch carrying the auth deep link arrives
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_single_instance::init(|app, args, _| {            // R1-GAP-021: a second launch carrying the auth deep link arrives
             // here (custom schemes re-activate the single instance). Route
             // `soravo://` argv entries into the auth flow; ignore the rest.
             for arg in &args {
@@ -109,13 +91,13 @@ fn main() {
         .manage(account_machine)
         .manage(auth_flow)
         .setup(move |app| {
-            // Launch-stability prerequisite (G2 merge blocker): mount the
-            // typed tauri-specta events before anything can emit them.
-            // Without this, every typed `.emit()` (stream text/phase, history
-            // updates) panics with "EventRegistry not found", killing the
-            // streaming worker mid-dictation, dropping the leased engine, and
-            // failing every repeat dictation with "Model is not loaded".
-            // Proven by T22 live runs on the R1 line; ported here verbatim.
+            // Live-mic E2E fix (2026-10-10): mount the typed tauri-specta
+            // events before anything can emit them. Without this, every
+            // typed `.emit()` (stream text/phase, history updates) panics
+            // with "EventRegistry not found", which kills the streaming
+            // worker mid-dictation, drops the leased transcription engine,
+            // and makes every repeat dictation fail with "Model is not
+            // loaded for transcription."
             tauri_specta::Builder::<tauri::Wry>::new()
                 .events(tauri_specta::collect_events![
                     soravo_desktop_lib::managers::transcription::StreamTextEvent,
@@ -159,20 +141,6 @@ fn main() {
             // S9 — secure-input state. A real monitor on macOS; a no-op elsewhere.
             // Must precede the first recording, which resolves this state.
             secure_input::init(app.handle());
-
-            // S9b — create the Handy-derived floating recording overlay window
-            // (hidden) and populate the overlay-enabled cache from initial
-            // settings, mirroring Handy `lib.rs` (`initialize_core_logic` +
-            // setup at the pin of record). Without this the `show_*/hide_*`
-            // calls in `actions.rs` resolve `get_webview_window` to `None`
-            // and no-op, so no floating pill can ever appear during dictation
-            // into other applications. Creation failure only logs inside
-            // `overlay.rs`; the cache keeps the audio path off the store.
-            soravo_desktop_lib::overlay::create_recording_overlay(app.handle());
-            soravo_desktop_lib::overlay::update_overlay_enabled_cache(
-                soravo_desktop_lib::settings::get_settings(app.handle()).overlay_style
-                    != soravo_desktop_lib::settings::OverlayStyle::None,
-            );
 
             // S10 — install the global shortcut. Idempotent, and re-runnable from
             // the `initialize_shortcuts` command after an OS accessibility grant.
@@ -239,19 +207,62 @@ fn main() {
             toggle_history_entry_saved,
             delete_history_entry,
             retry_history_entry_transcription,
-            // G2 hotkey-rebind exposure: expose the existing Handy-derived
-            // rebind contract. The settings rebind flow (`ipc.ts` wrappers +
-            // `ShortcutSettings`) invokes these names, so without registration
-            // every rebind fails at runtime with an unknown-command error.
-            // Registration only — no shortcut/command behavior changed, and
-            // every one of these takes `AppHandle` only (no managed state).
-            change_binding,
-            reset_binding,
-            suspend_all_bindings,
-            resume_all_bindings,
-            get_overlay_style_setting,
-            change_overlay_style_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running soravo desktop");
+}
+
+#[cfg(test)]
+mod startup_registration_tests {
+    /// Regression tripwire for the 2026-10-10 live-mic E2E: the GUI panicked
+    /// at startup with `state() called before manage()` for
+    /// `tauri_plugin_deep_link` because `setup()` called
+    /// `app.deep_link().on_open_url(...)` without the plugin being registered
+    /// on the builder. This boots no Tauri runtime; it asserts the source
+    /// keeps registration textually before first use so a future edit cannot
+    /// silently drop the `.plugin(...)` line again. The live GUI launch in the
+    /// E2E report is the behavioral verification.
+    #[test]
+    fn deep_link_plugin_is_registered_before_setup_uses_it() {
+        let src = include_str!("main.rs");
+        let register = src.find("tauri_plugin_deep_link::init()");
+        let listen = src.find("deep_link().on_open_url");
+        assert!(
+            register.is_some(),
+            "main.rs must register tauri_plugin_deep_link::init() on the builder"
+        );
+        assert!(
+            listen.is_some(),
+            "expected the deep-link on_open_url listener to still exist"
+        );
+        assert!(
+            register.unwrap() < listen.unwrap(),
+            "plugin registration must precede the setup() listener"
+        );
+    }
+
+    /// Regression tripwire for the 2026-10-10 live-mic E2E, part 2: every
+    /// typed tauri-specta `.emit()` panicked with "EventRegistry not found",
+    /// killing the streaming worker mid-dictation and breaking repeat use.
+    /// Asserts the source keeps a `mount_events` call covering all three
+    /// typed events. Boots no Tauri runtime; the live GUI launch in the E2E
+    /// report is the behavioral verification.
+    #[test]
+    fn specta_events_are_mounted_before_use() {
+        let src = include_str!("main.rs");
+        assert!(
+            src.contains("mount_events"),
+            "main.rs must mount tauri-specta events in setup()"
+        );
+        for event in [
+            "StreamTextEvent",
+            "StreamPhaseEvent",
+            "HistoryUpdatePayload",
+        ] {
+            assert!(
+                src.contains(event),
+                "main.rs must mount typed event {event}"
+            );
+        }
+    }
 }

@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Least-privilege capability set for the Soravo main window and the floating recording-overlay pill (same permission set; no new permissions).",
-  "windows": ["main", "recording_overlay"],
+  "description": "Least-privilege capability set for the Soravo main window.",
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "core:app:allow-version",
