@@ -173,3 +173,49 @@ completion percentage is asserted.
 - CI green ≠ deployment green ≠ release green. All three recorded separately.
 - No supervised desktop GUI, live-microphone, OS-key-simulation, signing,
   notarization, or real-charge step was performed or simulated to look real.
+
+## Release-candidate engineering — PR #133 (2026-10-16, unmerged)
+
+Base `33d3d4c56e2cf029835d774e47df7cbd8611dbf4`; PR head
+`e98005aac7b0f6cbe49bba10fb2544fcca3d2b05`;
+PR: `https://github.com/eySRbS4zgHuW3gMFZB2/soravo/pull/133`;
+CI run: `https://github.com/eySRbS4zgHuW3gMFZB2/soravo/actions/runs/38897877040`.
+
+V1 priority platforms remain macOS and Windows; Linux remains optional and
+development-only (`02_PRODUCT_REQUIREMENTS.md`). This section records the new
+unsigned-candidate automation as code readiness, not as executed release
+artifacts.
+
+### Platform-by-platform release contract
+
+| Target | Build/compile | Bundle/installer generation | Code signing | macOS notarization / Windows timestamp | Checksums and provenance | Update metadata/signatures | Installation, upgrade, rollback, uninstall |
+|---|---|---|---|---|---|---|---|
+| `darwin-aarch64` | PASS in CI compile leg | READY in new workflow; no candidate artifact yet | BLOCKED: Apple credentials absent | BLOCKED: Apple credentials absent | READY; no candidate artifact yet | BLOCKED: no endpoint, public key, registration, signed artifact, or feed | BLOCKED: no signed candidate or clean-machine run |
+| `darwin-x86_64` | PASS in CI compile leg | READY in new workflow; no candidate artifact yet | BLOCKED: Apple credentials absent | BLOCKED: Apple credentials absent | READY, including SHA-pinned ORT provisioning path; no candidate artifact yet | BLOCKED | BLOCKED |
+| `windows-x86_64` | PASS in CI compile leg | READY in new workflow; no candidate artifact yet | BLOCKED: Tauri signing key absent | BLOCKED: signing key and timestamp evidence absent | READY; no candidate artifact yet | BLOCKED | BLOCKED |
+| Linux x86_64 | PASS in required `desktop`; not a V1 release target | Not in candidate scope | Not applicable | Not applicable | Existing CI bundle is not release evidence | Not applicable | BLOCKED/UNKNOWN |
+
+### New code-controlled evidence
+
+- New unsigned-candidate automation validates exact acknowledgment text,
+  required native bundle outputs, SHA-256 checksums, packaged resources,
+  pinned macOS x86_64 runtime files, toolchain/lockfile identity, and
+  unsigned/update-blocked status.
+- Local focused suite: **25/25 passed** with Vitest 5.0.2 and Node v22.23.1.
+- Required `web` and `e2e` passed on PR #133.
+- `cargo fmt`, Clippy `-D warnings`, and `cargo test --workspace` passed in the
+  failed `rust` job; only `cargo audit --deny warnings` failed because locked
+  `zip 4.6.1` is now yanked.
+- Required `desktop`, both macOS compile legs, and Windows compile leg passed.
+- The manual candidate workflow was not dispatched, so no macOS/Windows
+  installer was produced, installed, upgraded, rolled back, uninstalled, signed,
+  notarized, timestamped, or update-tested.
+
+### External CI blocker
+
+`rust` job `116962626289`: `cargo audit` reports `zip 4.6.1`, warning `yanked`.
+That package is transitively locked through the unchanged
+`tauri-plugin-updater 2.13.0`; this PR changes no Cargo manifest or lockfile.
+Local reproduction gives the same result. The audit gate was not weakened and
+no unrelated dependency migration was bundled. The PR therefore remains
+unmerged.
