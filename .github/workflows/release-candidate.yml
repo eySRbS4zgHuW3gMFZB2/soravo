@@ -1,0 +1,200 @@
+name: Release candidate (unsigned)
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate-suffix:
+        description: 'Candidate label. Only unsigned-rc is accepted.'
+        required: true
+        default: 'unsigned-rc'
+      acknowledge-unsigned:
+        description: 'Type UNSIGNED-RC to confirm that the result must remain unsigned and must not be published.'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  validate-unsigned-request:
+    name: Validate unsigned release-candidate request
+    runs-on: ubuntu-latest
+    outputs:
+      app-version: ${{ steps.request.outputs.app_version }}
+      candidate-suffix: ${{ steps.request.outputs.candidate_suffix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate explicit unsigned acknowledgment
+        id: request
+        shell: bash
+        env:
+          SORAVO_CANDIDATE_SUFFIX: ${{ inputs.candidate-suffix }}
+          SORAVO_UNSIGNED_ACKNOWLEDGMENT: ${{ inputs.acknowledge-unsigned }}
+        run: |
+          node scripts/release/release-candidate-cli.mjs validate-request \
+            --tauri-config apps/desktop/src-tauri/tauri.conf.json \
+            --github-output "$GITHUB_OUTPUT"
+
+  build-unsigned-candidate:
+    name: Unsigned candidate (${{ matrix.target }})
+    needs: validate-unsigned-request
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-aarch64
+            runner: macos-15
+            rust_target: aarch64-apple-darwin
+            tauri_args: ''
+            packaged_root: bundle/macos/Soravo.app/Contents/Resources
+            resource_args: >-
+              --resource "silero-vad-model|apps/desktop/src-tauri/resources/models/silero_vad_v4.onnx|resources/models/silero_vad_v4.onnx"
+              --resource "silero-vad-notice|apps/desktop/src-tauri/resources/models/SILERO_VAD_LICENSE_MIT.txt|resources/models/SILERO_VAD_LICENSE_MIT.txt"
+              --resource "silero-vad-provenance|apps/desktop/src-tauri/resources/models/SILERO_VAD_PROVENANCE.json|resources/models/SILERO_VAD_PROVENANCE.json"
+            upload_paths: |
+              apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+              apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          - target: darwin-x86_64
+            runner: macos-15-intel
+            rust_target: x86_64-apple-darwin
+            tauri_args: --config "$RUNNER_TEMP/tauri-rc-darwin-x86_64.json"
+            packaged_root: bundle/macos/Soravo.app/Contents/Resources
+            resource_args: >-
+              --resource "silero-vad-model|apps/desktop/src-tauri/resources/models/silero_vad_v4.onnx|resources/models/silero_vad_v4.onnx"
+              --resource "silero-vad-notice|apps/desktop/src-tauri/resources/models/SILERO_VAD_LICENSE_MIT.txt|resources/models/SILERO_VAD_LICENSE_MIT.txt"
+              --resource "silero-vad-provenance|apps/desktop/src-tauri/resources/models/SILERO_VAD_PROVENANCE.json|resources/models/SILERO_VAD_PROVENANCE.json"
+              --resource "onnxruntime-macos-x64|$SORAVO_ORT_DYLIB|Contents/Frameworks/libonnxruntime.1.24.2.dylib"
+            upload_paths: |
+              apps/desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+              apps/desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+          - target: windows-x86_64
+            runner: windows-2025
+            rust_target: x86_64-pc-windows-msvc
+            tauri_args: ''
+            packaged_root: unknown
+            resource_args: >-
+              --resource "silero-vad-model|apps/desktop/src-tauri/resources/models/silero_vad_v4.onnx|resources/models/silero_vad_v4.onnx"
+              --resource "silero-vad-notice|apps/desktop/src-tauri/resources/models/SILERO_VAD_LICENSE_MIT.txt|resources/models/SILERO_VAD_LICENSE_MIT.txt"
+              --resource "silero-vad-provenance|apps/desktop/src-tauri/resources/models/SILERO_VAD_PROVENANCE.json|resources/models/SILERO_VAD_PROVENANCE.json"
+            upload_paths: |
+              apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+              apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          key: release-candidate-${{ matrix.rust_target }}
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Vulkan SDK (Windows x64)
+        if: matrix.target == 'windows-x86_64'
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.309.0
+          cache: true
+      - name: Install SPIRV-Headers for transcribe-cpp Vulkan build (Windows x64)
+        if: matrix.target == 'windows-x86_64'
+        shell: pwsh
+        run: |
+          vcpkg install spirv-headers:x64-windows
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg install spirv-headers failed" }
+          $prefix = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows" -replace '\\','/'
+          $combined = if ($env:CMAKE_PREFIX_PATH) { "$prefix;$env:CMAKE_PREFIX_PATH" } else { $prefix }
+          Add-Content $env:GITHUB_ENV "CMAKE_PREFIX_PATH=$combined"
+          Write-Host "CMAKE_PREFIX_PATH=$combined"
+      - name: Provision ONNX Runtime (x86_64 macOS only)
+        if: matrix.target == 'darwin-x86_64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORT_VERSION="1.24.2"
+          ORT_SHA256="590cee05699047b85e4a8115b4cec792073c2972ce78de383356a552a296a9c4"
+          curl -L --fail -o ort.tgz "https://blob.handy.computer/onnxruntime-osx-x86_64-${ORT_VERSION}.tgz"
+          echo "${ORT_SHA256}  ort.tgz" | shasum -a 256 -c -
+          tar xzf ort.tgz
+          ORT_DIR="$GITHUB_WORKSPACE/onnxruntime-osx-x86_64-${ORT_VERSION}"
+          echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> "$GITHUB_ENV"
+          echo "ORT_PREFER_DYNAMIC_LINK=1" >> "$GITHUB_ENV"
+          echo "SORAVO_ORT_DYLIB=$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib" >> "$GITHUB_ENV"
+          node scripts/release/release-candidate-cli.mjs verify-runtime \
+            --runtime "onnxruntime-macos-x64|$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib|${ORT_SHA256}|1000000"
+          node scripts/release/release-candidate-cli.mjs make-temporary-config \
+            --base-config apps/desktop/src-tauri/tauri.conf.json \
+            --framework "$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib" \
+            --output "$RUNNER_TEMP/tauri-rc-darwin-x86_64.json"
+      - name: Record reproducible build identity
+        id: identity
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-candidate/${{ matrix.target }}"
+          node scripts/release/release-candidate-cli.mjs write-identity \
+            --repository-root "$GITHUB_WORKSPACE" \
+            --desktop-directory "$GITHUB_WORKSPACE/apps/desktop" \
+            --output "$RUNNER_TEMP/release-candidate/${{ matrix.target }}/toolchain.json"
+      - name: Build unsigned Tauri bundle
+        working-directory: apps/desktop
+        shell: bash
+        run: pnpm tauri build --target "${{ matrix.rust_target }}" --ci --no-sign ${{ matrix.tauri_args }}
+      - name: Generate unsigned candidate manifest and checksums
+        shell: bash
+        env:
+          SORAVO_APP_VERSION: ${{ needs.validate-unsigned-request.outputs.app-version }}
+          SORAVO_CANDIDATE_SUFFIX: ${{ needs.validate-unsigned-request.outputs.candidate-suffix }}
+        run: |
+          if [ "${{ matrix.packaged_root }}" = "unknown" ]; then
+            SORAVO_PACKAGED_ROOT="unknown"
+          else
+            SORAVO_PACKAGED_ROOT="$GITHUB_WORKSPACE/apps/desktop/src-tauri/target/${{ matrix.rust_target }}/release/${{ matrix.packaged_root }}"
+          fi
+          node scripts/release/release-candidate-cli.mjs write-manifest \
+            --bundle-root "$GITHUB_WORKSPACE/apps/desktop/src-tauri/target/${{ matrix.rust_target }}/release/bundle" \
+            --target "${{ matrix.target }}" \
+            --product Soravo \
+            --app-version "$SORAVO_APP_VERSION" \
+            --source-commit "$GITHUB_SHA" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-number "$GITHUB_RUN_NUMBER" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --host-os "$RUNNER_OS" \
+            --host-arch "$RUNNER_ARCH" \
+            --identity-file "$RUNNER_TEMP/release-candidate/${{ matrix.target }}/toolchain.json" \
+            --tauri-config "$GITHUB_WORKSPACE/apps/desktop/src-tauri/tauri.conf.json" \
+            --repository-root "$GITHUB_WORKSPACE" \
+            --packaged-root "$SORAVO_PACKAGED_ROOT" \
+            --manifest "$RUNNER_TEMP/release-candidate/${{ matrix.target }}/manifest.json" \
+            --checksums "$RUNNER_TEMP/release-candidate/${{ matrix.target }}/checksums.sha256" \
+            --warning "$RUNNER_TEMP/release-candidate/${{ matrix.target }}/UNSIGNED-NOT-FOR-GENERAL-DISTRIBUTION.txt" \
+            ${{ matrix.resource_args }}
+      - name: Verify unsigned candidate independently
+        shell: bash
+        run: |
+          node scripts/release/release-candidate-cli.mjs verify-manifest \
+            --manifest "$RUNNER_TEMP/release-candidate/${{ matrix.target }}/manifest.json" \
+            --bundle-root "$GITHUB_WORKSPACE/apps/desktop/src-tauri/target/${{ matrix.rust_target }}/release/bundle"
+      - name: Upload unsigned candidate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soravo-${{ matrix.target }}-${{ needs.validate-unsigned-request.outputs.candidate-suffix }}
+          path: |
+            ${{ runner.temp }}/release-candidate/${{ matrix.target }}/manifest.json
+            ${{ runner.temp }}/release-candidate/${{ matrix.target }}/toolchain.json
+            ${{ runner.temp }}/release-candidate/${{ matrix.target }}/checksums.sha256
+            ${{ runner.temp }}/release-candidate/${{ matrix.target }}/UNSIGNED-NOT-FOR-GENERAL-DISTRIBUTION.txt
+            ${{ matrix.upload_paths }}
+          retention-days: 30
