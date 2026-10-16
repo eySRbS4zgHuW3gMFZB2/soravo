@@ -11,7 +11,8 @@
     "e2e:install": "playwright install --with-deps chromium",
     "lint": "pnpm --filter @soravo/website lint && pnpm --filter @soravo/desktop lint && pnpm --filter @soravo/license-api lint && pnpm --filter @soravo/payment-domain lint && pnpm lint:checkout",
     "lint:checkout": "eslint supabase/functions/payment-checkout --max-warnings=0",
-    "test": "pnpm --filter @soravo/website test && pnpm --filter @soravo/desktop test && pnpm --filter @soravo/license-api test && pnpm --filter @soravo/payment-domain test && pnpm test:supabase",
+    "test": "pnpm --filter @soravo/website test && pnpm --filter @soravo/desktop test && pnpm --filter @soravo/license-api test && pnpm --filter @soravo/payment-domain test && pnpm test:supabase && pnpm test:release",
+    "test:release": "vitest run --config scripts/release/vitest.config.mjs",
     "test:supabase": "vitest run --config supabase/tests/vitest.config.mjs",
     "typecheck": "pnpm --filter @soravo/website typecheck && pnpm --filter @soravo/desktop typecheck && pnpm --filter @soravo/license-api typecheck && pnpm --filter @soravo/payment-domain typecheck && pnpm typecheck:checkout",
     "typecheck:checkout": "tsc -p supabase/functions/payment-checkout/tsconfig.json --pretty false"

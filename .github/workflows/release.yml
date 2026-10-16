@@ -7,7 +7,26 @@ permissions:
   contents: write
 
 jobs:
+  verify-signed-release-prerequisites:
+    name: Verify signed-release prerequisites
+    runs-on: ubuntu-latest
+    steps:
+      # `12_SECURITY_BASELINE.md`: compare only secret presence here. No secret value is
+      # read into shell, written to a file, printed, or uploaded. The signed
+      # release must fail before it creates a draft release or builds artifacts.
+      - name: Require Apple code-signing and notarization credentials
+        if: ${{ secrets.APPLE_CERTIFICATE == '' || secrets.APPLE_CERTIFICATE_PASSWORD == '' || secrets.APPLE_SIGNING_IDENTITY == '' || secrets.APPLE_ID == '' || secrets.APPLE_PASSWORD == '' || secrets.APPLE_TEAM_ID == '' }}
+        run: |
+          echo "::error::Signed release requires APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, APPLE_ID, APPLE_PASSWORD, and APPLE_TEAM_ID."
+          exit 1
+      - name: Require Tauri update-artifact signing key
+        if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY == '' }}
+        run: |
+          echo "::error::Signed release requires TAURI_SIGNING_PRIVATE_KEY."
+          exit 1
+
   create-release:
+    needs: verify-signed-release-prerequisites
     runs-on: ubuntu-latest
     outputs:
       release-id: ${{ steps.create-release.outputs.result }}
@@ -45,13 +64,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
+          # Native runners only: distributable installers must not be assumed
+          # from a cross-compiled binary.
+          - platform: macos-15
             args: "--target aarch64-apple-darwin"
             target: aarch64-apple-darwin
-          - platform: macos-latest
+          - platform: macos-15-intel
             args: "--target x86_64-apple-darwin"
             target: x86_64-apple-darwin
-          - platform: windows-latest
+          - platform: windows-2025
             args: ""
             target: x86_64-pc-windows-msvc
 
@@ -128,20 +149,73 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS signing - REQUIRES DEVELOPER CERTIFICATES:
-          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Windows signing - REQUIRES DEVELOPER CERTIFICATES:
-          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Signed macOS distribution. Values stay in GitHub Actions secrets and
+          # are never committed, printed, or included in artifacts.
+          # APPLE_CERTIFICATE: base64-encoded Developer ID Application .p12.
+          # APPLE_CERTIFICATE_PASSWORD: password that unlocks that .p12.
+          # APPLE_SIGNING_IDENTITY: Developer ID Application signing identity.
+          # APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID: notarization Apple ID,
+          # app-specific password, and team identifier.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Signed Windows/update artifacts. The private key material stays in
+          # GitHub Actions secrets. TAURI_SIGNING_PRIVATE_KEY_PASSWORD is
+          # optional and is used only when the configured private key needs it.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           releaseId: ${{ needs.create-release.outputs.release-id }}
           args: ${{ matrix.args }}
+
+      - name: Verify macOS code signature
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apps=(apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app)
+          if ((${#apps[@]} != 1)); then
+            echo "::error::Expected exactly one signed macOS app bundle."
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "${apps[0]}"
+          codesign --display --verbose=4 "${apps[0]}"
+          spctl --assess --type execute --verbose=4 "${apps[0]}"
+
+      - name: Verify macOS notarization ticket
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apps=(apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app)
+          dmgs=(apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg)
+          if ((${#apps[@]} != 1 || ${#dmgs[@]} != 1)); then
+            echo "::error::Expected exactly one app bundle and one disk image for notarization validation."
+            exit 1
+          fi
+          xcrun stapler validate "${apps[0]}"
+          xcrun stapler validate "${dmgs[0]}"
+
+      - name: Verify Windows signature and timestamp
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundleRoot = "apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          $packages = Get-ChildItem -Path $bundleRoot -Recurse -Include *.msi,*.exe -File
+          if ($packages.Count -eq 0) { throw "No Windows installer was produced." }
+          foreach ($package in $packages) {
+            $output = & signtool verify /pa /v $package.FullName 2>&1
+            if ($LASTEXITCODE -ne 0) { throw "Signature verification failed for $($package.FullName)." }
+            if ($output -notmatch 'Countersignature') { throw "Timestamp countersignature not found for $($package.FullName)." }
+            Write-Host "Verified signature and timestamp: $($package.FullName)"
+          }
 
       - name: Upload macOS artifacts
         if: runner.os == 'macOS'
